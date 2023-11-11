@@ -21,20 +21,6 @@ enum ENUM_CONSIDER
     Sell = POSITION_TYPE_SELL, // SELL ONLY
 };
 
-enum ENUM_CUSTOMTIMEFRAMES
-{
-    CURRENT = PERIOD_CURRENT,           // CURRENT PERIOD
-    M1 = PERIOD_M1,                     // M1
-    M5 = PERIOD_M5,                     // M5
-    M15 = PERIOD_M15,                   // M15
-    M30 = PERIOD_M30,                   // M30
-    H1 = PERIOD_H1,                     // H1
-    H4 = PERIOD_H4,                     // H4
-    D1 = PERIOD_D1,                     // D1
-    W1 = PERIOD_W1,                     // W1
-    MN1 = PERIOD_MN1,                   // MN1
-};
-
 input string Comment_1 = "====================";  // Expert Advisor Settings
 input int ATRPeriod = 14;                         // ATR Period
 input int Shift = 1;                              // Shift In The ATR Value (1=Previous Candle)
@@ -49,9 +35,9 @@ input string CommentFilter = "";                  // Comment (if above is true)
 input bool EnableTrailingParam = false;           // Enable Trailing Stop
 input string Comment_3 = "====================";  // Notification Options
 input bool EnableNotify = false;                  // Enable Notifications feature
-input bool SendAlert = true;                      // Send Alert Notification
-input bool SendApp = true;                        // Send Notification to Mobile
-input bool SendEmail = true;                      // Send Notification via Email
+input bool SendAlert = false;                      // Send Alert Notification
+input bool SendApp = false;                        // Send Notification to Mobile
+input bool SendEmail = false;                      // Send Notification via Email
 input string Comment_3a = "===================="; // Graphical Window
 input bool ShowPanel = true;                      // Show Graphical Panel
 input string ExpertName = "MQLTA-ATRTS";          // Expert Name (to name the objects)
@@ -101,6 +87,15 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    static int cnt = 0;
+
+    cnt++;
+    if (cnt < 20)
+    {
+        Print("ATR: ", GetATR(Symbol()));
+    }
+
+
     if (EnableTrailing) TrailingStop();
     if (ShowPanel) DrawPanel();
 }
@@ -189,44 +184,43 @@ void TrailingStop()
 
         double NewSL = 0;
         double NewTP = 0;
-        string Instrument = PositionGetString(POSITION_SYMBOL);
-        double SLBuy = GetStopLossBuy(Instrument);
-        double SLSell = GetStopLossSell(Instrument);
+        string posSymbol = PositionGetString(POSITION_SYMBOL);
+        double SLBuy  = GetStopLossBuy(posSymbol);
+        double SLSell = GetStopLossSell(posSymbol);
         if ((SLBuy == 0) || (SLSell == 0) || (SLSell == EMPTY_VALUE) || (SLSell == EMPTY_VALUE))
         {
             Print("Not enough historical data - please load more candles for the selected timeframe.");
             return;
         }
 
-        int eDigits = (int)SymbolInfoInteger(Instrument, SYMBOL_DIGITS);
-        SLBuy = NormalizeDouble(SLBuy, eDigits);
+        int eDigits = (int)SymbolInfoInteger(posSymbol, SYMBOL_DIGITS);
+        SLBuy  = NormalizeDouble(SLBuy, eDigits);
         SLSell = NormalizeDouble(SLSell, eDigits);
-        double SLPrice = NormalizeDouble(PositionGetDouble(POSITION_SL), eDigits);
-        double TPPrice = NormalizeDouble(PositionGetDouble(POSITION_TP), eDigits);
-        double Spread = SymbolInfoInteger(Instrument, SYMBOL_SPREAD) * SymbolInfoDouble(Instrument, SYMBOL_POINT);
-        double StopLevel = SymbolInfoInteger(Instrument, SYMBOL_TRADE_STOPS_LEVEL) * SymbolInfoDouble(Instrument, SYMBOL_POINT);
+        double PosSL = NormalizeDouble(PositionGetDouble(POSITION_SL), eDigits);
+        double PosTP = NormalizeDouble(PositionGetDouble(POSITION_TP), eDigits);
+        double Spread    = SymbolInfoInteger(posSymbol, SYMBOL_SPREAD)            * SymbolInfoDouble(posSymbol, SYMBOL_POINT);
+        double StopLevel = SymbolInfoInteger(posSymbol, SYMBOL_TRADE_STOPS_LEVEL) * SymbolInfoDouble(posSymbol, SYMBOL_POINT);
         // Adjust for tick size granularity.
-        double TickSize = SymbolInfoDouble(Instrument, SYMBOL_TRADE_TICK_SIZE);
+        double TickSize = SymbolInfoDouble(posSymbol, SYMBOL_TRADE_TICK_SIZE);
         if (TickSize > 0)
         {
-            SLBuy = NormalizeDouble(MathRound(SLBuy / TickSize) * TickSize, eDigits);
+            SLBuy  = NormalizeDouble(MathRound(SLBuy  / TickSize) * TickSize, eDigits);
             SLSell = NormalizeDouble(MathRound(SLSell / TickSize) * TickSize, eDigits);
         }
-        if ((PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) && (SLBuy < SymbolInfoDouble(Instrument, SYMBOL_BID) - StopLevel))
+        if ((PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) && (SLBuy < SymbolInfoDouble(posSymbol, SYMBOL_BID) - StopLevel))
         {
             NewSL = NormalizeDouble(SLBuy, eDigits);
-            NewTP = TPPrice;
-            if ((NewSL > SLPrice) || (SLPrice == 0))
+            NewTP = PosTP;
+            if ((NewSL > PosSL) || (PosSL == 0))
             {
-                
                 ModifyOrder((int)ticket, NewSL, NewTP);
             }
         }
-        else if ((PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL) && (SLSell > SymbolInfoDouble(Instrument, SYMBOL_ASK) + StopLevel))
+        else if ((PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL) && (SLSell > SymbolInfoDouble(posSymbol, SYMBOL_ASK) + StopLevel))
         {
             NewSL = NormalizeDouble(SLSell + Spread, eDigits);
-            NewTP = TPPrice;
-            if ((NewSL < SLPrice) || (SLPrice == 0))
+            NewTP = PosTP;
+            if ((NewSL < PosSL) || (PosSL == 0))
             {
                 ModifyOrder((int)ticket, NewSL, NewTP);
             }
@@ -234,24 +228,26 @@ void TrailingStop()
     }
 }
 
-void ModifyOrder(int Ticket, double SLPrice, double TPPrice)
+void ModifyOrder(int Ticket, double PosSL, double PosTP)
 {
     string symbol = PositionGetString(POSITION_SYMBOL);
     int eDigits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-    SLPrice = NormalizeDouble(SLPrice, eDigits);
-    TPPrice = NormalizeDouble(TPPrice, eDigits);
+    PosSL = NormalizeDouble(PosSL, eDigits);
+    PosTP = NormalizeDouble(PosTP, eDigits);
     for (int i = 1; i <= OrderOpRetry; i++)
     {
-        bool res = Trade.PositionModify(Ticket, SLPrice, TPPrice);
+        bool res = Trade.PositionModify(Ticket, PosSL, PosTP);
         if (!res)
         {
-            Print("Wrong position midification request: ", Ticket, " in ", symbol, " at SL = ", SLPrice, ", TP = ", TPPrice);
+            Print("Wrong position midification request: ", Ticket, " in ", symbol, " at SL = ", PosSL, ", TP = ", PosTP);
             return;
         }
-		if ((Trade.ResultRetcode() == 10008) || (Trade.ResultRetcode() == 10009) || (Trade.ResultRetcode() == 10010)) // Success.
+		if ((Trade.ResultRetcode() == TRADE_RETCODE_PLACED) 
+         || (Trade.ResultRetcode() == TRADE_RETCODE_DONE)
+         || (Trade.ResultRetcode() == TRADE_RETCODE_DONE_PARTIAL)) // Success.
         {
-            Print("TRADE - UPDATE SUCCESS - Position ", Ticket, " in ", symbol, ": new stop-loss ", SLPrice, " new take-profit ", TPPrice);
-            NotifyStopLossUpdate(Ticket, SLPrice, symbol);
+            Print("TRADE - UPDATE SUCCESS - Position ", Ticket, " in ", symbol, ": new stop-loss ", PosSL, " new take-profit ", PosTP);
+            NotifyStopLossUpdate(Ticket, PosSL, symbol);
             break;
         }
         else
@@ -261,22 +257,22 @@ void ModifyOrder(int Ticket, double SLPrice, double TPPrice)
             string ErrorText = GetLastErrorText(Error);
             Print("ERROR - UPDATE FAILED - error modifying position ", Ticket, " in ", symbol, " return error: ", Error, " Open=", PositionGetDouble(POSITION_PRICE_OPEN),
                   " Old SL=", PositionGetDouble(POSITION_SL), " Old TP=", PositionGetDouble(POSITION_TP),
-                  " New SL=", SLPrice, " New TP=", TPPrice, " Bid=", SymbolInfoDouble(symbol, SYMBOL_BID), " Ask=", SymbolInfoDouble(symbol, SYMBOL_ASK));
+                  " New SL=", PosSL, " New TP=", PosTP, " Bid=", SymbolInfoDouble(symbol, SYMBOL_BID), " Ask=", SymbolInfoDouble(symbol, SYMBOL_ASK));
             Print("ERROR - ", ErrorText);
         }
     }
 }
 
-void NotifyStopLossUpdate(int OrderNumber, double SLPrice, string symbol)
+void NotifyStopLossUpdate(int OrderNumber, double PosSL, string symbol)
 {
     if (!EnableNotify) return;
     if ((!SendAlert) && (!SendApp) && (!SendEmail)) return;
     string EmailSubject = ExpertName + " " + symbol + " Notification ";
     string EmailBody = AccountCompany() + " - " + AccountName() + " - " + IntegerToString(AccountNumber()) + "\r\n" + ExpertName + " Notification for " + symbol + "\r\n";
-    EmailBody += "Stop-loss for position " + IntegerToString(OrderNumber) + " moved to " + DoubleToString(SLPrice, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS));
-    string AlertText = symbol + " - stop-loss for position " + IntegerToString(OrderNumber) + " was moved to " + DoubleToString(SLPrice, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS));
+    EmailBody += "Stop-loss for position " + IntegerToString(OrderNumber) + " moved to " + DoubleToString(PosSL, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS));
+    string AlertText = symbol + " - stop-loss for position " + IntegerToString(OrderNumber) + " was moved to " + DoubleToString(PosSL, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS));
     string AppText = AccountCompany() + " - " + AccountName() + " - " + IntegerToString(AccountNumber()) + " - " + ExpertName + " - " + symbol + " - ";
-    AppText += "stop-loss for position: " + IntegerToString(OrderNumber) + " was moved to " + DoubleToString(SLPrice, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS)) + "";
+    AppText += "stop-loss for position: " + IntegerToString(OrderNumber) + " was moved to " + DoubleToString(PosSL, (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS)) + "";
     if (SendAlert) Alert(AlertText);
     if (SendEmail)
     {
