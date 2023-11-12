@@ -8,26 +8,27 @@
 #property indicator_chart_window
 #property indicator_buffers 2
 #property indicator_plots 2
-#property indicator_type1 DRAW_LINE
+#property indicator_type1 DRAW_COLOR_LINE
+#property indicator_color1 clrRed,clrGreen
 #property indicator_color1 C'127,191,127'
 #property indicator_style1 STYLE_SOLID
 #property indicator_label1 "Buy TP"
-#property indicator_type2 DRAW_LINE
-#property indicator_color2 C'191,127,127'
-#property indicator_style2 STYLE_SOLID
-#property indicator_label2 "Sell TP"
 
 input int    ATRper = 5;                        // ATR Period
 input double Mult   = 1;                        // Multiplier
 input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_D1; // Indicator timeframe
 
-double bu[], bd[];
+double bu[];
+//double bd[];
+double lineColors[];
+
 int hATR;
 
 void OnInit()
 {
     SetIndexBuffer(0, bu, INDICATOR_DATA);
-    SetIndexBuffer(1, bd, INDICATOR_DATA);
+    //SetIndexBuffer(1, bd, INDICATOR_DATA);
+    SetIndexBuffer(1, lineColors, INDICATOR_COLOR_INDEX);
     hATR = iATR(NULL, ATRtimeframe, ATRper);
 }
 
@@ -73,29 +74,24 @@ int OnCalculate(const int rates_total,
 
         if (upTrend)
         {
-            bu[i] = 0;
-
             double newBD = l_day - atr[1] * Mult;
             if (newBD > bdMax)
             {
-                bd[i] = newBD;
+                bu[i] = newBD;
                 bdMax = newBD;
             }
             else
             {
-                bd[i] = bd[i - 1];
+                bu[i] = bu[i - 1];
             }
-            if (bd[i] > low[i])
+            if (bu[i] > low[i])
             {
-                bd[i] = 0;
                 bdMax = 0;
                 upTrend = false;
             }
         }
         else
-        {
-            bd[i] = 0;
-            
+        {            
             double newBU = h_day + atr[1] * Mult;
             if (newBU < buMin)
             {
@@ -108,7 +104,6 @@ int OnCalculate(const int rates_total,
             }
             if (bu[i] < high[i])
             {
-                bu[i] = 0;
                 buMin = 9999999.9;
                 upTrend = true;
             }
