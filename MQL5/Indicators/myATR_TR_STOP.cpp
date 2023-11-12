@@ -73,7 +73,7 @@ int OnCalculate(const int rates_total,
 
         if (upTrend)
         {
-            bu[i] = 0;
+            bu[i] = 99999.9;
 
             double newBD = l_day - atr[1] * Mult;
             if (newBD > bdMax)
@@ -87,7 +87,7 @@ int OnCalculate(const int rates_total,
             }
             if (bd[i] > low[i])
             {
-                bd[i] = 0;
+                //bd[i] = 0;
                 bdMax = 0;
                 upTrend = false;
             }
@@ -95,7 +95,7 @@ int OnCalculate(const int rates_total,
         else
         {
             bd[i] = 0;
-            
+
             double newBU = h_day + atr[1] * Mult;
             if (newBU < buMin)
             {
@@ -108,12 +108,11 @@ int OnCalculate(const int rates_total,
             }
             if (bu[i] < high[i])
             {
-                bu[i] = 0;
+                //bu[i] = 0;
                 buMin = 9999999.9;
                 upTrend = true;
             }
         }
-
     }
     return (rates_total);
 }
