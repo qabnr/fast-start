@@ -20,12 +20,12 @@
 input int             ATRper       = 5;         //ATR Period
 input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_D1; //Indicator timeframe
 
-double bu[],bd[];
+double buBuffer[],bd[];
 int hATR;
 
 void OnInit()
 {
-   SetIndexBuffer(0,bu,INDICATOR_DATA);
+   SetIndexBuffer(0,buBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,bd,INDICATOR_DATA);
    hATR=iATR(NULL,ATRtimeframe,ATRper);
 }
@@ -62,7 +62,7 @@ int OnCalculate(const int rates_total,
          if(high[i]>h_day) h_day=high[i];
          if(low[i]<l_day) l_day=low[i];
         }
-      bu[i]=l_day+atr[1];
+      buBuffer[i]=l_day+atr[1];
       bd[i]=h_day-atr[1];
    }
    return(rates_total);
