@@ -9,14 +9,14 @@
 #property indicator_buffers 2
 #property indicator_plots 1
 #property indicator_type1 DRAW_COLOR_LINE
-#property indicator_color1 clrRed, clrGreen, clrBlack
+#property indicator_color1 clrRed, clrGreen, clrDarkSlateGray
 #property indicator_style1 STYLE_SOLID
-#property indicator_width1  3
+#property indicator_width1 2
 #property indicator_label1 "Buy TP"
 
 input int    ATRper = 5;                        // ATR Period
 input double Mult   = 1;                        // Multiplier
-input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_D1; // Indicator timeframe
+input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
 
 double buBuffer[];
 double colorBuffer[];
@@ -72,7 +72,7 @@ int OnCalculate(const int rates_total,
 
         if (upTrend)
         {
-            colorBuffer[i] = bdMax > 0 ? 0 : 3;
+            colorBuffer[i] = 0; //bdMax > 0 ? 0 : 3;
 
             double newBD = l_day - atr[1] * Mult;
             if (newBD > bdMax)
@@ -94,7 +94,7 @@ int OnCalculate(const int rates_total,
         }
         else
         {
-            colorBuffer[i] = buMin < 9999999.9 ? 1 : 3;
+            colorBuffer[i] = 1; //buMin < 9999999.9 ? 1 : 3;
 
             double newBU = h_day + atr[1] * Mult;
             if (newBU < buMin)
