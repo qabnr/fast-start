@@ -9,7 +9,7 @@
 #property indicator_buffers 2
 #property indicator_plots 1
 #property indicator_type1 DRAW_COLOR_LINE
-#property indicator_color1 clrRed, clrGreen, clrDarkSlateGray
+#property indicator_color1 clrRed, clrGreen, clrBlack
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 2
 #property indicator_label1 "Buy TP"
@@ -42,13 +42,13 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 
 {
-    static double buMin = 9999999.9;
+    static double buMin = DBL_MAX;
     static double bdMax = 0.0;
 
     static bool upTrend = true;
 
     int i, day_n = 0, day_t = 0;
-    double atr[], h_day = 0, l_day = 999999.0;
+    double atr[], h_day = 0, l_day = DBL_MAX;
 
     CopyBuffer(hATR, 0, 0, 2, atr);
     ArraySetAsSeries(atr, true);
@@ -72,7 +72,7 @@ int OnCalculate(const int rates_total,
 
         if (upTrend)
         {
-            colorBuffer[i] = 0; //bdMax > 0 ? 0 : 3;
+            colorBuffer[i] = bdMax > 0 ? 0 : 2;
 
             double newBD = l_day - atr[1] * Mult;
             if (newBD > bdMax)
@@ -89,12 +89,11 @@ int OnCalculate(const int rates_total,
             {
                 bdMax = 0;
                 upTrend = false;
-                colorBuffer[i] = 2;
             }
         }
         else
         {
-            colorBuffer[i] = 1; //buMin < 9999999.9 ? 1 : 3;
+            colorBuffer[i] = buMin < DBL_MAX ? 1 : 2;
 
             double newBU = h_day + atr[1] * Mult;
             if (newBU < buMin)
@@ -108,9 +107,8 @@ int OnCalculate(const int rates_total,
             }
             if (buBuffer[i] < high[i])
             {
-                buMin = 9999999.9;
+                buMin = DBL_MAX;
                 upTrend = true;
-                colorBuffer[i] = 2;
             }
         }
 
