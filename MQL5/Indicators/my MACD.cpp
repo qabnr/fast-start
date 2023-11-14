@@ -14,20 +14,27 @@
 #property description "All other parameters like in the standard MACD."
  
 #property indicator_separate_window
-#property indicator_buffers 2
-#property indicator_plots   2
+#property indicator_buffers 3
+#property indicator_plots   3
 //--- the MACD plot
 #property indicator_label1  "MACD"
-#property indicator_type1   DRAW_HISTOGRAM
-#property indicator_color1  clrSilver
+#property indicator_type1   DRAW_LINE
+#property indicator_color1  clrRed
 #property indicator_style1  STYLE_SOLID
 #property indicator_width1  1
 //--- the Signal plot
 #property indicator_label2  "Signal"
 #property indicator_type2   DRAW_LINE
-#property indicator_color2  clrRed
-#property indicator_style2  STYLE_DOT
+#property indicator_color2  clrPurple
+#property indicator_style2  STYLE_SOLID
 #property indicator_width2  1
+//--- the OsMA plot
+#property indicator_label3  "OsMA"
+#property indicator_type3   DRAW_HISTOGRAM
+#property indicator_color3  clrGreen, clrRed
+#property indicator_style3  STYLE_SOLID
+#property indicator_width3  1 
+
 //+------------------------------------------------------------------+
 //| Enumeration of the methods of handle creation                    |
 //+------------------------------------------------------------------+
@@ -47,6 +54,7 @@ input ENUM_TIMEFRAMES      period=PERIOD_CURRENT;     // timeframe
 //--- indicator buffers
 double         MACDBuffer[];
 double         SignalBuffer[];
+double         OsMABuffer[];
 //--- variable for storing the handle of the iMACD indicator
 int    handle;
 //--- variable for storing
@@ -63,6 +71,7 @@ int OnInit()
 //--- assignment of arrays to indicator buffers
    SetIndexBuffer(0,MACDBuffer,INDICATOR_DATA);
    SetIndexBuffer(1,SignalBuffer,INDICATOR_DATA);
+   SetIndexBuffer(2,OsMABuffer,INDICATOR_DATA);
 //--- determine the symbol the indicator is drawn for
    name=symbol;
 //--- delete spaces to the right and to the left
@@ -178,7 +187,7 @@ bool FillArraysFromBuffers(double &macd_buffer[],    // indicator buffer of MACD
 //--- reset error code
    ResetLastError();
 //--- fill a part of the iMACDBuffer array with values from the indicator buffer that has 0 index
-   if(CopyBuffer(ind_handle,0,0,amount,macd_buffer)<0)
+   if(CopyBuffer(ind_handle,0,0,amount,MACDBuffer)<0)
      {
       //--- if the copying fails, tell the error code
       PrintFormat("Failed to copy data from the iMACD indicator, error code %d",GetLastError());
@@ -194,6 +203,10 @@ bool FillArraysFromBuffers(double &macd_buffer[],    // indicator buffer of MACD
       //--- quit with zero result - it means that the indicator is considered as not calculated
       return(false);
      }
+     for (int i = 0; i < amount; i++)
+     {
+        OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
+     }
 //--- everything is fine
    return(true);
   }
@@ -207,4 +220,3 @@ void OnDeinit(const int reason)
 //--- clear the chart after deleting the indicator
    Comment("");
   }
-  
