@@ -7,27 +7,26 @@
 #property version "1.00"
 #property indicator_chart_window
 #property indicator_buffers 2
-#property indicator_plots 2
-#property indicator_type1 DRAW_LINE
-#property indicator_color1 C'127,191,127'
+#property indicator_plots 1
+#property indicator_type1 DRAW_COLOR_LINE
+#property indicator_color1 clrRed, clrGreen, clrBlack
 #property indicator_style1 STYLE_SOLID
+#property indicator_width1 2
 #property indicator_label1 "Buy TP"
-#property indicator_type2 DRAW_LINE
-#property indicator_color2 C'191,127,127'
-#property indicator_style2 STYLE_SOLID
-#property indicator_label2 "Sell TP"
 
-input int    ATRper = 5;                        // ATR Period
-input double Mult   = 1;                        // Multiplier
-input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_D1; // Indicator timeframe
+input int    ATRper = 100;                           // ATR Period
+input double Mult   = 1;                             // Multiplier
+input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
 
-double bu[], bd[];
+double buBuffer[];
+double colorBuffer[];
+
 int hATR;
 
 void OnInit()
 {
-    SetIndexBuffer(0, bu, INDICATOR_DATA);
-    SetIndexBuffer(1, bd, INDICATOR_DATA);
+    SetIndexBuffer(0, buBuffer,    INDICATOR_DATA);
+    SetIndexBuffer(1, colorBuffer, INDICATOR_COLOR_INDEX);
     hATR = iATR(NULL, ATRtimeframe, ATRper);
 }
 
@@ -43,73 +42,59 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 
 {
-    static double buMin = 9999999.9;
+    static double buMin = DBL_MAX;
     static double bdMax = 0.0;
 
     static bool upTrend = true;
 
     int i, day_n = 0, day_t = 0;
-    double atr[], h_day = 0, l_day = 999999.0;
+    double atr[];
 
     CopyBuffer(hATR, 0, 0, 2, atr);
     ArraySetAsSeries(atr, true);
 
     for (i = prev_calculated; i < rates_total; i++)
-    {
-        day_t = time[i] / PeriodSeconds(ATRtimeframe);
-        if (day_n < day_t)
-        {
-            day_n = day_t;
-            l_day = low[i];
-            h_day = high[i];
-        }
-        else
-        {
-            if (high[i] > h_day)
-                h_day = high[i];
-            if (low[i] < l_day)
-                l_day = low[i];
-        }
-
+    {       
         if (upTrend)
         {
-            bu[i] = 99999.9;
+            colorBuffer[i] = bdMax > 0 ? 0 : 2;
 
-            double newBD = l_day - atr[1] * Mult;
+            double newBD = low[i] - atr[1] * Mult;
             if (newBD > bdMax)
             {
-                bd[i] = newBD;
+                buBuffer[i] = newBD;
                 bdMax = newBD;
             }
             else
             {
-                bd[i] = bd[i - 1];
+                buBuffer[i] = buBuffer[i - 1];
             }
-            if (bd[i] > low[i])
+
+            if (buBuffer[i] > low[i])
+            if (buBuffer[i-1] > low[i-1])
             {
-                //bd[i] = 0;
                 bdMax = 0;
                 upTrend = false;
             }
         }
         else
         {
-            bd[i] = 0;
+            colorBuffer[i] = buMin < DBL_MAX ? 1 : 2;
 
-            double newBU = h_day + atr[1] * Mult;
+            double newBU = high[i] + atr[1] * Mult;
             if (newBU < buMin)
             {
-                bu[i] = newBU;
+                buBuffer[i] = newBU;
                 buMin = newBU;
             }
             else
             {
-                bu[i] = bu[i - 1];
+                buBuffer[i] = buBuffer[i - 1];
             }
-            if (bu[i] < high[i])
+            if (buBuffer[i] < high[i])
+            if (buBuffer[i-1] < high[i-1])
             {
-                //bu[i] = 0;
-                buMin = 9999999.9;
+                buMin = DBL_MAX;
                 upTrend = true;
             }
         }
