@@ -14,8 +14,8 @@
 #property indicator_width1 2
 #property indicator_label1 "Buy TP"
 
-input int    ATRper = 5;                        // ATR Period
-input double Mult   = 1;                        // Multiplier
+input int    ATRper = 100;                           // ATR Period
+input double Mult   = 1;                             // Multiplier
 input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
 
 double buBuffer[];
@@ -48,33 +48,18 @@ int OnCalculate(const int rates_total,
     static bool upTrend = true;
 
     int i, day_n = 0, day_t = 0;
-    double atr[], h_day = 0, l_day = DBL_MAX;
+    double atr[];
 
     CopyBuffer(hATR, 0, 0, 2, atr);
     ArraySetAsSeries(atr, true);
 
     for (i = prev_calculated; i < rates_total; i++)
-    {
-        day_t = time[i] / PeriodSeconds(ATRtimeframe);
-        if (day_n < day_t)
-        {
-            day_n = day_t;
-            l_day = low[i];
-            h_day = high[i];
-        }
-        else
-        {
-            if (high[i] > h_day)
-                h_day = high[i];
-            if (low[i] < l_day)
-                l_day = low[i];
-        }
-
+    {       
         if (upTrend)
         {
             colorBuffer[i] = bdMax > 0 ? 0 : 2;
 
-            double newBD = l_day - atr[1] * Mult;
+            double newBD = low[i] - atr[1] * Mult;
             if (newBD > bdMax)
             {
                 buBuffer[i] = newBD;
@@ -86,6 +71,7 @@ int OnCalculate(const int rates_total,
             }
 
             if (buBuffer[i] > low[i])
+            if (buBuffer[i-1] > low[i-1])
             {
                 bdMax = 0;
                 upTrend = false;
@@ -95,7 +81,7 @@ int OnCalculate(const int rates_total,
         {
             colorBuffer[i] = buMin < DBL_MAX ? 1 : 2;
 
-            double newBU = h_day + atr[1] * Mult;
+            double newBU = high[i] + atr[1] * Mult;
             if (newBU < buMin)
             {
                 buBuffer[i] = newBU;
@@ -106,6 +92,7 @@ int OnCalculate(const int rates_total,
                 buBuffer[i] = buBuffer[i - 1];
             }
             if (buBuffer[i] < high[i])
+            if (buBuffer[i-1] < high[i-1])
             {
                 buMin = DBL_MAX;
                 upTrend = true;
