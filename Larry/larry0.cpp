@@ -11,12 +11,10 @@
 #property description "in case of the profitable zone."
 */
 
-#include "my_mq5_defs.h"
-
-/* input */ int    StartHour  =  7; 
-/* input */ int    EndHour    =  19; 
-/* input */ int    MAper      =  240; 
-/* input */ double Lots       =  0.1; 
+input int    StartHour  =  7; 
+input int    EndHour    =  19; 
+input int    MAper      =  240; 
+input double Lots       =  0.1; 
 
 int hMA, hCI; 
 //+------------------------------------------------------------------+
@@ -53,27 +51,32 @@ void OnTick()
    request.type_filling = ORDER_FILLING_FOK; 
 
    TimeCurrent(dt); 
-   i = (dt.hour+1)*60; 
-   if (CopyTime(Symbol(), /* current time frame */ 0, /* StartPos */ 0, /* cnt */ i, time) < i 
-    || CopyHigh(Symbol(), /* current time frame */ 0, /* StartPos */ 0, /* cnt */ i, high) < i
-    || CopyLow (Symbol(), /* current time frame */ 0, /* StartPos */ 0, /* cnt */ i, low ) < i)
+   const int cnt = (dt.hour+1)*60;
+   const int StartPos = 0;
+   if (CopyTime(Symbol(), PERIOD_CURRENT, StartPos, cnt, time) < i 
+    || CopyHigh(Symbol(), PERIOD_CURRENT, StartPos, cnt, high) < i
+    || CopyLow (Symbol(), PERIOD_CURRENT, StartPos, cnt, low ) < i)
        { Print("Can't copy timeseries!");  return; }
+
    ArraySetAsSeries(time, true); 
    ArraySetAsSeries(high, true); 
    ArraySetAsSeries(low,  true); 
    highestPriceOfDay = high[0]; 
    lowestPriceOfDay  = low[0]; 
+   
    for(i = 1; i < ArraySize(time)
         && MathFloor(time[i] / 86400) == MathFloor(time[0] / 86400); // same day
         i++)
-   {  if (high[i] > highestPriceOfDay) highestPriceOfDay = high[i]; 
+   {
+      if (high[i] > highestPriceOfDay) highestPriceOfDay = high[i]; 
       if (low[i]  < lowestPriceOfDay)  lowestPriceOfDay  = low[i]; 
    }
+   
    highestPriceOfDay += Spread + _Point; 
    lowestPriceOfDay  -= _Point; 
-   if (CopyBuffer(hMA, /* Buffer */ 0, /* StartPos */ 0, /* Len */ 2, movingAvg) < 2
-    || CopyBuffer(hCI, /* Buffer */ 0, /* StartPos */ 0, /* Len */ 1, atr_hi) < 1
-    || CopyBuffer(hCI, /* Buffer */ 1, /* StartPos */ 0, /* Len */ 1, atr_lo) < 1)
+   if (CopyBuffer(hMA, /* Buffer */ 0, StartPos, /* Len */ 2, movingAvg) < 2
+    || CopyBuffer(hCI, /* Buffer */ 0, StartPos, /* Len */ 1, atr_hi) < 1
+    || CopyBuffer(hCI, /* Buffer */ 1, StartPos, /* Len */ 1, atr_lo) < 1)
       {  Print("Can't copy indicator buffer!"); return; }
    ArraySetAsSeries(movingAvg, true); 
    atr_lo[0] += Spread; 
@@ -81,7 +84,10 @@ void OnTick()
    for(i = 0; i < PositionsTotal(); i++)    // check all opened positions
    {  if (Symbol() == PositionGetSymbol(i)) // process orders with "our" symbols only
       {  // we will change the values of StopLoss and TakeProfit
-         request.action = TRADE_ACTION_SLTP; 
+         request.action = TRADE_ACTION_SLTP;
+         double pos_StopLoss = PositionGetDouble(POSITION_SL);
+         double pos_TakeProfit = PositionGetDouble(POSITION_TP);
+
          if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)  // process long positions 
          {  // let's determine StopLoss
             if (movingAvg[1] > PositionGetDouble(POSITION_PRICE_OPEN)) 
@@ -89,8 +95,6 @@ void OnTick()
               else
             { StopLoss = lowestPriceOfDay; }
             
-            double pos_StopLoss   = PositionGetDouble(POSITION_SL);
-            double pos_TakeProfit = PositionGetDouble(POSITION_TP);
             if (  // if StopLoss is not defined or lower than needed
                   (  pos_StopLoss == 0   || pos_StopLoss < StopLoss
                   // if TakeProfit is not defined or higer than needed
@@ -115,7 +119,7 @@ void OnTick()
               else 
             { StopLoss = highestPriceOfDay; }
             // if StopLoss is not defined or higher than needed
-            if ((pos_StopLoss == 0    || pos_StopLoss > StopLoss
+            if (pos_StopLoss == 0    || pos_StopLoss > StopLoss
                // if TakeProfit is not defined or lower than needed
                || pos_TakeProfit == 0 || atr_lo[0] > pos_TakeProfit
                // is new StopLoss close to the current price?
@@ -143,9 +147,9 @@ void OnTick()
          {  // check if there is trading time and price movement is possible
             if (dt.hour >= StartHour && dt.hour<EndHour && highestPriceOfDay<atr_hi[0])
             {  // if the opening price is lower than needed
-               if ((highestPriceOfDay > OrderGetDouble(ORDER_PRICE_OPEN)
+               if (highestPriceOfDay > OrderGetDouble(ORDER_PRICE_OPEN)
                   // if StopLoss is not defined or higher than needed
-                  || OrderGetDouble(ORDER_SL) == 0 || (OrderGetDouble(ORDER_SL)-lowestPriceOfDay, _Digits) != 0)
+                  || OrderGetDouble(ORDER_SL) == 0 || OrderGetDouble(ORDER_SL) != lowestPriceOfDay
                   // is opening price close to the current price?
                   && NormalizeDouble(highestPriceOfDay - ask-StopLevel, _Digits) > 0)
                {
