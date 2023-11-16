@@ -35,7 +35,6 @@ void OnTick()
    MqlDateTime dt; 
    ZeroMemory(request); 
    bool is_BuyStopOrder = false, is_SellStopOrder = false; 
-   int i; 
    ulong ticket; 
    datetime time[];
    double bid = SymbolInfoDouble(Symbol(), SYMBOL_BID);
@@ -53,9 +52,12 @@ void OnTick()
    TimeCurrent(dt); 
    const int cnt = (dt.hour+1)*60;
    const int StartPos = 0;
-   if (CopyTime(Symbol(), PERIOD_CURRENT, StartPos, cnt, time) < i 
-    || CopyHigh(Symbol(), PERIOD_CURRENT, StartPos, cnt, high) < i
-    || CopyLow (Symbol(), PERIOD_CURRENT, StartPos, cnt, low ) < i)
+   const int Buffer0 = 0;
+   const int Buffer1 = 1;
+
+   if (CopyTime(Symbol(), PERIOD_CURRENT, StartPos, cnt, time) < cnt 
+    || CopyHigh(Symbol(), PERIOD_CURRENT, StartPos, cnt, high) < cnt
+    || CopyLow (Symbol(), PERIOD_CURRENT, StartPos, cnt, low ) < cnt)
        { Print("Can't copy timeseries!");  return; }
 
    ArraySetAsSeries(time, true); 
@@ -64,6 +66,7 @@ void OnTick()
    highestPriceOfDay = high[0]; 
    lowestPriceOfDay  = low[0]; 
    
+   int i; 
    for(i = 1; i < ArraySize(time)
         && MathFloor(time[i] / 86400) == MathFloor(time[0] / 86400); // same day
         i++)
@@ -74,9 +77,10 @@ void OnTick()
    
    highestPriceOfDay += Spread + _Point; 
    lowestPriceOfDay  -= _Point; 
-   if (CopyBuffer(hMA, /* Buffer */ 0, StartPos, /* Len */ 2, movingAvg) < 2
-    || CopyBuffer(hCI, /* Buffer */ 0, StartPos, /* Len */ 1, atr_hi) < 1
-    || CopyBuffer(hCI, /* Buffer */ 1, StartPos, /* Len */ 1, atr_lo) < 1)
+
+   if (CopyBuffer(hMA, Buffer0, StartPos, /* Len */ 2, movingAvg) < 2
+    || CopyBuffer(hCI, Buffer0, StartPos, /* Len */ 1, atr_hi) < 1
+    || CopyBuffer(hCI, Buffer1, StartPos, /* Len */ 1, atr_lo) < 1)
       {  Print("Can't copy indicator buffer!"); return; }
    ArraySetAsSeries(movingAvg, true); 
    atr_lo[0] += Spread; 
@@ -85,7 +89,8 @@ void OnTick()
    {  if (Symbol() == PositionGetSymbol(i)) // process orders with "our" symbols only
       {  // we will change the values of StopLoss and TakeProfit
          request.action = TRADE_ACTION_SLTP;
-         double pos_StopLoss = PositionGetDouble(POSITION_SL);
+
+         double pos_StopLoss   = PositionGetDouble(POSITION_SL);
          double pos_TakeProfit = PositionGetDouble(POSITION_TP);
 
          if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)  // process long positions 
@@ -119,13 +124,13 @@ void OnTick()
               else 
             { StopLoss = highestPriceOfDay; }
             // if StopLoss is not defined or higher than needed
-            if (pos_StopLoss == 0    || pos_StopLoss > StopLoss
+            if ( (pos_StopLoss == 0    || pos_StopLoss > StopLoss
                // if TakeProfit is not defined or lower than needed
-               || pos_TakeProfit == 0 || atr_lo[0] > pos_TakeProfit
+               || pos_TakeProfit == 0 || atr_lo[0] > pos_TakeProfit)
                // is new StopLoss close to the current price?
-               && NormalizeDouble(StopLoss - ask - StopLevel, _Digits) > 0
+               && (NormalizeDouble(StopLoss - ask - StopLevel, _Digits) > 0)
                // is new TakeProfit close to the current price?
-               && NormalizeDouble(ask - atr_lo[0] - StopLevel, _Digits) > 0)
+               && (NormalizeDouble(ask - atr_lo[0] - StopLevel, _Digits) > 0))
             {
                request.sl = NormalizeDouble(StopLoss, _Digits); 
                request.tp = NormalizeDouble(atr_lo[0], _Digits); 
@@ -147,9 +152,9 @@ void OnTick()
          {  // check if there is trading time and price movement is possible
             if (dt.hour >= StartHour && dt.hour<EndHour && highestPriceOfDay<atr_hi[0])
             {  // if the opening price is lower than needed
-               if (highestPriceOfDay > OrderGetDouble(ORDER_PRICE_OPEN)
+               if ((highestPriceOfDay > OrderGetDouble(ORDER_PRICE_OPEN)
                   // if StopLoss is not defined or higher than needed
-                  || OrderGetDouble(ORDER_SL) == 0 || OrderGetDouble(ORDER_SL) != lowestPriceOfDay
+                  || OrderGetDouble(ORDER_SL) == 0 || OrderGetDouble(ORDER_SL) != lowestPriceOfDay)
                   // is opening price close to the current price?
                   && NormalizeDouble(highestPriceOfDay - ask-StopLevel, _Digits) > 0)
                {
