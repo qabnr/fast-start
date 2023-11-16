@@ -2,7 +2,7 @@
 #property copyright   "Denis Zyatkevich"
 #property version     "1.00"
 #property description "This Expert Advisor places pending orders"
-#property description "during StartHour to EndHour at distance"
+
 #property description "1 point out of the daily range. StopLoss price"
 #property description "of each order is placed on the opposite side"
 #property description "of the price range. After order execution"
@@ -11,9 +11,7 @@
 #property description "in case of the profitable zone."
 */
 
-input int    StartHour  =  7; 
-input int    EndHour    =  19; 
-input int    MAper      =  240; 
+input int    MA_period      =  240; 
 input double Lots       =  0.1; 
 
 int hMA, hCI; 
@@ -22,7 +20,7 @@ int hMA, hCI;
 //+------------------------------------------------------------------+
 void OnInit()
 {
-   hMA =     iMA(NULL, 0, MAper, 0, MODE_SMA, PRICE_CLOSE);
+   hMA =     iMA(NULL, 0, MA_period, 0, MODE_SMA, PRICE_CLOSE);
    hCI = iCustom(NULL, 0, "indicator_TP"); 
 }
 //+------------------------------------------------------------------+
@@ -150,7 +148,7 @@ void OnTick()
       {  // process Buy Stop orders
          if (OrderGetInteger(ORDER_TYPE) == ORDER_TYPE_BUY_STOP)
          {  // check if there is trading time and price movement is possible
-            if (dt.hour >= StartHour && dt.hour<EndHour && highestPriceOfDay<atr_hi[0])
+            if (highestPriceOfDay < atr_hi[0])
             {  // if the opening price is lower than needed
                if ((highestPriceOfDay > OrderGetDouble(ORDER_PRICE_OPEN)
                   // if StopLoss is not defined or higher than needed
@@ -180,7 +178,7 @@ void OnTick()
          // processing Sell Stop orders
          if (OrderGetInteger(ORDER_TYPE) == ORDER_TYPE_SELL_STOP)
          {  // check if there is trading time and price movement is possible
-            if (dt.hour >= StartHour && dt.hour<EndHour && lowestPriceOfDay > atr_lo[0])
+            if (lowestPriceOfDay > atr_lo[0])
             {  // if the opening price is higher than needed
                if ((NormalizeDouble(OrderGetDouble(ORDER_PRICE_OPEN)-lowestPriceOfDay, _Digits) > 0
                   // if StopLoss is not defined or lower than need
@@ -210,23 +208,20 @@ void OnTick()
          }
       }
    }
-   request.action = TRADE_ACTION_PENDING; 
-   if (dt.hour >= StartHour && dt.hour < EndHour)
+   request.action = TRADE_ACTION_PENDING;
+   if (is_BuyStopOrder == false && highestPriceOfDay < atr_hi[0])
    {
-      if (is_BuyStopOrder == false && highestPriceOfDay < atr_hi[0])
-      {
-         request.price = NormalizeDouble(highestPriceOfDay, _Digits); 
-         request.sl    = NormalizeDouble(lowestPriceOfDay,  _Digits); 
-         request.type  = ORDER_TYPE_BUY_STOP; 
-         OrderSend(request, result); 
-      }
-      if (is_SellStopOrder == false && lowestPriceOfDay > atr_lo[0])
-      {
-         request.price = NormalizeDouble(lowestPriceOfDay,  _Digits); 
-         request.sl    = NormalizeDouble(highestPriceOfDay, _Digits); 
-         request.type  = ORDER_TYPE_SELL_STOP; 
-         OrderSend(request, result); 
-      }
+      request.price = NormalizeDouble(highestPriceOfDay, _Digits);
+      request.sl = NormalizeDouble(lowestPriceOfDay, _Digits);
+      request.type = ORDER_TYPE_BUY_STOP;
+      OrderSend(request, result);
+   }
+   if (is_SellStopOrder == false && lowestPriceOfDay > atr_lo[0])
+   {
+      request.price = NormalizeDouble(lowestPriceOfDay, _Digits);
+      request.sl = NormalizeDouble(highestPriceOfDay, _Digits);
+      request.type = ORDER_TYPE_SELL_STOP;
+      OrderSend(request, result);
    }
 }
 //+------------------------------------------------------------------+
