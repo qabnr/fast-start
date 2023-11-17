@@ -14,13 +14,17 @@
 
 int               iMA_handle;                                               //variable for storing the indicator handle
 double            iMA_buf[];                                                //dynamic array for storing indicator values
+double            ATR_ST_buf[];
 double            Close_buf[];                                              //dynamic array for storing the closing price of each bar
+
+int ATR_ST_handle;
 
 string            my_symbol;                                                //variable for storing the symbol
 ENUM_TIMEFRAMES   my_timeframe;                                             //variable for storing the time frame
 
 CTrade            m_Trade;                                                  //structure for execution of trades
 CPositionInfo     m_Position;                                               //structure for obtaining information of positions
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -31,12 +35,22 @@ int OnInit()
     iMA_handle = iMA(my_symbol, my_timeframe, 40, 0, MODE_SMA, PRICE_CLOSE); // apply the indicator and get its handle
     if (iMA_handle == INVALID_HANDLE)                                        // check the availability of the indicator handle
     {
-        Print("Failed to get the indicator handle");                        // if the handle is not obtained, print the relevant error message into the log file
+        Print("Failed to get the MA indicator handle");                     // if the handle is not obtained, print the relevant error message into the log file
         return (-1);                                                        // complete handling the error
     }
-    ChartIndicatorAdd(ChartID(), 0, iMA_handle);                            // add the indicator to the price chart
     ArraySetAsSeries(iMA_buf, true);                                        // set iMA_buf array indexing as time series
     ArraySetAsSeries(Close_buf, true);                                      // set Close_buf array indexing as time series
+
+    ATR_ST_handle = iCustom(NULL, 0, "myATR_TR_STOP", 100, 2); 
+    if (ATR_ST_handle == INVALID_HANDLE)
+    {
+        Print("Failed to get the ATR TR STOP indicator handle");
+        return (-1);
+    }
+    ArraySetAsSeries(ATR_ST_buf, true);
+
+
+
     return (0);                                                             // return 0, initialization complete
 }
 //+------------------------------------------------------------------+
@@ -45,7 +59,9 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     IndicatorRelease(iMA_handle);                                           // deletes the indicator handle and deallocates the memory space it occupies
+    IndicatorRelease(ATR_ST_handle);
     ArrayFree(iMA_buf);                                                     // free the dynamic array iMA_buf of data
+    ArrayFree(ATR_ST_buf);
     ArrayFree(Close_buf);                                                   // free the dynamic array Close_buf of data
 }
 //+------------------------------------------------------------------+
@@ -53,12 +69,14 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    int err1 = 0;                                                           // variable for storing the results of working with the indicator buffer
-    int err2 = 0;                                                           // variable for storing the results of working with the price chart
+    int retC1;                                                           // variable for storing the results of working with the indicator buffer
+    int retC2;                                                           // variable for storing the results of working with the price chart
+    int retC3;
 
-    err1 = CopyBuffer(iMA_handle, 0, 1, 2, iMA_buf);                        // copy data from the indicator array into the dynamic array iMA_buf for further work with them
-    err2 = CopyClose(my_symbol, my_timeframe, 1, 2, Close_buf);             // copy the price chart data into the dynamic array Close_buf for further work with them
-    if (err1 < 0 || err2 < 0)                                               // in case of errors
+    retC1 = CopyBuffer(iMA_handle, 0, 1, 2, iMA_buf);                        // copy data from the indicator array into the dynamic array iMA_buf for further work with them
+    retC3 = CopyBuffer(ATR_ST_handle, 0, 1, 2, ATR_ST_buf);
+    retC2 = CopyClose(my_symbol, my_timeframe, 1, 2, Close_buf);             // copy the price chart data into the dynamic array Close_buf for further work with them
+    if (retC1 < 0 || retC2 < 0 || retC3 < 0)
     {
         Print("Failed to copy data from the indicator buffer or price chart buffer"); // then print the relevant error message into the log file
         return;                                                                       // and exit the function

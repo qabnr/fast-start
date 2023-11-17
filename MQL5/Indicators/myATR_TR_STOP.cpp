@@ -16,7 +16,8 @@
 
 input int    ATRper = 100;                           // ATR Period
 input double Mult   = 1;                             // Multiplier
-input ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
+
+/* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
 
 double buBuffer[];
 double colorBuffer[];
