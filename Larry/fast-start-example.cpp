@@ -15,6 +15,7 @@
 int               iMA_handle;                                               //variable for storing the indicator handle
 double            iMA_buf[];                                                //dynamic array for storing indicator values
 double            ATR_ST_buf[];
+double            ATR_Color_buf[];
 double            Close_buf[];                                              //dynamic array for storing the closing price of each bar
 
 int ATR_ST_handle;
@@ -24,6 +25,8 @@ ENUM_TIMEFRAMES   my_timeframe;                                             //va
 
 CTrade            m_Trade;                                                  //structure for execution of trades
 CPositionInfo     m_Position;                                               //structure for obtaining information of positions
+
+double min_volume;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -40,6 +43,7 @@ int OnInit()
     }
     ArraySetAsSeries(iMA_buf, true);                                        // set iMA_buf array indexing as time series
     ArraySetAsSeries(Close_buf, true);                                      // set Close_buf array indexing as time series
+    
 
     ATR_ST_handle = iCustom(NULL, 0, "myATR_TR_STOP", 100, 2); 
     if (ATR_ST_handle == INVALID_HANDLE)
@@ -48,8 +52,8 @@ int OnInit()
         return (-1);
     }
     ArraySetAsSeries(ATR_ST_buf, true);
-
-
+    
+    min_volume = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
 
     return (0);                                                             // return 0, initialization complete
 }
@@ -62,6 +66,7 @@ void OnDeinit(const int reason)
     IndicatorRelease(ATR_ST_handle);
     ArrayFree(iMA_buf);                                                     // free the dynamic array iMA_buf of data
     ArrayFree(ATR_ST_buf);
+    ArrayFree(ATR_Color_buf);
     ArrayFree(Close_buf);                                                   // free the dynamic array Close_buf of data
 }
 //+------------------------------------------------------------------+
@@ -72,9 +77,11 @@ void OnTick()
     int retC1;                                                           // variable for storing the results of working with the indicator buffer
     int retC2;                                                           // variable for storing the results of working with the price chart
     int retC3;
+    int retC4;
 
     retC1 = CopyBuffer(iMA_handle, 0, 1, 2, iMA_buf);                        // copy data from the indicator array into the dynamic array iMA_buf for further work with them
     retC3 = CopyBuffer(ATR_ST_handle, 0, 1, 2, ATR_ST_buf);
+    retC4 = CopyBuffer(ATR_ST_handle, 1, 1, 2, ATR_Color_buf);
     retC2 = CopyClose(my_symbol, my_timeframe, 1, 2, Close_buf);             // copy the price chart data into the dynamic array Close_buf for further work with them
     if (retC1 < 0 || retC2 < 0 || retC3 < 0)
     {
@@ -82,8 +89,8 @@ void OnTick()
         return;                                                                       // and exit the function
     }
 
-    double min_volume = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
-    Print("max volume: ", SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX));
+
+Print("ATR: ", NormalizeDouble(ATR_ST_buf[0], 2), " Col: ", ATR_Color_buf[0]);
 
     if (iMA_buf[1] > Close_buf[1] && iMA_buf[0] < Close_buf[0])             // if the indicator values were greater than the closing price and became smaller
     {
