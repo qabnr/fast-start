@@ -29,6 +29,8 @@ void OnInit()
     SetIndexBuffer(0, buBuffer,    INDICATOR_DATA);
     SetIndexBuffer(1, colorBuffer, INDICATOR_COLOR_INDEX);
     hATR = iATR(NULL, ATRtimeframe, ATRper);
+    
+    Print("iATR per: ", ATRper, " Mult: ", Mult);
 }
 
 int OnCalculate(const int rates_total,
@@ -60,7 +62,7 @@ int OnCalculate(const int rates_total,
         {
             colorBuffer[i] = bdMax > 0 ? 0 : 2;
 
-            double newBD = low[i] - atr[1] * Mult;
+            double newBD = low[i] - atr[0] * Mult;
             if (newBD > bdMax)
             {
                 buBuffer[i] = newBD;
@@ -82,7 +84,7 @@ int OnCalculate(const int rates_total,
         {
             colorBuffer[i] = buMin < DBL_MAX ? 1 : 2;
 
-            double newBU = high[i] + atr[1] * Mult;
+            double newBU = high[i] + atr[0] * Mult;
             if (newBU < buMin)
             {
                 buBuffer[i] = newBU;
@@ -99,7 +101,10 @@ int OnCalculate(const int rates_total,
                 upTrend = true;
             }
         }
-    }
+//Print("iATR: ", buBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+PrintFormat("iATR: %.2f, %s", buBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+//Print(TimeCurrent());
+    }    
     return (rates_total);
 }
 

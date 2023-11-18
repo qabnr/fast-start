@@ -52,6 +52,7 @@ int OnInit()
         return (-1);
     }
     ArraySetAsSeries(ATR_ST_buf, true);
+    ArraySetAsSeries(ATR_Color_buf, true);
     
     min_volume = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
 
@@ -80,8 +81,8 @@ void OnTick()
     int retC4;
 
     retC1 = CopyBuffer(iMA_handle, 0, 1, 2, iMA_buf);                        // copy data from the indicator array into the dynamic array iMA_buf for further work with them
-    retC3 = CopyBuffer(ATR_ST_handle, 0, 1, 2, ATR_ST_buf);
-    retC4 = CopyBuffer(ATR_ST_handle, 1, 1, 2, ATR_Color_buf);
+    retC3 = CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf);
+    retC4 = CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf);
     retC2 = CopyClose(my_symbol, PERIOD_CURRENT, 1, 2, Close_buf);             // copy the price chart data into the dynamic array Close_buf for further work with them
     if (retC1 < 0 || retC2 < 0 || retC3 < 0)
     {
@@ -93,18 +94,19 @@ void OnTick()
    bool BuyNow = false;
    bool SellNow = false;
 
-//Print("ATR: ", NormalizeDouble(ATR_ST_buf[0], 2), " Col: ", ATR_Color_buf[0] < 0.5 ? "Red" : ATR_Color_buf[0] < 1.5 ? "Green" : "Black");
+Print(" ATR: ", NormalizeDouble(ATR_ST_buf[0], 2), ", ", ATR_Color_buf[0] < 0.5 ? "Red" : ATR_Color_buf[0] < 1.5 ? "Green" : "Black");
+
 if (ATR_Color_buf[0] > 1.5)
 {
    if (ATR_Color_buf[1] < 0.5)
    {
-      Print("Buy");
-      BuyNow = true;
+      Print("Sell");
+      SellNow = true;
    }
    else
    {
-      Print("Sell");
-      SellNow = true;
+      Print("Buy");
+      BuyNow = true;
    }
 }
 
