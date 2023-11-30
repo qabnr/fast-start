@@ -10,7 +10,6 @@
 #property description "of indicator buffers for the iMACD technical indicator."
 #property description "A symbol and timeframe used for calculation of the indicator,"
 #property description "are set by the symbol and period parameters."
-#property description "The method of creation of the handle is set through the 'type' parameter (function type)."
 #property description "All other parameters like in the standard MACD."
 
 #property indicator_separate_window
@@ -30,7 +29,7 @@
 #property indicator_width2 1
 //--- the OsMA plot
 #property indicator_label3 "OsMA"
-#property indicator_type3 DRAW_HISTOGRAM
+#property indicator_type3 DRAW_COLOR_HISTOGRAM
 #property indicator_color3 clrGreen, clrRed
 #property indicator_style3 STYLE_SOLID
 #property indicator_width3 1
@@ -44,13 +43,13 @@ enum Creation
     Call_IndicatorCreate // use IndicatorCreate
 };
 //--- input parameters
-input Creation type = Call_iMACD;                     // type of the function
-input int fast_ema_period = 12;                       // period of fast ma
-input int slow_ema_period = 26;                       // period of slow ma
-input int signal_period = 9;                          // period of averaging of difference
-input ENUM_APPLIED_PRICE applied_price = PRICE_CLOSE; // type of price
-input string symbol = " ";                            // symbol
-input ENUM_TIMEFRAMES period = PERIOD_CURRENT;        // timeframe
+input int fast_ema_period = 12;                         // period of fast ma
+input int slow_ema_period = 26;                         // period of slow ma
+input int signal_period = 9;                            // period of averaging of difference
+input ENUM_APPLIED_PRICE applied_price = PRICE_TYPICAL; // type of price
+input string symbol = " ";                              // symbol
+input ENUM_TIMEFRAMES period = PERIOD_CURRENT;          // timeframe
+
 //--- indicator buffers
 double MACDBuffer[];
 double SignalBuffer[];
@@ -89,26 +88,7 @@ int OnInit()
         name = _Symbol;
     }
     //--- create handle of the indicator
-    if (type == Call_iMACD)
         handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
-    else
-    {
-        //--- fill the structure with parameters of the indicator
-        MqlParam pars[4];
-        //--- period of fast ma
-        pars[0].type = TYPE_INT;
-        pars[0].integer_value = fast_ema_period;
-        //--- period of slow ma
-        pars[1].type = TYPE_INT;
-        pars[1].integer_value = slow_ema_period;
-        //--- period of averaging of difference between the fast and the slow moving average
-        pars[2].type = TYPE_INT;
-        pars[2].integer_value = signal_period;
-        //--- type of price
-        pars[3].type = TYPE_INT;
-        pars[3].integer_value = applied_price;
-        handle = IndicatorCreate(name, period, IND_MACD, 4, pars);
-    }
     //--- if the handle is not created
     if (handle == INVALID_HANDLE)
     {
