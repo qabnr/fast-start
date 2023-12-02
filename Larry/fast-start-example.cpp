@@ -24,7 +24,7 @@ ENUM_TIMEFRAMES   my_timeframe;                                             //va
 CTrade            m_Trade;                                                  //structure for execution of trades
 CPositionInfo     m_Position;                                               //structure for obtaining information of positions
 
-double min_volume;
+double vol;
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -45,7 +45,7 @@ int OnInit()
     ArraySetAsSeries(ATR_ST_buf, true);
     ArraySetAsSeries(ATR_Color_buf, true);
     
-    min_volume = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+    vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
 
     return (0);                                                             // return 0, initialization complete
 }
@@ -64,14 +64,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    int retC2;                                                           // variable for storing the results of working with the price chart
-    int retC3;
-    int retC4;
-
-    retC3 = CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf);
-    retC4 = CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf);
-    retC2 = CopyClose(my_symbol, PERIOD_CURRENT, 1, 2, Close_buf);             // copy the price chart data into the dynamic array Close_buf for further work with them
-    if (retC2 < 0 || retC3 < 0 || retC4 < 0)
+    if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf) < 0
+    ||  CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf) < 0
+    ||  CopyClose(my_symbol, PERIOD_CURRENT, 1, 2, Close_buf) < 0
+    )
     {
         Print("Failed to copy data from the indicator buffer or price chart buffer"); // then print the relevant error message into the log file
         return;                                                                       // and exit the function
@@ -104,7 +100,7 @@ void OnTick()
            if (m_Position.PositionType() == POSITION_TYPE_BUY)
                return;
        }
-       m_Trade.Buy(min_volume, my_symbol); // if we got here, it means there is no position; then we open it
+       m_Trade.Buy(vol, my_symbol); // if we got here, it means there is no position; then we open it
    }
    else if (SellNow)
    {
@@ -115,7 +111,7 @@ void OnTick()
            if (m_Position.PositionType() == POSITION_TYPE_SELL)
                return;
        }
-       m_Trade.Sell(min_volume, my_symbol); // if we got here, it means there is no position; then we open it
+       m_Trade.Sell(vol, my_symbol); // if we got here, it means there is no position; then we open it
    }
 }
 //+------------------------------------------------------------------+
