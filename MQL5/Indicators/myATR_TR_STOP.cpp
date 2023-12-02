@@ -102,7 +102,7 @@ int OnCalculate(const int rates_total,
             }
         }
 //Print("iATR: ", buBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
-PrintFormat("iATR: %.2f, %s", buBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+//PrintFormat("iATR: %.2f, %s", buBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
 //Print(TimeCurrent());
     }    
     return (rates_total);
