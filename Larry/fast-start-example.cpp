@@ -14,7 +14,6 @@
 
 double            ATR_ST_buf[];
 double            ATR_Color_buf[];
-double            Close_buf[];                                              //dynamic array for storing the closing price of each bar
 
 int ATR_ST_handle;
 
@@ -32,9 +31,7 @@ double vol;
 int OnInit()
 {
     my_symbol = Symbol();                                                    // save the current chart symbol for further operation of the EA on this very symbol
-    my_timeframe = PERIOD_CURRENT;                                           // save the current time frame of the chart for further operation of the EA on this very time frame
-    ArraySetAsSeries(Close_buf, true);                                      // set Close_buf array indexing as time series
-    
+    my_timeframe = PERIOD_CURRENT;                                           // save the current time frame of the chart for further operation of the EA on this very time frame    
 
     ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100, 2); 
     if (ATR_ST_handle == INVALID_HANDLE)
@@ -45,7 +42,7 @@ int OnInit()
     ArraySetAsSeries(ATR_ST_buf, true);
     ArraySetAsSeries(ATR_Color_buf, true);
     
-    vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
+    vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
     return (0);                                                             // return 0, initialization complete
 }
@@ -57,7 +54,6 @@ void OnDeinit(const int reason)
     IndicatorRelease(ATR_ST_handle);
     ArrayFree(ATR_ST_buf);
     ArrayFree(ATR_Color_buf);
-    ArrayFree(Close_buf);                                                   // free the dynamic array Close_buf of data
 }
 //+------------------------------------------------------------------+
 //| Expert tick function                                             |
@@ -66,7 +62,6 @@ void OnTick()
 {
     if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf) < 0
     ||  CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf) < 0
-    ||  CopyClose(my_symbol, PERIOD_CURRENT, 1, 2, Close_buf) < 0
     )
     {
         Print("Failed to copy data from the indicator buffer or price chart buffer"); // then print the relevant error message into the log file
