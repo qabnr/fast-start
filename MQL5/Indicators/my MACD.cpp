@@ -15,24 +15,25 @@
 #property indicator_separate_window
 #property indicator_buffers 4
 #property indicator_plots 3
-//--- the MACD plot
-#property indicator_label1 "MACD"
-#property indicator_type1 DRAW_LINE
-#property indicator_color1 clrRed
+
+//--- the OsMA plot
+#property indicator_label1 "OsMA"
+#property indicator_type1 DRAW_COLOR_HISTOGRAM
+#property indicator_color1 clrGreen, clrDarkOrange
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 1
 //--- the Signal plot
 #property indicator_label2 "Signal"
 #property indicator_type2 DRAW_LINE
-#property indicator_color2 clrPurple
+#property indicator_color2 clrRed
 #property indicator_style2 STYLE_SOLID
-#property indicator_width2 1
-//--- the OsMA plot
-#property indicator_label3 "OsMA"
-#property indicator_type3 DRAW_COLOR_HISTOGRAM
-#property indicator_color3 clrGreen, clrRed
+#property indicator_width2 2
+//--- the MACD plot
+#property indicator_label3 "MACD"
+#property indicator_type3 DRAW_LINE
+#property indicator_color3 clrPurple
 #property indicator_style3 STYLE_SOLID
-#property indicator_width3 1
+#property indicator_width3 2
 
 //+------------------------------------------------------------------+
 //| Enumeration of the methods of handle creation                    |
@@ -71,10 +72,10 @@ int bars_calculated = 0;
 int OnInit()
 {
     //--- assignment of arrays to indicator buffers
-    SetIndexBuffer(0, MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(1, SignalBuffer, INDICATOR_DATA);
-    SetIndexBuffer(2, OsMABuffer,   INDICATOR_DATA);
-    SetIndexBuffer(3, colorBuffer,  INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(0, OsMABuffer,   INDICATOR_DATA);
+    SetIndexBuffer(1, colorBuffer,  INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(2, MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(3, SignalBuffer, INDICATOR_DATA);
     
     //--- determine the symbol the indicator is drawn for
     name = symbol;
