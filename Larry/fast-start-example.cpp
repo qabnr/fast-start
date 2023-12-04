@@ -79,7 +79,7 @@ void OnDeinit(const int reason)
     IndicatorRelease(ATR_ST_handle);
     IndicatorRelease(MACD1_handle);
     IndicatorRelease(MACD2_handle);
-    
+
     ArrayFree(ATR_ST_buf);
     ArrayFree(ATR_Color_buf);
 }
@@ -88,8 +88,18 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf) < 0
+    if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf)    < 0
     ||  CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf) < 0
+
+    ||  CopyBuffer(MACD1_handle,  0, 0, 2, MACD1_Buffer)   < 0
+    ||  CopyBuffer(MACD1_handle,  1, 0, 2, Signal1_Buffer) < 0
+    ||  CopyBuffer(MACD1_handle,  2, 0, 2, OsMA1_Buffer)   < 0
+    ||  CopyBuffer(MACD1_handle,  3, 0, 2, color1_Buffer ) < 0
+
+    ||  CopyBuffer(MACD2_handle,  0, 0, 2, MACD2_Buffer)   < 0
+    ||  CopyBuffer(MACD2_handle,  1, 0, 2, Signal2_Buffer) < 0
+    ||  CopyBuffer(MACD2_handle,  2, 0, 2, OsMA2_Buffer)   < 0
+    ||  CopyBuffer(MACD2_handle,  3, 0, 2, color2_Buffer)  < 0
     )
     {
         Print("Failed to copy data from the indicator buffer or price chart buffer"); // then print the relevant error message into the log file
