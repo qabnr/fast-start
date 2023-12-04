@@ -12,13 +12,24 @@
 #include <Trade\Trade.mqh>                                                  //include the library for execution of trades
 #include <Trade\PositionInfo.mqh>                                           //include the library for obtaining information on positions
 
+int ATR_ST_handle;
+int MACD1_handle;
+int MACD2_handle;
+
 double            ATR_ST_buf[];
 double            ATR_Color_buf[];
 
-int ATR_ST_handle;
+double MACD1_Buffer[];
+double Signal1_Buffer[];
+double OsMA1_Buffer[];
+double color1_Buffer[];
+
+double MACD2_Buffer[];
+double Signal2_Buffer[];
+double OsMA2_Buffer[];
+double color2_Buffer[];
 
 string            my_symbol;                                                //variable for storing the symbol
-ENUM_TIMEFRAMES   my_timeframe;                                             //variable for storing the time frame
 
 CTrade            m_Trade;                                                  //structure for execution of trades
 CPositionInfo     m_Position;                                               //structure for obtaining information of positions
@@ -31,16 +42,30 @@ double vol;
 int OnInit()
 {
     my_symbol = Symbol();                                                    // save the current chart symbol for further operation of the EA on this very symbol
-    my_timeframe = PERIOD_CURRENT;                                           // save the current time frame of the chart for further operation of the EA on this very time frame    
 
-    ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100, 2); 
-    if (ATR_ST_handle == INVALID_HANDLE)
+    ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100, 2);
+    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD", 12,  26,  9);
+    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD", 84, 182, 63);
+
+    if (ATR_ST_handle == INVALID_HANDLE
+    ||  MACD1_handle  == INVALID_HANDLE
+    ||  MACD2_handle  == INVALID_HANDLE)
     {
-        Print("Failed to get the ATR TR STOP indicator handle");
+        Print("Failed to get the one of the indicator handles");
         return (-1);
     }
-    ArraySetAsSeries(ATR_ST_buf, true);
-    ArraySetAsSeries(ATR_Color_buf, true);
+    ArraySetAsSeries(ATR_ST_buf,     true);
+    ArraySetAsSeries(ATR_Color_buf,  true);
+    
+    ArraySetAsSeries(MACD1_Buffer,   true);
+    ArraySetAsSeries(Signal1_Buffer, true);
+    ArraySetAsSeries(OsMA1_Buffer,   true);
+    ArraySetAsSeries(color1_Buffer,  true);
+    
+    ArraySetAsSeries(MACD2_Buffer,   true);
+    ArraySetAsSeries(Signal2_Buffer, true);
+    ArraySetAsSeries(OsMA2_Buffer,   true);
+    ArraySetAsSeries(color2_Buffer,  true);
     
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
@@ -52,6 +77,9 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     IndicatorRelease(ATR_ST_handle);
+    IndicatorRelease(MACD1_handle);
+    IndicatorRelease(MACD2_handle);
+    
     ArrayFree(ATR_ST_buf);
     ArrayFree(ATR_Color_buf);
 }
