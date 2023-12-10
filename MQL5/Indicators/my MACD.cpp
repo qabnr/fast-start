@@ -128,7 +128,7 @@ int OnCalculate(const int rates_total,
     int calculated = BarsCalculated(handle);
     if (calculated <= 0)
     {
-        PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
+        //PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
         return (0);
     }
     //--- if it is the first start of calculation of the indicator or if the number of values in the iMACD indicator changed
@@ -150,7 +150,7 @@ int OnCalculate(const int rates_total,
     }
     //--- fill the arrays with values of the iMACD indicator
     //--- if FillArraysFromBuffer returns false, it means the information is nor ready yet, quit operation
-    if (!FillArraysFromBuffers(MACDBuffer, SignalBuffer, handle, values_to_copy))
+    if (!FillArraysFromBuffers(values_to_copy))
         return (0);
     //--- form the message
     string comm = StringFormat("%s ==>  Updated value in the indicator %s: %d",
@@ -167,16 +167,12 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 //| Filling indicator buffers from the iMACD indicator               |
 //+------------------------------------------------------------------+
-bool FillArraysFromBuffers(double &macd_buffer[],   // indicator buffer of MACD values
-                           double &signal_buffer[], // indicator buffer of the signal line of MACD
-                           int ind_handle,          // handle of the iMACD indicator
-                           int amount               // number of copied values
-)
+bool FillArraysFromBuffers(int amount)
 {
     //--- reset error code
     ResetLastError();
     //--- fill a part of the iMACDBuffer array with values from the indicator buffer that has 0 index
-    if (CopyBuffer(ind_handle, 0, 0, amount, MACDBuffer) < 0)
+    if (CopyBuffer(handle, 0, 0, amount, MACDBuffer) < 0)
     {
         //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
@@ -185,7 +181,7 @@ bool FillArraysFromBuffers(double &macd_buffer[],   // indicator buffer of MACD 
     }
 
     //--- fill a part of the SignalBuffer array with values from the indicator buffer that has index 1
-    if (CopyBuffer(ind_handle, 1, 0, amount, signal_buffer) < 0)
+    if (CopyBuffer(handle, 1, 0, amount, SignalBuffer) < 0)
     {
         //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
