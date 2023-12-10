@@ -129,6 +129,12 @@ int OnCalculate(const int rates_total,
     if (calculated <= 0)
     {
         //PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
+
+        MACDBuffer[0] = 0;
+        SignalBuffer[0] = 0;
+        OsMABuffer[0] = 0;
+        colorBuffer[0] = 0;
+
         return (0);
     }
     //--- if it is the first start of calculation of the indicator or if the number of values in the iMACD indicator changed
