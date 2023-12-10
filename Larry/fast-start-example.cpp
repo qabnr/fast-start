@@ -1,23 +1,23 @@
 //+------------------------------------------------------------------+
-//|                                           fast-start-example.mq5 |
-//|                        Copyright 2012, MetaQuotes Software Corp. |
-//|                                              http://www.mql5.com |
+//| fast-start-example.mq5
+//| Copyright 2012, MetaQuotes Software Corp.
+//| http://www.mql5.com
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2012, MetaQuotes Software Corp."
 #property link "http://www.mql5.com"
 #property version "1.00"
 //+------------------------------------------------------------------+
-//| Expert initialization function                                   |
+//| Expert initialization function
 //+------------------------------------------------------------------+
-#include <Trade\Trade.mqh>                                                  //include the library for execution of trades
-#include <Trade\PositionInfo.mqh>                                           //include the library for obtaining information on positions
+#include <Trade\Trade.mqh>
+#include <Trade\PositionInfo.mqh>
 
 int ATR_ST_handle;
 int MACD1_handle;
 int MACD2_handle;
 
-double            ATR_ST_buf[];
-double            ATR_Color_buf[];
+double ATR_ST_buf[];
+double ATR_Color_buf[];
 
 double MACD1_Buffer[];
 double Signal1_Buffer[];
@@ -29,23 +29,22 @@ double Signal2_Buffer[];
 double OsMA2_Buffer[];
 double color2_Buffer[];
 
-string            my_symbol;                                                //variable for storing the symbol
-
-CTrade            m_Trade;                                                  //structure for execution of trades
-CPositionInfo     m_Position;                                               //structure for obtaining information of positions
+string        my_symbol;
+CTrade        m_Trade;
+CPositionInfo m_Position;
 
 double vol;
 
 //+------------------------------------------------------------------+
-//|                                                                  |
+//| Expert initialization function
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    my_symbol = Symbol();                                                    // save the current chart symbol for further operation of the EA on this very symbol
+    my_symbol = Symbol();
 
-    ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100, 2);
-    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD", 12,  26,  9);
-    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD", 84, 182, 63);
+    ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100,   2);
+    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD",        12,  26,  9);
+    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD",        84, 182, 63);
 
     if (ATR_ST_handle == INVALID_HANDLE
     ||  MACD1_handle  == INVALID_HANDLE
@@ -69,10 +68,10 @@ int OnInit()
     
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
-    return (0);                                                             // return 0, initialization complete
+    return (0);
 }
 //+------------------------------------------------------------------+
-//| Expert deinitialization function                                 |
+//| Expert deinitialization function
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
@@ -84,9 +83,57 @@ void OnDeinit(const int reason)
     ArrayFree(ATR_Color_buf);
 }
 //+------------------------------------------------------------------+
-//| Expert tick function                                             |
+//| Expert tick function
 //+------------------------------------------------------------------+
 void OnTick()
+{
+    if (copyBuffers() == false)
+    {   Print("Failed to copy data from buffer"); return; }
+
+    bool BuyNow  = false;
+    bool SellNow = false;
+
+    if (ATR_Color_buf[0] > 1.5)
+    {
+        if (ATR_Color_buf[1] < 0.5)
+        {
+            Print("Sell");
+            SellNow = true;
+        }
+        else
+        {
+            Print("Buy");
+            BuyNow = true;
+        }
+    }
+
+    if (BuyNow)
+    {
+        if (m_Position.Select(my_symbol)) 
+        {
+            if (m_Position.PositionType() == POSITION_TYPE_SELL)
+                m_Trade.PositionClose(my_symbol);
+            if (m_Position.PositionType() == POSITION_TYPE_BUY)
+                return;
+        }
+        m_Trade.Buy(vol, my_symbol);
+    }
+    else if (SellNow)
+    {
+        if (m_Position.Select(my_symbol))
+        {
+            if (m_Position.PositionType() == POSITION_TYPE_BUY)
+                m_Trade.PositionClose(my_symbol);
+            if (m_Position.PositionType() == POSITION_TYPE_SELL)
+                return;
+        }
+        m_Trade.Sell(vol, my_symbol);
+    }
+}
+//+------------------------------------------------------------------+
+//| 
+//+------------------------------------------------------------------+
+bool copyBuffers()
 {
     if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf)    < 0
     ||  CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf) < 0
@@ -102,49 +149,25 @@ void OnTick()
     ||  CopyBuffer(MACD2_handle,  3, 0, 2, color2_Buffer)  < 0
     )
     {
-        Print("Failed to copy data from the indicator buffer or price chart buffer"); // then print the relevant error message into the log file
-        return;                                                                       // and exit the function
+        Print("Failed to copy data from buffer");
+        return false;
     }
-
-
-   bool BuyNow = false;
-   bool SellNow = false;
-
-   if (ATR_Color_buf[0] > 1.5)
-   {
-       if (ATR_Color_buf[1] < 0.5)
-       {
-           Print("Sell");
-           SellNow = true;
-       }
-       else
-       {
-           Print("Buy");
-           BuyNow = true;
-       }
-   }
-
-   if (BuyNow)
-   {
-       if (m_Position.Select(my_symbol)) 
-       {
-           if (m_Position.PositionType() == POSITION_TYPE_SELL)
-               m_Trade.PositionClose(my_symbol);
-           if (m_Position.PositionType() == POSITION_TYPE_BUY)
-               return;
-       }
-       m_Trade.Buy(vol, my_symbol); // if we got here, it means there is no position; then we open it
-   }
-   else if (SellNow)
-   {
-       if (m_Position.Select(my_symbol))
-       {
-           if (m_Position.PositionType() == POSITION_TYPE_BUY)
-               m_Trade.PositionClose(my_symbol);
-           if (m_Position.PositionType() == POSITION_TYPE_SELL)
-               return;
-       }
-       m_Trade.Sell(vol, my_symbol); // if we got here, it means there is no position; then we open it
-   }
+    return true;
 }
+
 //+------------------------------------------------------------------+
+//| 
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| 
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| 
+//+------------------------------------------------------------------+
+
+//+------------------------------------------------------------------+
+//| 
+//+------------------------------------------------------------------+
+
