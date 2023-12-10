@@ -1,14 +1,10 @@
 //+------------------------------------------------------------------+
 //| fast-start-example.mq5
-//| Copyright 2012, MetaQuotes Software Corp.
-//| http://www.mql5.com
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2012, MetaQuotes Software Corp."
-#property link "http://www.mql5.com"
-#property version "1.00"
-//+------------------------------------------------------------------+
-//| Expert initialization function
-//+------------------------------------------------------------------+
+#property link      "http://www.mql5.com"
+#property version   "1.00"
+
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
@@ -16,18 +12,9 @@ int ATR_ST_handle;
 int MACD1_handle;
 int MACD2_handle;
 
-double ATR_ST_buf[];
-double ATR_Color_buf[];
-
-double MACD1_Buffer[];
-double Signal1_Buffer[];
-double OsMA1_Buffer[];
-double color1_Buffer[];
-
-double MACD2_Buffer[];
-double Signal2_Buffer[];
-double OsMA2_Buffer[];
-double color2_Buffer[];
+double ATR_ST_buf[],   ATR_Color_buf[];
+double MACD1_Buffer[], Signal1_Buffer[], OsMA1_Buffer[], osMA_Color1_Buffer[];
+double MACD2_Buffer[], Signal2_Buffer[], OsMA2_Buffer[], osMA_Color2_Buffer[];
 
 string        my_symbol;
 CTrade        m_Trade;
@@ -56,15 +43,15 @@ int OnInit()
     ArraySetAsSeries(ATR_ST_buf,     true);
     ArraySetAsSeries(ATR_Color_buf,  true);
     
-    ArraySetAsSeries(MACD1_Buffer,   true);
-    ArraySetAsSeries(Signal1_Buffer, true);
-    ArraySetAsSeries(OsMA1_Buffer,   true);
-    ArraySetAsSeries(color1_Buffer,  true);
+    ArraySetAsSeries(MACD1_Buffer,       true);
+    ArraySetAsSeries(Signal1_Buffer,     true);
+    ArraySetAsSeries(OsMA1_Buffer,       true);
+    ArraySetAsSeries(osMA_Color1_Buffer, true);
     
-    ArraySetAsSeries(MACD2_Buffer,   true);
-    ArraySetAsSeries(Signal2_Buffer, true);
-    ArraySetAsSeries(OsMA2_Buffer,   true);
-    ArraySetAsSeries(color2_Buffer,  true);
+    ArraySetAsSeries(MACD2_Buffer,       true);
+    ArraySetAsSeries(Signal2_Buffer,     true);
+    ArraySetAsSeries(OsMA2_Buffer,       true);
+    ArraySetAsSeries(osMA_Color2_Buffer, true);
     
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
@@ -106,6 +93,11 @@ void OnTick()
             BuyNow = true;
         }
     }
+    
+    if (osMA_Color2_Buffer[2] != osMA_Color2_Buffer[1])
+    {
+        Print("-----------------", osMA_Color2_Buffer[2], " --- ", osMA_Color2_Buffer[1], "-----------------");
+    }
 
     if (BuyNow)
     {
@@ -135,18 +127,18 @@ void OnTick()
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (CopyBuffer(ATR_ST_handle, 0, 0, 2, ATR_ST_buf)    < 0
-    ||  CopyBuffer(ATR_ST_handle, 1, 0, 2, ATR_Color_buf) < 0
+    if (CopyBuffer(ATR_ST_handle, 0, 0, 3, ATR_ST_buf)    < 0
+    ||  CopyBuffer(ATR_ST_handle, 1, 0, 3, ATR_Color_buf) < 0
 
-    ||  CopyBuffer(MACD1_handle,  0, 0, 2, MACD1_Buffer)   < 0
-    ||  CopyBuffer(MACD1_handle,  1, 0, 2, Signal1_Buffer) < 0
-    ||  CopyBuffer(MACD1_handle,  2, 0, 2, OsMA1_Buffer)   < 0
-    ||  CopyBuffer(MACD1_handle,  3, 0, 2, color1_Buffer ) < 0
+    ||  CopyBuffer(MACD1_handle,  0, 0, 3, OsMA1_Buffer)       < 0
+    ||  CopyBuffer(MACD1_handle,  1, 0, 3, osMA_Color1_Buffer) < 0
+    ||  CopyBuffer(MACD1_handle,  2, 0, 3, MACD1_Buffer)       < 0
+    ||  CopyBuffer(MACD1_handle,  3, 0, 3, Signal1_Buffer)     < 0
 
-    ||  CopyBuffer(MACD2_handle,  0, 0, 2, MACD2_Buffer)   < 0
-    ||  CopyBuffer(MACD2_handle,  1, 0, 2, Signal2_Buffer) < 0
-    ||  CopyBuffer(MACD2_handle,  2, 0, 2, OsMA2_Buffer)   < 0
-    ||  CopyBuffer(MACD2_handle,  3, 0, 2, color2_Buffer)  < 0
+    ||  CopyBuffer(MACD2_handle,  0, 0, 3, OsMA2_Buffer)       < 0
+    ||  CopyBuffer(MACD2_handle,  1, 0, 3, osMA_Color2_Buffer) < 0
+    ||  CopyBuffer(MACD2_handle,  2, 0, 3, MACD2_Buffer)       < 0
+    ||  CopyBuffer(MACD2_handle,  3, 0, 3, Signal2_Buffer)     < 0
     )
     {
         Print("Failed to copy data from buffer");
