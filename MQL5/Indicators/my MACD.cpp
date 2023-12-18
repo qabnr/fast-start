@@ -74,8 +74,8 @@ int OnInit()
     //--- assignment of arrays to indicator buffers
     SetIndexBuffer(0, OsMABuffer,   INDICATOR_DATA);
     SetIndexBuffer(1, colorBuffer,  INDICATOR_COLOR_INDEX);
-    SetIndexBuffer(2, MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(3, SignalBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, SignalBuffer, INDICATOR_DATA);
+    SetIndexBuffer(3, MACDBuffer,   INDICATOR_DATA);
     
     //--- determine the symbol the indicator is drawn for
     name = symbol;
@@ -89,7 +89,7 @@ int OnInit()
         name = _Symbol;
     }
     //--- create handle of the indicator
-        handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
+    handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
     //--- if the handle is not created
     if (handle == INVALID_HANDLE)
     {
