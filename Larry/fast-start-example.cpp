@@ -37,8 +37,10 @@ public:
     double get(int index) {
         return buff[index];
     }
+    int getNrCopied() {
+        return nrCopied;
+    }
 };
-
 
 
 int ATR_ST_handle;
@@ -110,8 +112,8 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
     
-    // minMaxT mM = findMinMax(Signal1_Buffer);
-    // Print("m: ", mM.min, " M: ", mM.max);
+    minMaxT mM = findMinMax(&Signal1_Buffer);
+    Print("m: ", mM.min, " M: ", mM.max);
 
     bool BuyNow  = false;
     bool SellNow = false;
@@ -189,10 +191,9 @@ minMaxT findMinMax(buffer &buff)
     double min =  9e99;
     double max = -9e99;
 
-    //int size = min(buffSize, BufferSize(buff));
-    int size = buffSize;
+    int size = buff.getNrCopied();
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < size; i++)
     {
         if (buff.get(i) < min) min = buff.get(i);
         if (buff.get(i) > max) max = buff.get(i);
