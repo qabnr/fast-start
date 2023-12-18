@@ -26,7 +26,7 @@ public:
         ArraySetAsSeries(buff, true);
     }
     ~buffer() {};
-    void addHandle(int _handle, int _buffNum) {
+    void addHandleAndBuffNum(int _handle, int _buffNum) {
          handle  = _handle;
          buffNum = _buffNum;
     }
@@ -45,10 +45,9 @@ int ATR_ST_handle;
 int MACD1_handle;
 int MACD2_handle;
 
-double MACD1_Buffer[], Signal1_Buffer[], OsMA1_Buffer[], osMA_Color1_Buffer[];
-double MACD2_Buffer[], Signal2_Buffer[], OsMA2_Buffer[], osMA_Color2_Buffer[];
-
-buffer ATR_ST_buffer,   ATR_Color_buffer;
+buffer ATR_ST_buffer, ATR_Color_buffer;
+buffer MACD1_Buffer, Signal1_Buffer, OsMA1_Buffer, osMA_Color1_Buffer;
+buffer MACD2_Buffer, Signal2_Buffer, OsMA2_Buffer, osMA_Color2_Buffer;
 
 string        my_symbol;
 CTrade        m_Trade;
@@ -77,18 +76,18 @@ int OnInit()
         return (-1);
     }
 
-    ATR_ST_buffer   .addHandle(ATR_ST_handle, 0);
-    ATR_Color_buffer.addHandle(ATR_ST_handle, 1);
+    ATR_ST_buffer       .addHandleAndBuffNum(ATR_ST_handle, 0);
+    ATR_Color_buffer    .addHandleAndBuffNum(ATR_ST_handle, 1);
 
-    ArraySetAsSeries(MACD1_Buffer,       true);
-    ArraySetAsSeries(Signal1_Buffer,     true);
-    ArraySetAsSeries(OsMA1_Buffer,       true);
-    ArraySetAsSeries(osMA_Color1_Buffer, true);
+    MACD1_Buffer        .addHandleAndBuffNum(MACD1_handle, 2);
+    Signal1_Buffer      .addHandleAndBuffNum(MACD1_handle, 3);
+    OsMA1_Buffer        .addHandleAndBuffNum(MACD1_handle, 0);
+    osMA_Color1_Buffer  .addHandleAndBuffNum(MACD1_handle, 1);
     
-    ArraySetAsSeries(MACD2_Buffer,       true);
-    ArraySetAsSeries(Signal2_Buffer,     true);
-    ArraySetAsSeries(OsMA2_Buffer,       true);
-    ArraySetAsSeries(osMA_Color2_Buffer, true);
+    MACD2_Buffer        .addHandleAndBuffNum(MACD2_handle, 2);
+    Signal2_Buffer      .addHandleAndBuffNum(MACD2_handle, 3);
+    OsMA2_Buffer        .addHandleAndBuffNum(MACD2_handle, 0);
+    osMA_Color2_Buffer  .addHandleAndBuffNum(MACD2_handle, 1);
     
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
@@ -111,8 +110,8 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
     
-    minMaxT mM = findMinMax(Signal1_Buffer);
-    Print("m: ", mM.min, " M: ", mM.max);
+    // minMaxT mM = findMinMax(Signal1_Buffer);
+    // Print("m: ", mM.min, " M: ", mM.max);
 
     bool BuyNow  = false;
     bool SellNow = false;
@@ -131,9 +130,9 @@ void OnTick()
         }
     }
     
-    if (osMA_Color2_Buffer[2] != osMA_Color2_Buffer[1])
+    if (osMA_Color2_Buffer.get(2) != osMA_Color2_Buffer.get(1))
     {
-        Print("-----------------", osMA_Color2_Buffer[2], " --- ", osMA_Color2_Buffer[1], "-----------------");
+        Print("-----------------", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
     }
 
     if (BuyNow)
@@ -164,23 +163,20 @@ void OnTick()
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!ATR_ST_buffer   .copy(buffSize) ||
-        !ATR_Color_buffer.copy(buffSize) ||
-        CopyBuffer(MACD1_handle,  0, 0, buffSize, OsMA1_Buffer)       < 0
-    ||  CopyBuffer(MACD1_handle,  1, 0, buffSize, osMA_Color1_Buffer) < 0
-    ||  CopyBuffer(MACD1_handle,  2, 0, buffSize, MACD1_Buffer)       < 0
-    ||  CopyBuffer(MACD1_handle,  3, 0, buffSize, Signal1_Buffer)     < 0
-
-    ||  CopyBuffer(MACD2_handle,  0, 0, buffSize, OsMA2_Buffer)       < 0
-    ||  CopyBuffer(MACD2_handle,  1, 0, buffSize, osMA_Color2_Buffer) < 0
-    ||  CopyBuffer(MACD2_handle,  2, 0, buffSize, MACD2_Buffer)       < 0
-    ||  CopyBuffer(MACD2_handle,  3, 0, buffSize, Signal2_Buffer)     < 0
-    )
+    if (!ATR_ST_buffer      .copy(buffSize) ||
+        !ATR_Color_buffer   .copy(buffSize) ||
+        !MACD1_Buffer       .copy(buffSize) ||
+        !Signal1_Buffer     .copy(buffSize) ||
+        !OsMA1_Buffer       .copy(buffSize) ||
+        !osMA_Color1_Buffer .copy(buffSize) ||
+        !MACD2_Buffer       .copy(buffSize) ||
+        !Signal2_Buffer     .copy(buffSize) ||
+        !OsMA2_Buffer       .copy(buffSize) ||
+        !osMA_Color2_Buffer .copy(buffSize)   )
     {
         Print("Failed to copy data from buffer");
         return false;
     }
-
     return true;
 }
 
@@ -188,7 +184,7 @@ bool copyBuffers()
 //| 
 //+------------------------------------------------------------------+
 
-minMaxT findMinMax(double &buff[])
+minMaxT findMinMax(buffer &buff)
 {
     double min =  9e99;
     double max = -9e99;
@@ -198,8 +194,8 @@ minMaxT findMinMax(double &buff[])
 
     for (int i = 0; i < 2; i++)
     {
-        if (buff[i] < min) min = buff[i];
-        if (buff[i] > max) max = buff[i];
+        if (buff.get(i) < min) min = buff.get(i);
+        if (buff.get(i) > max) max = buff.get(i);
     }
     
     minMaxT r {min, max};
