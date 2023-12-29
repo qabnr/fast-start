@@ -107,16 +107,21 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 //| Expert tick function
 //+------------------------------------------------------------------+
+int runLen   = 0; 
+
 void OnTick()
 {
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
     
-    minMaxT mM = findMinMax(&Signal1_Buffer);
-    Print("m: ", mM.min, " M: ", mM.max);
+    // minMaxT mM = findMinMax(&Signal1_Buffer);
+    // Print("m: ", mM.min, " M: ", mM.max);
 
     bool BuyNow  = false;
     bool SellNow = false;
+
+if(false)
+{
 
     if (ATR_Color_buffer.get(0) > 1.5)
     {
@@ -131,11 +136,36 @@ void OnTick()
             BuyNow = true;
         }
     }
-    
+}
+else if (TimeCurrent() > D'2022.04.27')
+{    
     if (osMA_Color2_Buffer.get(2) != osMA_Color2_Buffer.get(1))
     {
-        Print("-----------------", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
+        Print(" X- ", runLen, " -- ", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
     }
+    else
+    {
+        runLen += 1;
+        Print(" X- ", runLen);        
+    }
+    if (osMA_Color2_Buffer.get(2) > osMA_Color2_Buffer.get(1))
+    {
+            if (runLen > 10)
+            {
+                BuyNow = true;
+            }
+            runLen = 0;
+    }
+    else
+    if (osMA_Color2_Buffer.get(2) < osMA_Color2_Buffer.get(1))
+    {
+            if (runLen > 10)
+            {
+                SellNow = true;
+            }
+            runLen = 0;
+    }
+}
 
     if (BuyNow)
     {
