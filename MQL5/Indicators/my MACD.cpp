@@ -1,7 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                   Demo_iMACD.mq5 |
-//|                        Copyright 2011, MetaQuotes Software Corp. |
-//|                                             https://www.mql5.com |
+//| my iMACD.mq5
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2011, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
@@ -13,20 +11,20 @@
 #property description "All other parameters like in the standard MACD."
 
 #property indicator_separate_window
-#property indicator_buffers 6
-#property indicator_plots 5
+#property indicator_buffers 8
+#property indicator_plots 7
 
 //--- the MACD decreasing period len
 #property indicator_label1 "decMACD"
 #property indicator_type1 DRAW_LINE
-#property indicator_color1 clrGray
+#property indicator_color1 clrBlack
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 1
 
 //--- the MACD increasing period len
 #property indicator_label2 "incMACD"
 #property indicator_type2 DRAW_LINE
-#property indicator_color2 clrBlueViolet
+#property indicator_color2 clrBlack
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 1
 
@@ -38,16 +36,31 @@
 #property indicator_width3 1
 //--- the Signal plot
 #property indicator_label4 "Signal"
-#property indicator_type4 DRAW_LINE
+#property indicator_type4  DRAW_LINE
 #property indicator_color4 clrRed
 #property indicator_style4 STYLE_SOLID
 #property indicator_width4 2
 //--- the MACD plot
 #property indicator_label5 "MACD"
-#property indicator_type5 DRAW_LINE
+#property indicator_type5  DRAW_LINE
 #property indicator_color5 clrPurple
 #property indicator_style5 STYLE_SOLID
 #property indicator_width5 2
+
+//--- the OsMA decreasing period len
+#property indicator_label6 "decOsMA"
+#property indicator_type6  DRAW_LINE
+#property indicator_color6 clrBlack
+#property indicator_style6 STYLE_SOLID
+#property indicator_width6 1
+
+//--- the OsMA increasing period len
+#property indicator_label7 "incOsMA"
+#property indicator_type7  DRAW_LINE
+#property indicator_color7 clrBlack
+#property indicator_style7 STYLE_SOLID
+#property indicator_width7 1
+
 
 //+------------------------------------------------------------------+
 //| Enumeration of the methods of handle creation                    |
@@ -73,15 +86,14 @@ double colorBuffer[];
 
 double decPeriod_MACDBuffer[];
 double incPeriod_MACDBuffer[];
+double decPeriod_OsMABuffer[];
+double incPeriod_OsMABuffer[];
 
-//--- variable for storing the handle of the iMACD indicator
 int iMACD_handle;
-//--- variable for storing
 string name = symbol;
-//--- name of the indicator on a chart
 string short_name;
-//--- we will keep the number of values in the Moving Averages Convergence/Divergence indicator
 int bars_calculated = 0;
+
 //+------------------------------------------------------------------+
 //| Custom indicator initialization function                         |
 //+------------------------------------------------------------------+
@@ -94,6 +106,8 @@ int OnInit()
     SetIndexBuffer(3, colorBuffer,  INDICATOR_COLOR_INDEX);
     SetIndexBuffer(4, SignalBuffer, INDICATOR_DATA);
     SetIndexBuffer(5, MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(6, decPeriod_OsMABuffer, INDICATOR_DATA);
+    SetIndexBuffer(7, incPeriod_OsMABuffer, INDICATOR_DATA);
     
     name = symbol;
     StringTrimRight(name);
@@ -138,12 +152,6 @@ int OnCalculate(const int rates_total,
     if (calculated <= 0)
     {
 //        PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
-
-        MACDBuffer[0] = 0;
-        SignalBuffer[0] = 0;
-        OsMABuffer[0] = 0;
-        colorBuffer[0] = 0;
-
         return (0);
     }
 
@@ -212,6 +220,8 @@ bool FillArraysFromBuffers(int amount)
     OsMABuffer[0] = 0;
     decPeriod_MACDBuffer[0] = 0;
     incPeriod_MACDBuffer[0] = 0;
+    decPeriod_OsMABuffer[0] = 0;
+    incPeriod_OsMABuffer[0] = 0;
 
     for (int i = 0; i < amount; i++)
     {
@@ -232,6 +242,16 @@ bool FillArraysFromBuffers(int amount)
         {   incPeriod_MACDBuffer[i] = incPeriod_MACDBuffer[i-1] + 0.05;    }
         else
         {  incPeriod_MACDBuffer[i] = 0; }
+
+        if (i > 0 && OsMABuffer[i] < OsMABuffer[i-1])
+        {   decPeriod_OsMABuffer[i] = decPeriod_OsMABuffer[i-1] - 0.05;    }
+        else
+        {  decPeriod_OsMABuffer[i] = 0; }
+
+        if (i > 0 && OsMABuffer[i] > OsMABuffer[i-1])
+        {   incPeriod_OsMABuffer[i] = incPeriod_OsMABuffer[i-1] + 0.05;    }
+        else
+        {  incPeriod_OsMABuffer[i] = 0; }
 
     }
     return (true);
