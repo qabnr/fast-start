@@ -13,8 +13,8 @@
 #property description "All other parameters like in the standard MACD."
 
 #property indicator_separate_window
-#property indicator_buffers 5
-#property indicator_plots 3
+#property indicator_buffers 6
+#property indicator_plots 5
 
 //--- the OsMA plot
 #property indicator_label1 "OsMA"
@@ -34,6 +34,22 @@
 #property indicator_color3 clrPurple
 #property indicator_style3 STYLE_SOLID
 #property indicator_width3 2
+
+//--- the min period
+#property indicator_label4 "minP"
+#property indicator_type4 DRAW_HISTOGRAM
+#property indicator_color4 clrGray
+#property indicator_style4 STYLE_SOLID
+#property indicator_width4 1
+
+//--- the max period
+#property indicator_label5 "maxP"
+#property indicator_type5 DRAW_HISTOGRAM
+#property indicator_color5 clrBlueViolet
+#property indicator_style5 STYLE_SOLID
+#property indicator_width5 1
+
+
 
 //+------------------------------------------------------------------+
 //| Enumeration of the methods of handle creation                    |
@@ -58,6 +74,7 @@ double OsMABuffer[];
 double colorBuffer[];
 
 double minPeriod_MACDBuffer[];
+double maxPeriod_MACDBuffer[];
 
 //--- variable for storing the handle of the iMACD indicator
 int iMACD_handle;
@@ -78,6 +95,7 @@ int OnInit()
     SetIndexBuffer(2, SignalBuffer, INDICATOR_DATA);
     SetIndexBuffer(3, MACDBuffer,   INDICATOR_DATA);
     SetIndexBuffer(4, minPeriod_MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(5, maxPeriod_MACDBuffer,   INDICATOR_DATA);
     
     name = symbol;
     StringTrimRight(name);
@@ -153,8 +171,7 @@ int OnCalculate(const int rates_total,
     if (!FillArraysFromBuffers(nr_values_to_copy))
         return (0);
 
-    calcMinMax(nr_values_to_copy);
-Print("calc: ", calculated, " pr_c: ", prev_calculated, " bars_c: ", bars_calculated, " rts_tot ", rates_total, " nr_vl_tcpy: ", nr_values_to_copy, " minP:", minPeriod_MACDBuffer[0]);
+//Print("calc: ", calculated, " pr_c: ", prev_calculated, " bars_c: ", bars_calculated, " rts_tot ", rates_total, " nr_vl_tcpy: ", nr_values_to_copy, " minP:", minPeriod_MACDBuffer[0]);
 
     //--- form the message
     // string comm = StringFormat("%s ==>  Updated value in the indicator %s: %d",
@@ -193,6 +210,11 @@ bool FillArraysFromBuffers(int amount)
         return (false);
     }
 //Print("amount: ", amount);
+
+    OsMABuffer[0] = 0;
+    minPeriod_MACDBuffer[0] = 0;
+    maxPeriod_MACDBuffer[0] = 0;
+
     for (int i = 0; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
@@ -202,29 +224,25 @@ bool FillArraysFromBuffers(int amount)
         {
             colorBuffer[i] = 1;
         }
+
+        if (i > 0 && MACDBuffer[i] < MACDBuffer[i-1])
+        {   minPeriod_MACDBuffer[i] = minPeriod_MACDBuffer[i-1] - 0.05;    }
+        else
+        {  minPeriod_MACDBuffer[i] = 0; }
+
+        if (i > 0 && MACDBuffer[i] > MACDBuffer[i-1])
+        {   maxPeriod_MACDBuffer[i] = maxPeriod_MACDBuffer[i-1] + 0.05;    }
+        else
+        {  maxPeriod_MACDBuffer[i] = 0; }
+
     }
-    //--- everything is fine
     return (true);
 }
 //+------------------------------------------------------------------+
 // 
 //+------------------------------------------------------------------+
-void calcMinMax(int max_idx)
-{
-    int i;
-    int cnt = 0;
-//Print("max_idx: ", max_idx);
-    for (i = max_idx-1; i > 0; i--)
-    {
-//Print("i: ", i);
-        if (MACDBuffer[i] < MACDBuffer[i-1])
-        {   cnt+=1;  }
-        else
-        break;
-    }
-if (fast_ema_period==12) Print("XXX  cnt: ", cnt, " max_idx: ", max_idx);
-    minPeriod_MACDBuffer[max_idx-1] = cnt;
-}
+
+
 //+------------------------------------------------------------------+
 //| Indicator deinitialization function                              |
 //+------------------------------------------------------------------+
