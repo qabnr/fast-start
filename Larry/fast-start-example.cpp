@@ -16,6 +16,7 @@ struct minMaxT {
 class buffer
 {
 private:
+    string  name;
     int     handle;
     int     buffNum;
     double  buff[];
@@ -26,12 +27,15 @@ public:
         ArraySetAsSeries(buff, true);
     }
     ~buffer() {};
-    void addHandleAndBuffNum(int _handle, int _buffNum) {
+    void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
+         name    =  _name;
          handle  = _handle;
          buffNum = _buffNum;
     }
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
+        if (nrCopied <= 0)
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name);    }
         return nrCopied > 0;
     }
     double get(int index) {
@@ -77,18 +81,18 @@ int OnInit()
         return (-1);
     }
 
-    ATR_ST_buffer       .addHandleAndBuffNum(ATR_ST_handle, 0);
-    ATR_Color_buffer    .addHandleAndBuffNum(ATR_ST_handle, 1);
+    ATR_ST_buffer       .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 0);
+    ATR_Color_buffer    .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 1);
 
-    MACD1_Buffer        .addHandleAndBuffNum(MACD1_handle, 2);
-    Signal1_Buffer      .addHandleAndBuffNum(MACD1_handle, 3);
-    OsMA1_Buffer        .addHandleAndBuffNum(MACD1_handle, 0);
-    osMA_Color1_Buffer  .addHandleAndBuffNum(MACD1_handle, 1);
+    MACD1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 5);
+    Signal1_Buffer      .addHandleAndBuffNum("MACD1", MACD1_handle, 4);
+    OsMA1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 2);
+    osMA_Color1_Buffer  .addHandleAndBuffNum("MACD1", MACD1_handle, 3);
     
-    MACD2_Buffer        .addHandleAndBuffNum(MACD2_handle, 2);
-    Signal2_Buffer      .addHandleAndBuffNum(MACD2_handle, 3);
-    OsMA2_Buffer        .addHandleAndBuffNum(MACD2_handle, 0);
-    osMA_Color2_Buffer  .addHandleAndBuffNum(MACD2_handle, 1);
+    MACD2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 5);
+    Signal2_Buffer      .addHandleAndBuffNum("MACD2", MACD2_handle, 4);
+    OsMA2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 2);
+    osMA_Color2_Buffer  .addHandleAndBuffNum("MACD2", MACD2_handle, 3);
     
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
