@@ -13,7 +13,7 @@
 #property description "All other parameters like in the standard MACD."
 
 #property indicator_separate_window
-#property indicator_buffers 4
+#property indicator_buffers 5
 #property indicator_plots 3
 
 //--- the OsMA plot
@@ -57,9 +57,10 @@ double SignalBuffer[];
 double OsMABuffer[];
 double colorBuffer[];
 
+double minPeriod_MACDBuffer[];
 
 //--- variable for storing the handle of the iMACD indicator
-int handle;
+int iMACD_handle;
 //--- variable for storing
 string name = symbol;
 //--- name of the indicator on a chart
@@ -76,36 +77,27 @@ int OnInit()
     SetIndexBuffer(1, colorBuffer,  INDICATOR_COLOR_INDEX);
     SetIndexBuffer(2, SignalBuffer, INDICATOR_DATA);
     SetIndexBuffer(3, MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(4, minPeriod_MACDBuffer,   INDICATOR_DATA);
     
-    //--- determine the symbol the indicator is drawn for
     name = symbol;
-    //--- delete spaces to the right and to the left
     StringTrimRight(name);
     StringTrimLeft(name);
-    //--- if it results in zero length of the 'name' string
     if (StringLen(name) == 0)
     {
-        //--- take the symbol of the chart the indicator is attached to
         name = _Symbol;
     }
-    //--- create handle of the indicator
-    handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
-    //--- if the handle is not created
-    if (handle == INVALID_HANDLE)
+    iMACD_handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
+    if (iMACD_handle == INVALID_HANDLE)
     {
-        //--- tell about the failure and output the error code
-        PrintFormat("Failed to create handle of the iMACD indicator for the symbol %s/%s, error code %d",
+        PrintFormat("Failed to create iMACD_handle of the iMACD indicator for the symbol %s/%s, error code %d",
                     name,
                     EnumToString(period),
                     GetLastError());
-        //--- the indicator is stopped early
         return (INIT_FAILED);
     }
-    //--- show the symbol/timeframe the Moving Average Convergence/Divergence indicator is calculated for
     short_name = StringFormat("iMACD(%s/%s,%d,%d,%d,%s)", name, EnumToString(period),
                               fast_ema_period, slow_ema_period, signal_period, EnumToString(applied_price));
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
-    //--- normal initialization of the indicator
     return (INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -123,12 +115,13 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 {
     //--- number of values copied from the iMACD indicator
-    int values_to_copy;
+    int nr_values_to_copy;
     //--- determine the number of values calculated in the indicator
-    int calculated = BarsCalculated(handle);
+    int calculated = BarsCalculated(iMACD_handle);
+
     if (calculated <= 0)
     {
-        //PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
+//        PrintFormat("BarsCalculated() returned %d, error code %d", calculated, GetLastError());
 
         MACDBuffer[0] = 0;
         SignalBuffer[0] = 0;
@@ -137,6 +130,7 @@ int OnCalculate(const int rates_total,
 
         return (0);
     }
+
     //--- if it is the first start of calculation of the indicator or if the number of values in the iMACD indicator changed
     //---or if it is necessary to calculated the indicator for two or more bars (it means something has changed in the price history)
     if (prev_calculated == 0 || calculated != bars_calculated || rates_total > prev_calculated + 1)
@@ -144,27 +138,31 @@ int OnCalculate(const int rates_total,
         //--- if the MACDBuffer array is greater than the number of values in the iMACD indicator for symbol/period, then we don't copy everything
         //--- otherwise, we copy less than the size of indicator buffers
         if (calculated > rates_total)
-            values_to_copy = rates_total;
+            nr_values_to_copy = rates_total;
         else
-            values_to_copy = calculated;
+            nr_values_to_copy = calculated;
     }
     else
     {
         //--- it means that it's not the first time of the indicator calculation, and since the last call of OnCalculate()
         //--- for calculation not more than one bar is added
-        values_to_copy = (rates_total - prev_calculated) + 1;
+        nr_values_to_copy = (rates_total - prev_calculated) + 1;
     }
     //--- fill the arrays with values of the iMACD indicator
     //--- if FillArraysFromBuffer returns false, it means the information is nor ready yet, quit operation
-    if (!FillArraysFromBuffers(values_to_copy))
+    if (!FillArraysFromBuffers(nr_values_to_copy))
         return (0);
+
+    calcMinMax(prev_calculated);
+Print("calc: ", calculated, " pr_c: ", prev_calculated, " bars_c: ", bars_calculated, " rts_tot ", rates_total, " nr_vl_tcpy: ", nr_values_to_copy, " minP:", minPeriod_MACDBuffer[0]);
+
     //--- form the message
-    string comm = StringFormat("%s ==>  Updated value in the indicator %s: %d",
-                               TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS),
-                               short_name,
-                               values_to_copy);
+    // string comm = StringFormat("%s ==>  Updated value in the indicator %s: %d",
+    //                            TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS),
+    //                            short_name,
+    //                            nr_values_to_copy);
     //--- display the service message on the chart
-    Comment(comm);
+    // Comment(comm);
     //--- memorize the number of values in the Moving Averages indicator Convergence/Divergence
     bars_calculated = calculated;
     //--- return the prev_calculated value for the next call
@@ -178,7 +176,7 @@ bool FillArraysFromBuffers(int amount)
     //--- reset error code
     ResetLastError();
     //--- fill a part of the iMACDBuffer array with values from the indicator buffer that has 0 index
-    if (CopyBuffer(handle, 0, 0, amount, MACDBuffer) < 0)
+    if (CopyBuffer(iMACD_handle, 0, 0, amount, MACDBuffer) < 0)
     {
         //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
@@ -187,7 +185,7 @@ bool FillArraysFromBuffers(int amount)
     }
 
     //--- fill a part of the SignalBuffer array with values from the indicator buffer that has index 1
-    if (CopyBuffer(handle, 1, 0, amount, SignalBuffer) < 0)
+    if (CopyBuffer(iMACD_handle, 1, 0, amount, SignalBuffer) < 0)
     {
         //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
@@ -207,12 +205,25 @@ bool FillArraysFromBuffers(int amount)
     return (true);
 }
 //+------------------------------------------------------------------+
+// 
+//+------------------------------------------------------------------+
+void calcMinMax(int max_idx)
+{
+    int i;
+    int cnt = 0;
+    for (i = 0; i < max_idx && MACDBuffer[i] < MACDBuffer[i+1]; i++)
+    {
+        cnt++;
+    }
+    minPeriod_MACDBuffer[0] = cnt;
+}
+//+------------------------------------------------------------------+
 //| Indicator deinitialization function                              |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    if (handle != INVALID_HANDLE)
-        IndicatorRelease(handle);
+    if (iMACD_handle != INVALID_HANDLE)
+        IndicatorRelease(iMACD_handle);
     //--- clear the chart after deleting the indicator
-    Comment("");
+    // Comment("");
 }

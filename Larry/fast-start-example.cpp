@@ -42,7 +42,6 @@ public:
     }
 };
 
-
 int ATR_ST_handle;
 int MACD1_handle;
 int MACD2_handle;
