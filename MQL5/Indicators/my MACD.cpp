@@ -16,40 +16,38 @@
 #property indicator_buffers 6
 #property indicator_plots 5
 
-//--- the OsMA plot
-#property indicator_label1 "OsMA"
-#property indicator_type1 DRAW_COLOR_HISTOGRAM
-#property indicator_color1 clrGreen, clrDarkOrange
+//--- the min period
+#property indicator_label1 "minP"
+#property indicator_type1 DRAW_HISTOGRAM
+#property indicator_color1 clrGray
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 1
-//--- the Signal plot
-#property indicator_label2 "Signal"
-#property indicator_type2 DRAW_LINE
-#property indicator_color2 clrRed
-#property indicator_style2 STYLE_SOLID
-#property indicator_width2 2
-//--- the MACD plot
-#property indicator_label3 "MACD"
-#property indicator_type3 DRAW_LINE
-#property indicator_color3 clrPurple
-#property indicator_style3 STYLE_SOLID
-#property indicator_width3 2
-
-//--- the min period
-#property indicator_label4 "minP"
-#property indicator_type4 DRAW_HISTOGRAM
-#property indicator_color4 clrGray
-#property indicator_style4 STYLE_SOLID
-#property indicator_width4 1
 
 //--- the max period
-#property indicator_label5 "maxP"
-#property indicator_type5 DRAW_HISTOGRAM
-#property indicator_color5 clrBlueViolet
+#property indicator_label2 "maxP"
+#property indicator_type2 DRAW_HISTOGRAM
+#property indicator_color2 clrBlueViolet
+#property indicator_style2 STYLE_SOLID
+#property indicator_width2 1
+
+//--- the OsMA plot
+#property indicator_label3 "OsMA"
+#property indicator_type3 DRAW_COLOR_HISTOGRAM
+#property indicator_color3 clrGreen, clrDarkOrange
+#property indicator_style3 STYLE_SOLID
+#property indicator_width3 1
+//--- the Signal plot
+#property indicator_label4 "Signal"
+#property indicator_type4 DRAW_LINE
+#property indicator_color4 clrRed
+#property indicator_style4 STYLE_SOLID
+#property indicator_width4 2
+//--- the MACD plot
+#property indicator_label5 "MACD"
+#property indicator_type5 DRAW_LINE
+#property indicator_color5 clrPurple
 #property indicator_style5 STYLE_SOLID
-#property indicator_width5 1
-
-
+#property indicator_width5 2
 
 //+------------------------------------------------------------------+
 //| Enumeration of the methods of handle creation                    |
@@ -90,12 +88,12 @@ int bars_calculated = 0;
 int OnInit()
 {
     //--- assignment of arrays to indicator buffers
-    SetIndexBuffer(0, OsMABuffer,   INDICATOR_DATA);
-    SetIndexBuffer(1, colorBuffer,  INDICATOR_COLOR_INDEX);
-    SetIndexBuffer(2, SignalBuffer, INDICATOR_DATA);
-    SetIndexBuffer(3, MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(4, minPeriod_MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(5, maxPeriod_MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(0, minPeriod_MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(1, maxPeriod_MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(2, OsMABuffer,   INDICATOR_DATA);
+    SetIndexBuffer(3, colorBuffer,  INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(4, SignalBuffer, INDICATOR_DATA);
+    SetIndexBuffer(5, MACDBuffer,   INDICATOR_DATA);
     
     name = symbol;
     StringTrimRight(name);
