@@ -153,7 +153,7 @@ int OnCalculate(const int rates_total,
     if (!FillArraysFromBuffers(nr_values_to_copy))
         return (0);
 
-    calcMinMax(prev_calculated);
+    calcMinMax(nr_values_to_copy);
 Print("calc: ", calculated, " pr_c: ", prev_calculated, " bars_c: ", bars_calculated, " rts_tot ", rates_total, " nr_vl_tcpy: ", nr_values_to_copy, " minP:", minPeriod_MACDBuffer[0]);
 
     //--- form the message
@@ -192,9 +192,11 @@ bool FillArraysFromBuffers(int amount)
         //--- quit with zero result - it means that the indicator is considered as not calculated
         return (false);
     }
+//Print("amount: ", amount);
     for (int i = 0; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
+//if (i > amount - 7) Print(i, " ", OsMABuffer[i], " ", MACDBuffer[i], " ", SignalBuffer[i]);
         colorBuffer[i] = 0;
         if (i > 0 && OsMABuffer[i] < OsMABuffer[i - 1])
         {
@@ -211,11 +213,17 @@ void calcMinMax(int max_idx)
 {
     int i;
     int cnt = 0;
-    for (i = 0; i < max_idx && MACDBuffer[i] < MACDBuffer[i+1]; i++)
+//Print("max_idx: ", max_idx);
+    for (i = max_idx-1; i > 0; i--)
     {
-        cnt++;
+//Print("i: ", i);
+        if (MACDBuffer[i] < MACDBuffer[i-1])
+        {   cnt+=1;  }
+        else
+        break;
     }
-    minPeriod_MACDBuffer[0] = cnt;
+if (fast_ema_period==12) Print("XXX  cnt: ", cnt, " max_idx: ", max_idx);
+    minPeriod_MACDBuffer[max_idx-1] = cnt;
 }
 //+------------------------------------------------------------------+
 //| Indicator deinitialization function                              |
