@@ -74,9 +74,8 @@ enum Creation
 input int fast_ema_period = 12;                         // period of fast ma
 input int slow_ema_period = 26;                         // period of slow ma
 input int signal_period = 9;                            // period of averaging of difference
-input ENUM_APPLIED_PRICE applied_price = PRICE_TYPICAL; // type of price
-input string symbol = " ";                              // symbol
-input ENUM_TIMEFRAMES period = PERIOD_CURRENT;          // timeframe
+/* input */ ENUM_APPLIED_PRICE applied_price = PRICE_TYPICAL; // type of price
+/* input */ ENUM_TIMEFRAMES period = PERIOD_CURRENT;          // timeframe
 
 //--- indicator buffers
 double MACDBuffer[];
@@ -90,8 +89,6 @@ double decPeriod_OsMABuffer[];
 double incPeriod_OsMABuffer[];
 
 int iMACD_handle;
-string name = symbol;
-string short_name;
 int bars_calculated = 0;
 
 //+------------------------------------------------------------------+
@@ -109,23 +106,16 @@ int OnInit()
     SetIndexBuffer(6, decPeriod_OsMABuffer, INDICATOR_DATA);
     SetIndexBuffer(7, incPeriod_OsMABuffer, INDICATOR_DATA);
     
-    name = symbol;
-    StringTrimRight(name);
-    StringTrimLeft(name);
-    if (StringLen(name) == 0)
-    {
-        name = _Symbol;
-    }
-    iMACD_handle = iMACD(name, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
+    iMACD_handle = iMACD(_Symbol, period, fast_ema_period, slow_ema_period, signal_period, applied_price);
     if (iMACD_handle == INVALID_HANDLE)
     {
         PrintFormat("Failed to create iMACD_handle of the iMACD indicator for the symbol %s/%s, error code %d",
-                    name,
+                    _Symbol,
                     EnumToString(period),
                     GetLastError());
         return (INIT_FAILED);
     }
-    short_name = StringFormat("iMACD(%s/%s,%d,%d,%d,%s)", name, EnumToString(period),
+    string short_name = StringFormat("iMACD(%s/%s,%d,%d,%d,%s)", _Symbol, EnumToString(period),
                               fast_ema_period, slow_ema_period, signal_period, EnumToString(applied_price));
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
     return (INIT_SUCCEEDED);
@@ -144,9 +134,7 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    //--- number of values copied from the iMACD indicator
     int nr_values_to_copy;
-    //--- determine the number of values calculated in the indicator
     int calculated = BarsCalculated(iMACD_handle);
 
     if (calculated <= 0)
@@ -175,18 +163,8 @@ int OnCalculate(const int rates_total,
     //--- fill the arrays with values of the iMACD indicator
     //--- if FillArraysFromBuffer returns false, it means the information is nor ready yet, quit operation
     if (!FillArraysFromBuffers(nr_values_to_copy))
-        return (0);
+    {   return (0); }
 
-//Print("calc: ", calculated, " pr_c: ", prev_calculated, " bars_c: ", bars_calculated, " rts_tot ", rates_total, " nr_vl_tcpy: ", nr_values_to_copy, " minP:", decPeriod_MACDBuffer[0]);
-
-    //--- form the message
-    // string comm = StringFormat("%s ==>  Updated value in the indicator %s: %d",
-    //                            TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS),
-    //                            short_name,
-    //                            nr_values_to_copy);
-    //--- display the service message on the chart
-    // Comment(comm);
-    //--- memorize the number of values in the Moving Averages indicator Convergence/Divergence
     bars_calculated = calculated;
     //--- return the prev_calculated value for the next call
     return (rates_total);
@@ -196,26 +174,18 @@ int OnCalculate(const int rates_total,
 //+------------------------------------------------------------------+
 bool FillArraysFromBuffers(int amount)
 {
-    //--- reset error code
     ResetLastError();
-    //--- fill a part of the iMACDBuffer array with values from the indicator buffer that has 0 index
     if (CopyBuffer(iMACD_handle, 0, 0, amount, MACDBuffer) < 0)
     {
-        //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
-        //--- quit with zero result - it means that the indicator is considered as not calculated
         return (false);
     }
 
-    //--- fill a part of the SignalBuffer array with values from the indicator buffer that has index 1
     if (CopyBuffer(iMACD_handle, 1, 0, amount, SignalBuffer) < 0)
     {
-        //--- if the copying fails, tell the error code
         PrintFormat("Failed to copy data from the iMACD indicator, error code %d", GetLastError());
-        //--- quit with zero result - it means that the indicator is considered as not calculated
         return (false);
     }
-//Print("amount: ", amount);
 
     OsMABuffer[0] = 0;
     decPeriod_MACDBuffer[0] = 0;
@@ -226,40 +196,30 @@ bool FillArraysFromBuffers(int amount)
     for (int i = 0; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
-//if (i > amount - 7) Print(i, " ", OsMABuffer[i], " ", MACDBuffer[i], " ", SignalBuffer[i]);
         colorBuffer[i] = 0;
         if (i > 0 && OsMABuffer[i] < OsMABuffer[i - 1])
-        {
-            colorBuffer[i] = 1;
-        }
+        {   colorBuffer[i] = 1; }
 
-        if (i > 0 && MACDBuffer[i] < MACDBuffer[i-1])
-        {   decPeriod_MACDBuffer[i] = decPeriod_MACDBuffer[i-1] - 0.05;    }
-        else
-        {  decPeriod_MACDBuffer[i] = 0; }
-
-        if (i > 0 && MACDBuffer[i] > MACDBuffer[i-1])
-        {   incPeriod_MACDBuffer[i] = incPeriod_MACDBuffer[i-1] + 0.05;    }
-        else
-        {  incPeriod_MACDBuffer[i] = 0; }
-
-        if (i > 0 && OsMABuffer[i] < OsMABuffer[i-1])
-        {   decPeriod_OsMABuffer[i] = decPeriod_OsMABuffer[i-1] - 0.05;    }
-        else
-        {  decPeriod_OsMABuffer[i] = 0; }
-
-        if (i > 0 && OsMABuffer[i] > OsMABuffer[i-1])
-        {   incPeriod_OsMABuffer[i] = incPeriod_OsMABuffer[i-1] + 0.05;    }
-        else
-        {  incPeriod_OsMABuffer[i] = 0; }
-
+        updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
+        updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
     }
     return (true);
 }
 //+------------------------------------------------------------------+
 // 
 //+------------------------------------------------------------------+
+void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& incPerBuff[])
+{
+    if (i > 0 && buff[i] < buff[i-1])
+    {   decPerBuff[i] = decPerBuff[i-1] - 0.05; }
+    else
+    {  decPerBuff[i] = 0; }
 
+    if (i > 0 && buff[i] > buff[i-1])
+    {   incPerBuff[i] = incPerBuff[i-1] + 0.05; }
+    else
+    {  incPerBuff[i] = 0; }
+}
 
 //+------------------------------------------------------------------+
 //| Indicator deinitialization function                              |
@@ -268,6 +228,4 @@ void OnDeinit(const int reason)
 {
     if (iMACD_handle != INVALID_HANDLE)
         IndicatorRelease(iMACD_handle);
-    //--- clear the chart after deleting the indicator
-    // Comment("");
 }
