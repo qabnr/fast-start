@@ -61,15 +61,6 @@
 #property indicator_style7 STYLE_SOLID
 #property indicator_width7 1
 
-
-//+------------------------------------------------------------------+
-//| Enumeration of the methods of handle creation                    |
-//+------------------------------------------------------------------+
-enum Creation
-{
-    Call_iMACD,          // use iMACD
-    Call_IndicatorCreate // use IndicatorCreate
-};
 //--- input parameters
 input int fast_ema_period = 12;                         // period of fast ma
 input int slow_ema_period = 26;                         // period of slow ma
@@ -89,20 +80,18 @@ double decPeriod_OsMABuffer[];
 double incPeriod_OsMABuffer[];
 
 int iMACD_handle;
-int bars_calculated = 0;
 
 //+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
-//+------------------------------------------------------------------+
 int OnInit()
+//+------------------------------------------------------------------+
 {
     //--- assignment of arrays to indicator buffers
-    SetIndexBuffer(0, decPeriod_MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(1, incPeriod_MACDBuffer,   INDICATOR_DATA);
-    SetIndexBuffer(2, OsMABuffer,   INDICATOR_DATA);
-    SetIndexBuffer(3, colorBuffer,  INDICATOR_COLOR_INDEX);
-    SetIndexBuffer(4, SignalBuffer, INDICATOR_DATA);
-    SetIndexBuffer(5, MACDBuffer,   INDICATOR_DATA);
+    SetIndexBuffer(0, decPeriod_MACDBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, incPeriod_MACDBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, OsMABuffer,           INDICATOR_DATA);
+    SetIndexBuffer(3, colorBuffer,          INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(4, SignalBuffer,         INDICATOR_DATA);
+    SetIndexBuffer(5, MACDBuffer,           INDICATOR_DATA);
     SetIndexBuffer(6, decPeriod_OsMABuffer, INDICATOR_DATA);
     SetIndexBuffer(7, incPeriod_OsMABuffer, INDICATOR_DATA);
     
@@ -121,19 +110,19 @@ int OnInit()
     return (INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
-//| Custom indicator iteration function                              |
+int OnCalculate(const int       rates_total,
 //+------------------------------------------------------------------+
-int OnCalculate(const int rates_total,
-                const int prev_calculated,
+                const int       prev_calculated,
                 const datetime &time[],
-                const double &open[],
-                const double &high[],
-                const double &low[],
-                const double &close[],
-                const long &tick_volume[],
-                const long &volume[],
-                const int &spread[])
+                const double   &open[],
+                const double   &high[],
+                const double   &low[],
+                const double   &close[],
+                const long     &tick_volume[],
+                const long     &volume[],
+                const int      &spread[])
 {
+    static int bars_calculated = 0;
     int nr_values_to_copy;
     int calculated = BarsCalculated(iMACD_handle);
 
@@ -170,9 +159,8 @@ int OnCalculate(const int rates_total,
     return (rates_total);
 }
 //+------------------------------------------------------------------+
-//| Filling indicator buffers from the iMACD indicator               |
-//+------------------------------------------------------------------+
 bool FillArraysFromBuffers(int amount)
+//+------------------------------------------------------------------+
 {
     ResetLastError();
     if (CopyBuffer(iMACD_handle, 0, 0, amount, MACDBuffer) < 0)
@@ -206,9 +194,8 @@ bool FillArraysFromBuffers(int amount)
     return (true);
 }
 //+------------------------------------------------------------------+
-// 
-//+------------------------------------------------------------------+
 void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& incPerBuff[])
+//+------------------------------------------------------------------+
 {
     if (i > 0 && buff[i] < buff[i-1])
     {   decPerBuff[i] = decPerBuff[i-1] - 0.05; }
@@ -220,12 +207,11 @@ void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& in
     else
     {  incPerBuff[i] = 0; }
 }
-
-//+------------------------------------------------------------------+
-//| Indicator deinitialization function                              |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
+//+------------------------------------------------------------------+
 {
     if (iMACD_handle != INVALID_HANDLE)
         IndicatorRelease(iMACD_handle);
 }
+//+------------------------------------------------------------------+
