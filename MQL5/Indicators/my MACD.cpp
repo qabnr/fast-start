@@ -196,15 +196,38 @@ bool FillArraysFromBuffers(int amount, int prev_calculated)
 void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& incPerBuff[])
 //+------------------------------------------------------------------+
 {
-    if (i > 0 && buff[i] < buff[i-1])
-    {   decPerBuff[i] = decPerBuff[i-1] - 0.05; }
-    else
-    {  decPerBuff[i] = 0; }
+    // if (i > 0 && buff[i] < buff[i-1])
+    // {   decPerBuff[i] = decPerBuff[i-1] - 0.05; }
+    // else
+    // {  decPerBuff[i] = 0; }
 
-    if (i > 0 && buff[i] > buff[i-1])
-    {   incPerBuff[i] = incPerBuff[i-1] + 0.05; }
-    else
-    {  incPerBuff[i] = 0; }
+    // if (i > 0 && buff[i] > buff[i-1])
+    // {   incPerBuff[i] = incPerBuff[i-1] + 0.05; }
+    // else
+    // {  incPerBuff[i] = 0; }
+
+    static double step = 0.05;
+
+    if (i > 0)
+    {
+        incPerBuff[i] = 0;
+        if( buff[i] < buff[i-1])                        // decreasing
+        {   if (decPerBuff[i-1] <= 0)                   //      already in decreasing trend
+            {   decPerBuff[i] = decPerBuff[i-1] - step; //          continue to decrease
+            }
+            else                                        //      was increasing before
+            {   decPerBuff[i] = 0;                      //          start new trend
+            }
+        }
+        else                                            // increasing
+        {   if (decPerBuff[i-1] >= 0)                   //      already in increasing trend
+            {   decPerBuff[i] = decPerBuff[i-1] + step; //          continue to increase
+            }
+            else                                        //      was decreasing before
+            {   decPerBuff[i] = 0;                      //          start new trend
+            }
+        }
+    }
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
