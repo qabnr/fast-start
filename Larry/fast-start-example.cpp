@@ -54,6 +54,16 @@ buffer ATR_ST_buffer, ATR_Color_buffer;
 buffer MACD1_Buffer, Signal1_Buffer, OsMA1_Buffer, osMA_Color1_Buffer;
 buffer MACD2_Buffer, Signal2_Buffer, OsMA2_Buffer, osMA_Color2_Buffer;
 
+buffer decPeriod_MACD1_Buffer;
+buffer incPeriod_MACD1_Buffer;
+buffer decPeriod_OsMA1_Buffer;
+buffer incPeriod_OsMA1_Buffer;
+
+buffer decPeriod_MACD2_Buffer;
+buffer incPeriod_MACD2_Buffer;
+buffer decPeriod_OsMA2_Buffer;
+buffer incPeriod_OsMA2_Buffer;
+
 string        my_symbol;
 CTrade        m_Trade;
 CPositionInfo m_Position;
@@ -70,8 +80,8 @@ int OnInit()
     my_symbol = Symbol();
 
     ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100,   2);
-    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD",        12,  26,  9);
-    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "my MACD",        84, 182, 63);
+    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        12,  26,  9);
+    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        84, 182, 63);
 
     if (ATR_ST_handle == INVALID_HANDLE
     ||  MACD1_handle  == INVALID_HANDLE
@@ -81,19 +91,28 @@ int OnInit()
         return (-1);
     }
 
-    ATR_ST_buffer       .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 0);
-    ATR_Color_buffer    .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 1);
+    ATR_ST_buffer         .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 0);
+    ATR_Color_buffer      .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 1);
 
-    MACD1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 5);
-    Signal1_Buffer      .addHandleAndBuffNum("MACD1", MACD1_handle, 4);
-    OsMA1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 2);
-    osMA_Color1_Buffer  .addHandleAndBuffNum("MACD1", MACD1_handle, 3);
+    decPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 0);
+    incPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 1);
+    OsMA1_Buffer          .addHandleAndBuffNum("MACD1", MACD1_handle, 2);
+    osMA_Color1_Buffer    .addHandleAndBuffNum("MACD1", MACD1_handle, 3);
+    Signal1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 4);
+    MACD1_Buffer          .addHandleAndBuffNum("MACD1", MACD1_handle, 5);
+    decPeriod_OsMA1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 6);
+    incPeriod_OsMA1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 7);
     
-    MACD2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 5);
-    Signal2_Buffer      .addHandleAndBuffNum("MACD2", MACD2_handle, 4);
-    OsMA2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 2);
-    osMA_Color2_Buffer  .addHandleAndBuffNum("MACD2", MACD2_handle, 3);
-    
+    decPeriod_MACD2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 0);
+    incPeriod_MACD2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 1);
+    OsMA2_Buffer          .addHandleAndBuffNum("MACD2", MACD2_handle, 2);
+    osMA_Color2_Buffer    .addHandleAndBuffNum("MACD2", MACD2_handle, 3);
+    Signal2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 4);
+    MACD2_Buffer          .addHandleAndBuffNum("MACD2", MACD2_handle, 5);
+    decPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 6);
+    incPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 7);
+
+
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
     return (0);
