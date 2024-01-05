@@ -85,7 +85,6 @@ int iMACD_handle;
 int OnInit()
 //+------------------------------------------------------------------+
 {
-    //--- assignment of arrays to indicator buffers
     SetIndexBuffer(0, decPeriod_MACDBuffer, INDICATOR_DATA);
     SetIndexBuffer(1, incPeriod_MACDBuffer, INDICATOR_DATA);
     SetIndexBuffer(2, OsMABuffer,           INDICATOR_DATA);
@@ -151,7 +150,7 @@ int OnCalculate(const int       rates_total,
     }
     //--- fill the arrays with values of the iMACD indicator
     //--- if FillArraysFromBuffer returns false, it means the information is nor ready yet, quit operation
-    if (!FillArraysFromBuffers(nr_values_to_copy))
+    if (!FillArraysFromBuffers(nr_values_to_copy, prev_calculated))
     {   return (0); }
 
     bars_calculated = calculated;
@@ -159,7 +158,7 @@ int OnCalculate(const int       rates_total,
     return (rates_total);
 }
 //+------------------------------------------------------------------+
-bool FillArraysFromBuffers(int amount)
+bool FillArraysFromBuffers(int amount, int prev_calculated)
 //+------------------------------------------------------------------+
 {
     ResetLastError();
@@ -181,7 +180,7 @@ bool FillArraysFromBuffers(int amount)
     decPeriod_OsMABuffer[0] = 0;
     incPeriod_OsMABuffer[0] = 0;
 
-    for (int i = 0; i < amount; i++)
+    for (int i = prev_calculated; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
         colorBuffer[i] = 0;
