@@ -14,8 +14,8 @@
 #property indicator_width1 2
 #property indicator_label1 "Buy TP"
 
-input int    ATRper = 100;                           // ATR Period
-input double Mult   = 1;                             // Multiplier
+input int    ATRper = 10;                           // ATR Period
+input double Mult   = 1;                            // Multiplier
 
 /* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
 
