@@ -5,6 +5,8 @@
 #property link      "http://www.mql5.com"
 #property version   "1.00"
 
+#property tester_indicator "myATR_TR_STOP.ex5"
+
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
@@ -46,11 +48,10 @@ public:
     }
 };
 
-int ATR_ST_handle;
 int MACD1_handle;
 int MACD2_handle;
 
-buffer ATR_ST_buffer, ATR_Color_buffer;
+//buffer ATR_ST_buffer, ATR_Color_buffer;
 buffer MACD1_Buffer, Signal1_Buffer, OsMA1_Buffer, osMA_Color1_Buffer;
 buffer MACD2_Buffer, Signal2_Buffer, OsMA2_Buffer, osMA_Color2_Buffer;
 
@@ -79,20 +80,15 @@ int OnInit()
 {
     my_symbol = Symbol();
 
-    ATR_ST_handle = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", 100,   2);
     MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        12,  26,  9);
     MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        84, 182, 63);
 
-    if (ATR_ST_handle == INVALID_HANDLE
-    ||  MACD1_handle  == INVALID_HANDLE
-    ||  MACD2_handle  == INVALID_HANDLE)
+    if (MACD1_handle  == INVALID_HANDLE ||
+        MACD2_handle  == INVALID_HANDLE)
     {
         Print("Failed to get the one of the indicator handles");
         return (-1);
     }
-
-    ATR_ST_buffer         .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 0);
-    ATR_Color_buffer      .addHandleAndBuffNum("ATR_ST", ATR_ST_handle, 1);
 
     decPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 0);
     incPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 1);
@@ -122,7 +118,6 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    IndicatorRelease(ATR_ST_handle);
     IndicatorRelease(MACD1_handle);
     IndicatorRelease(MACD2_handle);
 }
@@ -142,24 +137,7 @@ void OnTick()
     bool BuyNow  = false;
     bool SellNow = false;
 
-if(false)
-{
-
-    if (ATR_Color_buffer.get(0) > 1.5)
-    {
-        if (ATR_Color_buffer.get(1) < 0.5)
-        {
-            Print("Sell");
-            SellNow = true;
-        }
-        else
-        {
-            Print("Buy");
-            BuyNow = true;
-        }
-    }
-}
-else if (TimeCurrent() > D'2022.04.27')
+if (TimeCurrent() > D'2022.04.27')
 {    
     if (osMA_Color2_Buffer.get(2) != osMA_Color2_Buffer.get(1))
     {
@@ -217,9 +195,7 @@ else if (TimeCurrent() > D'2022.04.27')
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!ATR_ST_buffer      .copy(buffSize) ||
-        !ATR_Color_buffer   .copy(buffSize) ||
-        !MACD1_Buffer       .copy(buffSize) ||
+    if (!MACD1_Buffer       .copy(buffSize) ||
         !Signal1_Buffer     .copy(buffSize) ||
         !OsMA1_Buffer       .copy(buffSize) ||
         !osMA_Color1_Buffer .copy(buffSize) ||
