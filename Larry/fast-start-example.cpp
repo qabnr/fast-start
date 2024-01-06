@@ -10,11 +10,12 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
+//+------------------------------------------------------------------+
 struct minMaxT {
    double min;
    double max;
 };
-
+//+------------------------------------------------------------------+
 class buffer
 {
 private:
@@ -47,7 +48,7 @@ public:
         return nrCopied;
     }
 };
-
+//+------------------------------------------------------------------+
 class ATR_TR_STOP {
 private:
     int     handle;
@@ -55,6 +56,8 @@ private:
     buffer  color_buffer;
 
 public:
+    ATR_TR_STOP() {}
+
     ATR_TR_STOP(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE)
@@ -70,6 +73,27 @@ public:
         return ST_buffer.copy(count) && color_buffer.copy(count);
     }
 };
+//+------------------------------------------------------------------+
+class ATR_TR_STOP_List
+{
+private:
+    ATR_TR_STOP atrTrSt[];
+
+public:
+    ATR_TR_STOP_List() {}
+    ~ATR_TR_STOP_List() {};
+
+    void add(int ATRper, double mult) {
+        Print("atrTrSt size: ", ArraySize(atrTrSt));
+        ArrayResize(atrTrSt, ArraySize(atrTrSt) + 1, 100);
+        atrTrSt[0] = new ATR_TR_STOP(ATRper, mult);
+        Print("atrTrSt size: ", ArraySize(atrTrSt));
+    }
+};
+
+//************************************************************************
+
+ATR_TR_STOP_List ATR_list;
 
 int MACD1_handle;
 int MACD2_handle;
@@ -100,6 +124,9 @@ const int buffSize = 300;
 //+------------------------------------------------------------------+
 int OnInit()
 {
+
+ATR_list.add(10, 3.0);
+
     my_symbol = Symbol();
 
     MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        12,  26,  9);
@@ -130,6 +157,7 @@ int OnInit()
     decPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 6);
     incPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 7);
 
+ATR_list.add(10, 4.0);
 
     vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
@@ -163,12 +191,12 @@ if (TimeCurrent() > D'2022.04.27')
 {    
     if (osMA_Color2_Buffer.get(2) != osMA_Color2_Buffer.get(1))
     {
-        Print(" X- ", runLen, " -- ", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
+        // Print(" X- ", runLen, " -- ", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
     }
     else
     {
         runLen += 1;
-        Print(" X- ", runLen);        
+        // Print(" X- ", runLen);        
     }
     if (osMA_Color2_Buffer.get(2) > osMA_Color2_Buffer.get(1))
     {
