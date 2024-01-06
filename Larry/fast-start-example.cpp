@@ -24,21 +24,28 @@ private:
     int     buffNum;
     double  buff[];
     int     nrCopied;
+    int     objSerialNum;
+
+    static  int objCount;
 
 public:
     buffer(): handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
         ArraySetAsSeries(buff, true);
+        objCount++;
+        objSerialNum = objCount;
     }
     ~buffer() {};
     void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
          name    =  _name;
          handle  = _handle;
          buffNum = _buffNum;
+
+Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
     }
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name);    }
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, "(", objSerialNum, ")");    }
         return nrCopied > 0;
     }
     double get(int index) {
@@ -48,6 +55,9 @@ public:
         return nrCopied;
     }
 };
+
+int buffer::objCount = 0;
+
 //+------------------------------------------------------------------+
 class ATR_TR_STOP {
 private:
@@ -58,7 +68,7 @@ private:
 public:
     ATR_TR_STOP() {}
 
-    ATR_TR_STOP(int ATRperiod, double mult) {
+    void add(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE)
         {
@@ -80,14 +90,21 @@ private:
     ATR_TR_STOP atrTrSt[];
 
 public:
-    ATR_TR_STOP_List() {}
+    ATR_TR_STOP_List() { ArrayResize(atrTrSt, 0, 100); }
     ~ATR_TR_STOP_List() {};
 
     void add(int ATRper, double mult) {
-        Print("atrTrSt size: ", ArraySize(atrTrSt));
+Print("atrTrSt size: ", ArraySize(atrTrSt));
         ArrayResize(atrTrSt, ArraySize(atrTrSt) + 1, 100);
-        atrTrSt[0] = new ATR_TR_STOP(ATRper, mult);
-        Print("atrTrSt size: ", ArraySize(atrTrSt));
+        atrTrSt[ArraySize(atrTrSt)-1].add(ATRper, mult);
+Print("atrTrSt size: ", ArraySize(atrTrSt));
+    }
+
+    bool copy(int count) {
+        for (int i = 0; i < ArraySize(atrTrSt); i++)
+        {   if (!atrTrSt[i].copy(count)) return false;
+        }
+        return true;
     }
 };
 
@@ -252,7 +269,8 @@ bool copyBuffers()
         !MACD2_Buffer       .copy(buffSize) ||
         !Signal2_Buffer     .copy(buffSize) ||
         !OsMA2_Buffer       .copy(buffSize) ||
-        !osMA_Color2_Buffer .copy(buffSize)   )
+        !osMA_Color2_Buffer .copy(buffSize) ||
+        !ATR_list.copy(buffSize)  )
     {
         Print("Failed to copy data from buffer");
         return false;
