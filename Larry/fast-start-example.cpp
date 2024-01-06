@@ -48,10 +48,32 @@ public:
     }
 };
 
+class ATR_TR_STOP {
+private:
+    int     handle;
+    buffer  ST_buffer;
+    buffer  color_buffer;
+
+public:
+    ATR_TR_STOP(int ATRperiod, double mult) {
+        handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
+        if (handle == INVALID_HANDLE)
+        {
+            Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
+            return;
+        }
+        ST_buffer   .addHandleAndBuffNum("ATR_ST", handle, 0);
+        color_buffer.addHandleAndBuffNum("ATR_ST", handle, 1);
+    }
+
+    bool copy(int count) {
+        return ST_buffer.copy(count) && color_buffer.copy(count);
+    }
+};
+
 int MACD1_handle;
 int MACD2_handle;
 
-//buffer ATR_ST_buffer, ATR_Color_buffer;
 buffer MACD1_Buffer, Signal1_Buffer, OsMA1_Buffer, osMA_Color1_Buffer;
 buffer MACD2_Buffer, Signal2_Buffer, OsMA2_Buffer, osMA_Color2_Buffer;
 
