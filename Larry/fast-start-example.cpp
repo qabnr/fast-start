@@ -30,18 +30,20 @@ public:
     buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
     {
         ArraySetAsSeries(buff, true);
+Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     }
     void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
          name    =  _name;
          handle  = _handle;
          buffNum = _buffNum;
+Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     }
     ~buffer() {};
 
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name);  }
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, " (", handle, ")");  }
         return nrCopied > 0;
     }
     double get(int index) {
@@ -68,8 +70,10 @@ public:
             Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
             return;
         }
-        ST_buffer   .addHandleAndBuffNum("ATR_ST", handle, 0);
-        color_buffer.addHandleAndBuffNum("ATR_ST", handle, 1);
+
+        string short_name = StringFormat("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
+        ST_buffer   .addHandleAndBuffNum(short_name, handle, 0);
+        color_buffer.addHandleAndBuffNum(short_name, handle, 1);
     }
 
     bool copyBuffers(int count) {
