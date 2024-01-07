@@ -1,10 +1,8 @@
-#property copyright "Denis Zyatkevich"
-#property description "This indicator calculates TakeProfit levels"
-#property description "using the average market volatility. It uses the values"
-#property description "of Average True Range (ATR) indicator, calculated"
-#property description "on daily price data. Indicator values are calculated"
-#property description "using maximal and minimal price values per day."
+#property copyright "GM"
+#property description "ATR Trailing Stop"
+
 #property version "1.00"
+
 #property indicator_chart_window
 #property indicator_buffers 2
 #property indicator_plots 1
@@ -14,23 +12,25 @@
 #property indicator_width1 2
 #property indicator_label1 "Buy TP"
 
-input int    ATRper = 10;                           // ATR Period
-input double Mult   = 1;                            // Multiplier
+input int    ATRper = 10;        // ATR Period
+input double Mult   = 1;         // Multiplier
 
-/* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Indicator timeframe
+/* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Timeframe
 
 double buBuffer[];
 double colorBuffer[];
 
 int hATR;
+double atr[];
 
 void OnInit()
 {
     SetIndexBuffer(0, buBuffer,    INDICATOR_DATA);
     SetIndexBuffer(1, colorBuffer, INDICATOR_COLOR_INDEX);
     hATR = iATR(NULL, ATRtimeframe, ATRper);
+    ArraySetAsSeries(atr, true);
     
-    Print("iATR per: ", ATRper, " Mult: ", Mult);
+    //Print("ATR TR ST per: ", ATRper, " Mult: ", Mult);
 }
 
 int OnCalculate(const int rates_total,
@@ -51,10 +51,8 @@ int OnCalculate(const int rates_total,
     static bool upTrend = true;
 
     int i, day_n = 0, day_t = 0;
-    double atr[];
 
     CopyBuffer(hATR, 0, 0, 2, atr);
-    ArraySetAsSeries(atr, true);
 
     for (i = prev_calculated; i < rates_total; i++)
     {       
