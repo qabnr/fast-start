@@ -112,7 +112,6 @@ public:
         return true;
     }
 };
-
 //************************************************************************
 class MACD
 {
@@ -158,15 +157,36 @@ public:
     }
 };
 //************************************************************************
+class TradePosition {
+private:
+    string        my_symbol;
+    CTrade        m_Trade;
+    CPositionInfo m_Position;
+
+    double        volume;
+
+public:
+    TradePosition(string symbol): my_symbol(symbol),
+        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX))
+    {}
+    ~TradePosition() {}
+
+    bool select()
+    { return m_Position.Select(my_symbol); }
+    ENUM_POSITION_TYPE positionType ()
+    { return m_Position.PositionType(); }
+    void positionClose()
+    { m_Trade.PositionClose(my_symbol); }
+    void buy()
+    { m_Trade.Buy(volume, my_symbol); }
+    void sell()
+    { m_Trade.Sell(volume, my_symbol); }
+};
+//************************************************************************
 
 ATR_TR_STOP_List ATR_list;
 MACD *pMACD1, *pMACD2;
-
-string        my_symbol;
-CTrade        m_Trade;
-CPositionInfo m_Position;
-
-double vol;
+TradePosition *pPos;
 
 const int buffSize = 300;
 
@@ -180,11 +200,9 @@ ATR_list.add(10, 3.0);
     pMACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
     pMACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
 
-    my_symbol = Symbol();
+    pPos = new TradePosition(Symbol());
 
 ATR_list.add(10, 4.0);
-
-    vol = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
 
     return (0);
 }
@@ -244,25 +262,25 @@ if (TimeCurrent() > D'2022.04.27')
 
     if (BuyNow)
     {
-        if (m_Position.Select(my_symbol)) 
+        if (pPos.select()) 
         {
-            if (m_Position.PositionType() == POSITION_TYPE_SELL)
-                m_Trade.PositionClose(my_symbol);
-            if (m_Position.PositionType() == POSITION_TYPE_BUY)
+            if (pPos.positionType() == POSITION_TYPE_SELL)
+                pPos.positionClose();
+            if (pPos.positionType() == POSITION_TYPE_BUY)
                 return;
         }
-        m_Trade.Buy(vol, my_symbol);
+        pPos.buy();
     }
     else if (SellNow)
     {
-        if (m_Position.Select(my_symbol))
+        if (pPos.select())
         {
-            if (m_Position.PositionType() == POSITION_TYPE_BUY)
-                m_Trade.PositionClose(my_symbol);
-            if (m_Position.PositionType() == POSITION_TYPE_SELL)
+            if (pPos.positionType() == POSITION_TYPE_BUY)
+                pPos.positionClose();
+            if (pPos.positionType() == POSITION_TYPE_SELL)
                 return;
         }
-        m_Trade.Sell(vol, my_symbol);
+        pPos.sell();
     }
 }
 //+------------------------------------------------------------------+
@@ -283,7 +301,6 @@ bool copyBuffers()
 //+------------------------------------------------------------------+
 //| 
 //+------------------------------------------------------------------+
-
 minMaxT findMinMax(buffer &buff)
 {
     double min =  9e99;
@@ -301,7 +318,6 @@ minMaxT findMinMax(buffer &buff)
 
     return r;
 }
-
 //+------------------------------------------------------------------+
 //| 
 //+------------------------------------------------------------------+
