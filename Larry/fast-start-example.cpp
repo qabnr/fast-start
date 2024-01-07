@@ -138,7 +138,10 @@ public:
         incPeriod_Buffer     (1, name, _handle),
         decPeriod_OsMA_Buffer(6, name, _handle),
         incPeriod_OsMA_Buffer(7, name, _handle)
-    {}
+    {
+        if(_handle  == INVALID_HANDLE)
+        {   Print("Failed to get the one of the indicator handles"); }
+    }
     ~MACD() {}
 
     bool copyBuffers(int count)
@@ -154,20 +157,10 @@ public:
             incPeriod_OsMA_Buffer.copy(count);
     }
 };
-
-
 //************************************************************************
 
 ATR_TR_STOP_List ATR_list;
-
 MACD *pMACD1, *pMACD2;
-
-int MACD1_handle;
-int MACD2_handle;
-
-
-buffer osMA_Color2_Buffer;
-
 
 string        my_symbol;
 CTrade        m_Trade;
@@ -184,23 +177,10 @@ int OnInit()
 {
 
 ATR_list.add(10, 3.0);
-pMACD1 = new MACD("MACD1-o", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-pMACD2 = new MACD("MACD2-o", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
+    pMACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    pMACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
 
     my_symbol = Symbol();
-
-    MACD1_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        12,  26,  9);
-    MACD2_handle  = iCustom(NULL, PERIOD_CURRENT, "myMACD",        84, 182, 63);
-
-    if (MACD1_handle  == INVALID_HANDLE ||
-        MACD2_handle  == INVALID_HANDLE)
-    {
-        Print("Failed to get the one of the indicator handles");
-        return (-1);
-    }
-    
-
-    osMA_Color2_Buffer    .addHandleAndBuffNum("MACD2", MACD2_handle, 3);
 
 ATR_list.add(10, 4.0);
 
@@ -213,9 +193,6 @@ ATR_list.add(10, 4.0);
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    IndicatorRelease(MACD1_handle);
-    IndicatorRelease(MACD2_handle);
-
     delete pMACD1;
     delete pMACD2;
 }
@@ -293,9 +270,8 @@ if (TimeCurrent() > D'2022.04.27')
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!pMACD1.copyBuffers(buffSize) ||
-        !pMACD2.copyBuffers(buffSize) ||
-        !osMA_Color2_Buffer .copy(buffSize) ||
+    if (!pMACD1.  copyBuffers(buffSize) ||
+        !pMACD2.  copyBuffers(buffSize) ||
         !ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
