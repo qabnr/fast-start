@@ -34,7 +34,13 @@ public:
         objCount++;
         objSerialNum = objCount;
     }
-    ~buffer() {};
+    buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
+    {
+        ArraySetAsSeries(buff, true);
+        objCount++;
+        objSerialNum = objCount;
+Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
+    }
     void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
          name    =  _name;
          handle  = _handle;
@@ -42,6 +48,8 @@ public:
 
 Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
     }
+    ~buffer() {};
+
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
@@ -57,7 +65,6 @@ Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
 };
 
 int buffer::objCount = 0;
-
 //+------------------------------------------------------------------+
 class ATR_TR_STOP {
 private:
@@ -68,7 +75,7 @@ private:
 public:
     ATR_TR_STOP() {}
 
-    void add(int ATRperiod, double mult) {
+    void init(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE)
         {
@@ -79,7 +86,7 @@ public:
         color_buffer.addHandleAndBuffNum("ATR_ST", handle, 1);
     }
 
-    bool copy(int count) {
+    bool copyBuffers(int count) {
         return ST_buffer.copy(count) && color_buffer.copy(count);
     }
 };
@@ -94,23 +101,49 @@ public:
     ~ATR_TR_STOP_List() {};
 
     void add(int ATRper, double mult) {
-Print("atrTrSt size: ", ArraySize(atrTrSt));
         ArrayResize(atrTrSt, ArraySize(atrTrSt) + 1, 100);
-        atrTrSt[ArraySize(atrTrSt)-1].add(ATRper, mult);
-Print("atrTrSt size: ", ArraySize(atrTrSt));
+        atrTrSt[ArraySize(atrTrSt)-1].init(ATRper, mult);
     }
 
-    bool copy(int count) {
+    bool copyBuffers(int count) {
         for (int i = 0; i < ArraySize(atrTrSt); i++)
-        {   if (!atrTrSt[i].copy(count)) return false;
+        {   if (!atrTrSt[i].copyBuffers(count)) return false;
         }
         return true;
     }
 };
 
 //************************************************************************
+class MACD
+{
+private:
+    int handle;
+    buffer MACD_Buffer, Signal_Buffer, OsMA_Buffer, osMA_Color_Buffer;
+    buffer decPeriod_Buffer;
+    buffer incPeriod_Buffer;
+    buffer decPeriod_OsMA_Buffer;
+    buffer incPeriod_OsMA_Buffer;
+
+public:
+    MACD(string name, int _handle): 
+        MACD_Buffer          (5, name, _handle), 
+        Signal_Buffer        (4, name, _handle),
+        OsMA_Buffer          (2, name, _handle),
+        osMA_Color_Buffer    (3, name, _handle),
+        decPeriod_Buffer     (0, name, _handle),
+        incPeriod_Buffer     (1, name, _handle),
+        decPeriod_OsMA_Buffer(6, name, _handle),
+        incPeriod_OsMA_Buffer(7, name, _handle)
+    {}
+    ~MACD() {}
+};
+
+
+//************************************************************************
 
 ATR_TR_STOP_List ATR_list;
+
+MACD *pMACD1, *pMACD2;
 
 int MACD1_handle;
 int MACD2_handle;
@@ -143,6 +176,8 @@ int OnInit()
 {
 
 ATR_list.add(10, 3.0);
+pMACD1 = new MACD("MACD1-o", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+pMACD2 = new MACD("MACD2-o", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
 
     my_symbol = Symbol();
 
@@ -187,6 +222,9 @@ void OnDeinit(const int reason)
 {
     IndicatorRelease(MACD1_handle);
     IndicatorRelease(MACD2_handle);
+
+    delete pMACD1;
+    delete pMACD2;
 }
 //+------------------------------------------------------------------+
 //| Expert tick function
@@ -270,7 +308,7 @@ bool copyBuffers()
         !Signal2_Buffer     .copy(buffSize) ||
         !OsMA2_Buffer       .copy(buffSize) ||
         !osMA_Color2_Buffer .copy(buffSize) ||
-        !ATR_list.copy(buffSize)  )
+        !ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
         return false;
