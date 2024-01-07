@@ -17,15 +17,18 @@ input double Mult   = 1;         // Multiplier
 
 /* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Timeframe
 
-double buBuffer[];
+double atrTrStBuffer[];
 double colorBuffer[];
 
 int hATR;
 double atr[];
 
+const double maxResetValue = 0.0;
+const double minResetValue = DBL_MAX;
+
 void OnInit()
 {
-    SetIndexBuffer(0, buBuffer,    INDICATOR_DATA);
+    SetIndexBuffer(0, atrTrStBuffer,    INDICATOR_DATA);
     SetIndexBuffer(1, colorBuffer, INDICATOR_COLOR_INDEX);
     hATR = iATR(NULL, ATRtimeframe, ATRper);
     ArraySetAsSeries(atr, true);
@@ -45,8 +48,8 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 
 {
-    static double buMin = DBL_MAX;
-    static double bdMax = 0.0;
+    static double minHiStop  = minResetValue;
+    static double maxLowStop = maxResetValue;
 
     static bool upTrend = true;
 
@@ -58,49 +61,49 @@ int OnCalculate(const int rates_total,
     {       
         if (upTrend)
         {
-            colorBuffer[i] = bdMax > 0 ? 0 : 2;
+            colorBuffer[i] = maxLowStop > maxResetValue ? 0 : 2;
 
-            double newBD = low[i] - atr[0] * Mult;
-            if (newBD > bdMax)
+            double newLowStop = low[i] - atr[0] * Mult;
+            if (newLowStop > maxLowStop)
             {
-                buBuffer[i] = newBD;
-                bdMax = newBD;
+                atrTrStBuffer[i] = newLowStop;
+                maxLowStop = newLowStop;
             }
             else
             {
-                buBuffer[i] = buBuffer[i - 1];
+                atrTrStBuffer[i] = atrTrStBuffer[i - 1];
             }
 
-            if (buBuffer[i] > low[i])
-            if (buBuffer[i-1] > low[i-1])
+            if (atrTrStBuffer[i] > low[i])
+            if (atrTrStBuffer[i-1] > low[i-1])
             {
-                bdMax = 0;
+                maxLowStop = maxResetValue;
                 upTrend = false;
             }
         }
-        else
+        else  // downtrend
         {
-            colorBuffer[i] = buMin < DBL_MAX ? 1 : 2;
+            colorBuffer[i] = minHiStop < minResetValue ? 1 : 2;
 
-            double newBU = high[i] + atr[0] * Mult;
-            if (newBU < buMin)
+            double newLowStop = high[i] + atr[0] * Mult;
+            if (newLowStop < minHiStop)
             {
-                buBuffer[i] = newBU;
-                buMin = newBU;
+                atrTrStBuffer[i] = newLowStop;
+                minHiStop = newLowStop;
             }
             else
             {
-                buBuffer[i] = buBuffer[i - 1];
+                atrTrStBuffer[i] = atrTrStBuffer[i - 1];
             }
-            if (buBuffer[i] < high[i])
-            if (buBuffer[i-1] < high[i-1])
+            if (atrTrStBuffer[i] < high[i])
+            if (atrTrStBuffer[i-1] < high[i-1])
             {
-                buMin = DBL_MAX;
+                minHiStop = minResetValue;
                 upTrend = true;
             }
         }
-//Print("iATR: ", buBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
-//PrintFormat("iATR: %.2f, %s", buBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+//Print("iATR: ", atrTrStBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+//PrintFormat("iATR: %.2f, %s", atrTrStBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
 //Print(TimeCurrent());
     }    
     return (rates_total);
