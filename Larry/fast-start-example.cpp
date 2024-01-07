@@ -117,16 +117,20 @@ public:
 class MACD
 {
 private:
-    int handle;
-    buffer MACD_Buffer, Signal_Buffer, OsMA_Buffer, osMA_Color_Buffer;
+    //int handle;
+
+public:
+    buffer MACD_Buffer;
+    buffer Signal_Buffer;
+    buffer OsMA_Buffer;
+    buffer osMA_Color_Buffer;
     buffer decPeriod_Buffer;
     buffer incPeriod_Buffer;
     buffer decPeriod_OsMA_Buffer;
     buffer incPeriod_OsMA_Buffer;
 
-public:
     MACD(string name, int _handle): 
-        MACD_Buffer          (5, name, _handle), 
+        MACD_Buffer          (5, name, _handle),
         Signal_Buffer        (4, name, _handle),
         OsMA_Buffer          (2, name, _handle),
         osMA_Color_Buffer    (3, name, _handle),
@@ -148,18 +152,9 @@ MACD *pMACD1, *pMACD2;
 int MACD1_handle;
 int MACD2_handle;
 
-buffer MACD1_Buffer, Signal1_Buffer, OsMA1_Buffer, osMA_Color1_Buffer;
-buffer MACD2_Buffer, Signal2_Buffer, OsMA2_Buffer, osMA_Color2_Buffer;
 
-buffer decPeriod_MACD1_Buffer;
-buffer incPeriod_MACD1_Buffer;
-buffer decPeriod_OsMA1_Buffer;
-buffer incPeriod_OsMA1_Buffer;
+buffer osMA_Color2_Buffer;
 
-buffer decPeriod_MACD2_Buffer;
-buffer incPeriod_MACD2_Buffer;
-buffer decPeriod_OsMA2_Buffer;
-buffer incPeriod_OsMA2_Buffer;
 
 string        my_symbol;
 CTrade        m_Trade;
@@ -190,24 +185,9 @@ pMACD2 = new MACD("MACD2-o", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63
         Print("Failed to get the one of the indicator handles");
         return (-1);
     }
-
-    decPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 0);
-    incPeriod_MACD1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 1);
-    OsMA1_Buffer          .addHandleAndBuffNum("MACD1", MACD1_handle, 2);
-    osMA_Color1_Buffer    .addHandleAndBuffNum("MACD1", MACD1_handle, 3);
-    Signal1_Buffer        .addHandleAndBuffNum("MACD1", MACD1_handle, 4);
-    MACD1_Buffer          .addHandleAndBuffNum("MACD1", MACD1_handle, 5);
-    decPeriod_OsMA1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 6);
-    incPeriod_OsMA1_Buffer.addHandleAndBuffNum("MACD1", MACD1_handle, 7);
     
-    decPeriod_MACD2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 0);
-    incPeriod_MACD2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 1);
-    OsMA2_Buffer          .addHandleAndBuffNum("MACD2", MACD2_handle, 2);
+
     osMA_Color2_Buffer    .addHandleAndBuffNum("MACD2", MACD2_handle, 3);
-    Signal2_Buffer        .addHandleAndBuffNum("MACD2", MACD2_handle, 4);
-    MACD2_Buffer          .addHandleAndBuffNum("MACD2", MACD2_handle, 5);
-    decPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 6);
-    incPeriod_OsMA2_Buffer.addHandleAndBuffNum("MACD1", MACD2_handle, 7);
 
 ATR_list.add(10, 4.0);
 
@@ -300,13 +280,8 @@ if (TimeCurrent() > D'2022.04.27')
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!MACD1_Buffer       .copy(buffSize) ||
-        !Signal1_Buffer     .copy(buffSize) ||
-        !OsMA1_Buffer       .copy(buffSize) ||
-        !osMA_Color1_Buffer .copy(buffSize) ||
-        !MACD2_Buffer       .copy(buffSize) ||
-        !Signal2_Buffer     .copy(buffSize) ||
-        !OsMA2_Buffer       .copy(buffSize) ||
+    if (
+
         !osMA_Color2_Buffer .copy(buffSize) ||
         !ATR_list.copyBuffers(buffSize)  )
     {
