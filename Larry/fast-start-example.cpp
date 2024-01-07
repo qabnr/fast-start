@@ -22,36 +22,26 @@ private:
     int     buffNum;
     double  buff[];
     int     nrCopied;
-    int     objSerialNum;
-
-    static  int objCount;
 
 public:
     buffer(): handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
         ArraySetAsSeries(buff, true);
-        objCount++;
-        objSerialNum = objCount;
     }
     buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
     {
         ArraySetAsSeries(buff, true);
-        objCount++;
-        objSerialNum = objCount;
-Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
     }
     void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
          name    =  _name;
          handle  = _handle;
          buffNum = _buffNum;
-
-Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
     }
     ~buffer() {};
 
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, "(", objSerialNum, ")");    }
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name);  }
         return nrCopied > 0;
     }
     double get(int index) {
@@ -61,8 +51,6 @@ Print("Adding (", objSerialNum, ") ",name, " buff# ", buffNum);
         return nrCopied;
     }
 };
-
-int buffer::objCount = 0;
 //+------------------------------------------------------------------+
 class ATR_TR_STOP {
 private:
