@@ -72,13 +72,23 @@ int OnCalculate(const int rates_total,
             else
             {
                 atrTrStBuffer[i] = atrTrStBuffer[i - 1];
-            }
 
-            if (atrTrStBuffer[i] > low[i])
-            if (atrTrStBuffer[i-1] > low[i-1])
-            {
-                maxLowStop = maxResetValue;
-                upTrend = false;
+                if (atrTrStBuffer[i] > low[i])
+                if (atrTrStBuffer[i-1] > low[i-1])
+/*/
+                if (atrTrStBuffer[i-2] > low[i-2])
+                if (atrTrStBuffer[i-3] > low[i-3])
+                if (atrTrStBuffer[i-4] > low[i-4])
+                if (atrTrStBuffer[i-5] > low[i-5])
+                if (atrTrStBuffer[i-6] > low[i-6])
+                if (atrTrStBuffer[i-7] > low[i-7])
+                if (atrTrStBuffer[i-8] > low[i-8])
+                if (atrTrStBuffer[i-9] > low[i-9])
+/**/
+                {
+                    maxLowStop = maxResetValue;
+                    upTrend = false;
+                }
             }
         }
         else  // downtrend
@@ -94,12 +104,22 @@ int OnCalculate(const int rates_total,
             else
             {
                 atrTrStBuffer[i] = atrTrStBuffer[i - 1];
-            }
-            if (atrTrStBuffer[i] < high[i])
-            if (atrTrStBuffer[i-1] < high[i-1])
-            {
-                minHiStop = minResetValue;
-                upTrend = true;
+                if (atrTrStBuffer[i] < high[i])
+                if (atrTrStBuffer[i-1] < high[i-1])
+/*/
+                if (atrTrStBuffer[i-2] < high[i-2])
+                if (atrTrStBuffer[i-3] < high[i-3])
+                if (atrTrStBuffer[i-4] < high[i-4])
+                if (atrTrStBuffer[i-5] < high[i-5])
+                if (atrTrStBuffer[i-6] < high[i-6])
+                if (atrTrStBuffer[i-7] < high[i-7])
+                if (atrTrStBuffer[i-8] < high[i-8])
+                if (atrTrStBuffer[i-9] < high[i-9])
+/**/
+                {
+                    minHiStop = minResetValue;
+                    upTrend = true;
+                }
             }
         }
 //Print("iATR: ", atrTrStBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
