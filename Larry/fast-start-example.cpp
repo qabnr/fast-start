@@ -140,6 +140,19 @@ public:
         incPeriod_OsMA_Buffer(7, name, _handle)
     {}
     ~MACD() {}
+
+    bool copyBuffers(int count)
+    {
+        return
+            MACD_Buffer          .copy(count) &&
+            Signal_Buffer        .copy(count) &&
+            OsMA_Buffer          .copy(count) &&
+            osMA_Color_Buffer    .copy(count) &&
+            decPeriod_Buffer     .copy(count) &&
+            incPeriod_Buffer     .copy(count) &&
+            decPeriod_OsMA_Buffer.copy(count) &&
+            incPeriod_OsMA_Buffer.copy(count);
+    }
 };
 
 
@@ -224,16 +237,16 @@ void OnTick()
 
 if (TimeCurrent() > D'2022.04.27')
 {    
-    if (osMA_Color2_Buffer.get(2) != osMA_Color2_Buffer.get(1))
+    if (pMACD2.osMA_Color_Buffer.get(2) != pMACD2.osMA_Color_Buffer.get(1))
     {
-        // Print(" X- ", runLen, " -- ", osMA_Color2_Buffer.get(2), " --- ", osMA_Color2_Buffer.get(1), "-----------------");
+        // Print(" X- ", runLen, " -- ", pMACD2.osMA_Color_Buffer.get(2), " --- ", pMACD2.osMA_Color_Buffer.get(1), "-----------------");
     }
     else
     {
         runLen += 1;
         // Print(" X- ", runLen);        
     }
-    if (osMA_Color2_Buffer.get(2) > osMA_Color2_Buffer.get(1))
+    if (pMACD2.osMA_Color_Buffer.get(2) > pMACD2.osMA_Color_Buffer.get(1))
     {
             if (runLen > 10)
             {
@@ -242,7 +255,7 @@ if (TimeCurrent() > D'2022.04.27')
             runLen = 0;
     }
     else
-    if (osMA_Color2_Buffer.get(2) < osMA_Color2_Buffer.get(1))
+    if (pMACD2.osMA_Color_Buffer.get(2) < pMACD2.osMA_Color_Buffer.get(1))
     {
             if (runLen > 10)
             {
@@ -280,8 +293,8 @@ if (TimeCurrent() > D'2022.04.27')
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (
-
+    if (!pMACD1.copyBuffers(buffSize) ||
+        !pMACD2.copyBuffers(buffSize) ||
         !osMA_Color2_Buffer .copy(buffSize) ||
         !ATR_list.copyBuffers(buffSize)  )
     {
