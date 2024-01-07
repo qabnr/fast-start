@@ -5,8 +5,6 @@
 #property link      "http://www.mql5.com"
 #property version   "1.00"
 
-#property tester_indicator "myATR_TR_STOP.ex5"
-
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
@@ -187,7 +185,6 @@ public:
 ATR_TR_STOP_List ATR_list;
 MACD *pMACD1, *pMACD2;
 TradePosition *pPos;
-
 const int buffSize = 300;
 
 //+------------------------------------------------------------------+
@@ -243,20 +240,20 @@ if (TimeCurrent() > D'2022.04.27')
     }
     if (pMACD2.osMA_Color_Buffer.get(2) > pMACD2.osMA_Color_Buffer.get(1))
     {
-            if (runLen > 10)
-            {
-                BuyNow = true;
-            }
-            runLen = 0;
+        if (runLen > 10)
+        {
+            BuyNow = true;
+        }
+        runLen = 0;
     }
     else
     if (pMACD2.osMA_Color_Buffer.get(2) < pMACD2.osMA_Color_Buffer.get(1))
     {
-            if (runLen > 10)
-            {
-                SellNow = true;
-            }
-            runLen = 0;
+        if (runLen > 10)
+        {
+            SellNow = true;
+        }
+        runLen = 0;
     }
 }
 
