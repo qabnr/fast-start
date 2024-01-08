@@ -107,19 +107,14 @@ int OnCalculate(const int rates_total,
         else
         {
             sellBuffer[i] = sellBuffer[i-1];
-            if (sellBuffer[i] > low[i])
-            if (sellBuffer[i-1] > low[i-1])
-            if (sellBuffer[i-2] > low[i-2])
-            if (sellBuffer[i-3] > low[i-3])
-            if (sellBuffer[i-4] > low[i-4])
-            if (sellBuffer[i-5] > low[i-5])
-            if (sellBuffer[i-6] > low[i-6])
-            if (sellBuffer[i-7] > low[i-7])
-            if (sellBuffer[i-8] > low[i-8])
-            if (sellBuffer[i-9] > low[i-9])
-            {
-                maxLowStop = maxResetValue;
+
+            int cnt = 0;
+            for (int j = 0; j < 10 && j <= i; j++)
+            {   if (sellBuffer[i-j] > low[i-j])
+                {   cnt++; }
             }
+            if (cnt == 10)
+            {   maxLowStop = maxResetValue; }
         }
 
         if (newHiStop < minHiStop)
@@ -127,8 +122,7 @@ int OnCalculate(const int rates_total,
             buyBuffer[i] = newHiStop;
             is_newHiStop = true;
             if (trend < 0)
-            {
-                minHiStop = newHiStop;
+            {   minHiStop = newHiStop;
                 stopColorBuffer[i] = 2;
             }
         }
@@ -136,19 +130,13 @@ int OnCalculate(const int rates_total,
         {
             buyBuffer[i] = buyBuffer[i - 1];
 
-            if (buyBuffer[i] < high[i])
-            if (buyBuffer[i-1] < high[i-1])
-            if (buyBuffer[i-2] < high[i-2])
-            if (buyBuffer[i-3] < high[i-3])
-            if (buyBuffer[i-4] < high[i-4])
-            if (buyBuffer[i-5] < high[i-5])
-            if (buyBuffer[i-6] < high[i-6])
-            if (buyBuffer[i-7] < high[i-7])
-            if (buyBuffer[i-8] < high[i-8])
-            if (buyBuffer[i-9] < high[i-9])
-            {
-                minHiStop = minResetValue;
+            int cnt = 0;
+            for (int j = 0; j < 10 && j <= i; j++)
+            {   if (buyBuffer[i-j] < high[i-j])
+                {   cnt++; }
             }
+            if (cnt == 10)
+            {   minHiStop = minResetValue;  }
         }
 
 
@@ -158,17 +146,14 @@ int OnCalculate(const int rates_total,
             stopColorBuffer[i] = trend > 2 ? 0 : 2;
 
             if (is_newLowStop)
-            {
-                stopBuffer[i] = newLowStop;
+            {   stopBuffer[i] = newLowStop;
             }
             else
-            {
-                stopBuffer[i] = stopBuffer[i - 1];
+            {   stopBuffer[i] = stopBuffer[i - 1];
 
                 if (stopBuffer[i]   > low[i])
                 if (stopBuffer[i-1] > low[i-1])
-                {
-                    trend = -1;
+                {   trend = -1;
                 }
             }
         }
@@ -178,17 +163,14 @@ int OnCalculate(const int rates_total,
             stopColorBuffer[i] = trend < -2 ? 1 : 2;
 
             if (is_newHiStop)
-            {
-                stopBuffer[i] = newHiStop;
+            {    stopBuffer[i] = newHiStop;
             }
             else
-            {
-                stopBuffer[i] = stopBuffer[i - 1];
+            {   stopBuffer[i] = stopBuffer[i - 1];
 
                 if (stopBuffer[i]   < high[i])
                 if (stopBuffer[i-1] < high[i-1])
-                {
-                    trend = 1;
+                {   trend = 1;
                 }
             }
         }
