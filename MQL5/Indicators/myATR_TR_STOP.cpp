@@ -86,8 +86,8 @@ int OnCalculate(const int rates_total,
 
     for (i = prev_calculated; i < rates_total; i++)
     {       
-        double newLowStop = low[i] - atr[0] * Mult;
-        double newHiStop = high[i] + atr[0] * Mult;
+        double newLowStop = low[i] - atr[i] * Mult;
+        double newHiStop = high[i] + atr[i] * Mult;
         bool is_newHiStop  = false;
         bool is_newLowStop = false;
 
