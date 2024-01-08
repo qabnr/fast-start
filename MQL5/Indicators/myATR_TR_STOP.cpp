@@ -4,21 +4,41 @@
 #property version "1.00"
 
 #property indicator_chart_window
-#property indicator_buffers 2
-#property indicator_plots 1
-#property indicator_type1 DRAW_COLOR_LINE
+
+#property indicator_buffers 6
+#property indicator_plots 3
+
+#property indicator_type1  DRAW_COLOR_LINE
 #property indicator_color1 clrRed, clrGreen, clrBlack
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 2
-#property indicator_label1 "Buy TP"
+#property indicator_label1 "ST"
+
+#property indicator_type2  DRAW_COLOR_LINE
+#property indicator_color2 clrRed, clrGreen, clrBlack
+#property indicator_style2 STYLE_SOLID
+#property indicator_width2 2
+#property indicator_label2 "Buy TP"
+
+#property indicator_type3  DRAW_COLOR_LINE
+#property indicator_color3 clrRed, clrGreen, clrBlack
+#property indicator_style3 STYLE_SOLID
+#property indicator_width3 2
+#property indicator_label3 "Buy TP"
 
 input int    ATRper = 10;        // ATR Period
 input double Mult   = 1;         // Multiplier
 
 /* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Timeframe
 
-double atrTrStBuffer[];
-double colorBuffer[];
+double stopBuffer[];
+double stopColorBuffer[];
+
+double buyBuffer[];
+double buyColorBuffer[];
+
+double sellBuffer[];
+double sellColorBuffer[];
 
 int hATR;
 double atr[];
@@ -28,8 +48,15 @@ const double minResetValue = DBL_MAX;
 
 void OnInit()
 {
-    SetIndexBuffer(0, atrTrStBuffer,    INDICATOR_DATA);
-    SetIndexBuffer(1, colorBuffer, INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(0, stopBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, stopColorBuffer,   INDICATOR_COLOR_INDEX);
+
+    SetIndexBuffer(2, buyBuffer, INDICATOR_DATA);
+    SetIndexBuffer(3, buyColorBuffer, INDICATOR_COLOR_INDEX);
+
+    SetIndexBuffer(4, sellBuffer, INDICATOR_DATA);
+    SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
+
     hATR = iATR(NULL, ATRtimeframe, ATRper);
     ArraySetAsSeries(atr, true);
     
@@ -51,7 +78,7 @@ int OnCalculate(const int rates_total,
     static double minHiStop  = minResetValue;
     static double maxLowStop = maxResetValue;
 
-    static bool upTrend = true;
+    static int trend = 1;
 
     int i, day_n = 0, day_t = 0;
 
@@ -59,71 +86,79 @@ int OnCalculate(const int rates_total,
 
     for (i = prev_calculated; i < rates_total; i++)
     {       
-        if (upTrend)
+        if (trend > 0)
         {
-            colorBuffer[i] = maxLowStop > maxResetValue ? 0 : 2;
+            trend++;
+            stopColorBuffer[i] = maxLowStop > maxResetValue ? 0 : 2;
 
             double newLowStop = low[i] - atr[0] * Mult;
             if (newLowStop > maxLowStop)
             {
-                atrTrStBuffer[i] = newLowStop;
+                stopBuffer[i] = newLowStop;
                 maxLowStop = newLowStop;
             }
             else
             {
-                atrTrStBuffer[i] = atrTrStBuffer[i - 1];
+                stopBuffer[i] = stopBuffer[i - 1];
 
-                if (atrTrStBuffer[i] > low[i])
-                if (atrTrStBuffer[i-1] > low[i-1])
+                if (stopBuffer[i] > low[i])
+                if (stopBuffer[i-1] > low[i-1])
 /*/
-                if (atrTrStBuffer[i-2] > low[i-2])
-                if (atrTrStBuffer[i-3] > low[i-3])
-                if (atrTrStBuffer[i-4] > low[i-4])
-                if (atrTrStBuffer[i-5] > low[i-5])
-                if (atrTrStBuffer[i-6] > low[i-6])
-                if (atrTrStBuffer[i-7] > low[i-7])
-                if (atrTrStBuffer[i-8] > low[i-8])
-                if (atrTrStBuffer[i-9] > low[i-9])
+                if (stopBuffer[i-2] > low[i-2])
+                if (stopBuffer[i-3] > low[i-3])
+                if (stopBuffer[i-4] > low[i-4])
+                if (stopBuffer[i-5] > low[i-5])
+                if (stopBuffer[i-6] > low[i-6])
+                if (stopBuffer[i-7] > low[i-7])
+                if (stopBuffer[i-8] > low[i-8])
+                if (stopBuffer[i-9] > low[i-9])
 /**/
                 {
                     maxLowStop = maxResetValue;
-                    upTrend = false;
+                    trend = -1;
                 }
             }
         }
         else  // downtrend
         {
-            colorBuffer[i] = minHiStop < minResetValue ? 1 : 2;
+            trend--;
+            stopColorBuffer[i] = minHiStop < minResetValue ? 1 : 2;
 
             double newLowStop = high[i] + atr[0] * Mult;
             if (newLowStop < minHiStop)
             {
-                atrTrStBuffer[i] = newLowStop;
+                stopBuffer[i] = newLowStop;
                 minHiStop = newLowStop;
             }
             else
             {
-                atrTrStBuffer[i] = atrTrStBuffer[i - 1];
-                if (atrTrStBuffer[i] < high[i])
-                if (atrTrStBuffer[i-1] < high[i-1])
+                stopBuffer[i] = stopBuffer[i - 1];
+                if (stopBuffer[i] < high[i])
+                if (stopBuffer[i-1] < high[i-1])
 /*/
-                if (atrTrStBuffer[i-2] < high[i-2])
-                if (atrTrStBuffer[i-3] < high[i-3])
-                if (atrTrStBuffer[i-4] < high[i-4])
-                if (atrTrStBuffer[i-5] < high[i-5])
-                if (atrTrStBuffer[i-6] < high[i-6])
-                if (atrTrStBuffer[i-7] < high[i-7])
-                if (atrTrStBuffer[i-8] < high[i-8])
-                if (atrTrStBuffer[i-9] < high[i-9])
+                if (stopBuffer[i-2] < high[i-2])
+                if (stopBuffer[i-3] < high[i-3])
+                if (stopBuffer[i-4] < high[i-4])
+                if (stopBuffer[i-5] < high[i-5])
+                if (stopBuffer[i-6] < high[i-6])
+                if (stopBuffer[i-7] < high[i-7])
+                if (stopBuffer[i-8] < high[i-8])
+                if (stopBuffer[i-9] < high[i-9])
 /**/
                 {
                     minHiStop = minResetValue;
-                    upTrend = true;
+                    trend = 1;
                 }
             }
         }
-//Print("iATR: ", atrTrStBuffer[i], " clr: ", colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
-//PrintFormat("iATR: %.2f, %s", atrTrStBuffer[i], colorBuffer[i] < 0.5 ? "Red" : colorBuffer[i] < 1.5 ? "Green" : "Black");
+buyBuffer[i]      = stopBuffer[i];
+buyColorBuffer[i] = stopColorBuffer[i];
+
+sellBuffer[i]      = stopBuffer[i];
+sellColorBuffer[i] = stopColorBuffer[i];
+
+//Print("iATR: ", stopBuffer[i], " clr: ", stopColorBuffer[i] < 0.5 ? "Red" : stopColorBuffer[i] < 1.5 ? "Green" : "Black");
+//PrintFormat("iATR: %.2f, %s", stopBuffer[i], stopColorBuffer[i] < 0.5 ? "Red" : stopColorBuffer[i] < 1.5 ? "Green" : "Black");
 //Print(TimeCurrent());
     }    
     return (rates_total);
