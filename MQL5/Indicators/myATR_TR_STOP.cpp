@@ -55,7 +55,7 @@ int OnCalculate(const int rates_total,
 
     int i, day_n = 0, day_t = 0;
 
-    CopyBuffer(hATR, 0, 0, 2, atr);
+    CopyBuffer(hATR, 0, 0, rates_total - prev_calculated, atr);
 
     for (i = prev_calculated; i < rates_total; i++)
     {       
