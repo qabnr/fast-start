@@ -98,11 +98,6 @@ int OnCalculate(const int rates_total,
         {
             sellBuffer[i] = newLowStop;
             is_newLowStop = true;
-            if (trend > 0)
-            {
-                maxLowStop = newLowStop;
-                stopColorBuffer[i] = 2;
-            }
         }
         else
         {
@@ -121,10 +116,6 @@ int OnCalculate(const int rates_total,
         {
             buyBuffer[i] = newHiStop;
             is_newHiStop = true;
-            if (trend < 0)
-            {   minHiStop = newHiStop;
-                stopColorBuffer[i] = 2;
-            }
         }
         else
         {
@@ -147,6 +138,7 @@ int OnCalculate(const int rates_total,
 
             if (is_newLowStop)
             {   stopBuffer[i] = newLowStop;
+                maxLowStop = newLowStop;
             }
             else
             {   stopBuffer[i] = stopBuffer[i - 1];
@@ -164,6 +156,7 @@ int OnCalculate(const int rates_total,
 
             if (is_newHiStop)
             {    stopBuffer[i] = newHiStop;
+                 minHiStop = newHiStop;
             }
             else
             {   stopBuffer[i] = stopBuffer[i - 1];
