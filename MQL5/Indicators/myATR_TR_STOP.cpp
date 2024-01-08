@@ -9,7 +9,7 @@
 #property indicator_plots 3
 
 #property indicator_type1  DRAW_COLOR_LINE
-#property indicator_color1 clrRed, clrGreen, CLR_NONE
+#property indicator_color1 clrRed, clrGreen, clrGray
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 2
 #property indicator_label1 "ST"
@@ -96,8 +96,13 @@ int OnCalculate(const int rates_total,
 
         if (newLowStop > maxLowStop)
         {
-            sellBuffer[i] = newLowStop ;
+            sellBuffer[i] = newLowStop;
             is_newLowStop = true;
+            if (trend > 0)
+            {
+                maxLowStop = newLowStop;
+                stopColorBuffer[i] = 2;
+            }
         }
         else
         {
@@ -119,7 +124,13 @@ int OnCalculate(const int rates_total,
 
         if (newHiStop < minHiStop)
         {
-            buyBuffer[i] = newHiStop ;
+            buyBuffer[i] = newHiStop;
+            is_newHiStop = true;
+            if (trend < 0)
+            {
+                minHiStop = newHiStop;
+                stopColorBuffer[i] = 2;
+            }
         }
         else
         {
@@ -144,18 +155,17 @@ int OnCalculate(const int rates_total,
         if (trend > 0)
         {
             trend++;
-            stopColorBuffer[i] = maxLowStop > maxResetValue ? 0 : 2;
+            stopColorBuffer[i] = trend > 2 ? 0 : 2;
 
             if (is_newLowStop)
             {
                 stopBuffer[i] = newLowStop;
-                maxLowStop = newLowStop;
             }
             else
             {
                 stopBuffer[i] = stopBuffer[i - 1];
 
-                if (stopBuffer[i] > low[i])
+                if (stopBuffer[i]   > low[i])
                 if (stopBuffer[i-1] > low[i-1])
                 {
                     trend = -1;
@@ -165,27 +175,23 @@ int OnCalculate(const int rates_total,
         else  // downtrend
         {
             trend--;
-            stopColorBuffer[i] = minHiStop < minResetValue ? 1 : 2;
+            stopColorBuffer[i] = trend < -2 ? 1 : 2;
 
-            if (newHiStop < minHiStop)
+            if (is_newHiStop)
             {
                 stopBuffer[i] = newHiStop;
-                minHiStop = newHiStop;
             }
             else
             {
                 stopBuffer[i] = stopBuffer[i - 1];
-                if (stopBuffer[i] < high[i])
+
+                if (stopBuffer[i]   < high[i])
                 if (stopBuffer[i-1] < high[i-1])
                 {
                     trend = 1;
                 }
             }
         }
-
-//Print("iATR: ", stopBuffer[i], " clr: ", stopColorBuffer[i] < 0.5 ? "Red" : stopColorBuffer[i] < 1.5 ? "Green" : "Black");
-//PrintFormat("iATR: %.2f, %s", stopBuffer[i], stopColorBuffer[i] < 0.5 ? "Red" : stopColorBuffer[i] < 1.5 ? "Green" : "Black");
-//Print(TimeCurrent());
     }    
     return (rates_total);
 }
