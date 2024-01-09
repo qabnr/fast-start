@@ -58,7 +58,6 @@ void OnInit()
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
     hATR = iATR(NULL, ATRtimeframe, ATRper);
-    ArraySetAsSeries(atr, true);
     
     //Print("ATR TR ST per: ", ATRper, " Mult: ", Mult);
 }
@@ -85,9 +84,13 @@ int OnCalculate(const int rates_total,
     CopyBuffer(hATR, 0, 0, rates_total - prev_calculated, atr);
 
     for (i = prev_calculated; i < rates_total; i++)
-    {       
-        double newLowStop = low[i] - atr[i] * Mult;
-        double newHiStop = high[i] + atr[i] * Mult;
+    {
+        double atrI = 0;
+        
+        if (i > ATRper) { atrI = atr[i - prev_calculated]; }
+
+        double newLowStop = low[i] - atrI * Mult;
+        double newHiStop = high[i] + atrI * Mult;
         bool is_newHiStop  = false;
         bool is_newLowStop = false;
 
@@ -101,7 +104,10 @@ int OnCalculate(const int rates_total,
         }
         else
         {
-            sellBuffer[i] = sellBuffer[i-1];
+            if (i > 0) 
+            { sellBuffer[i] = sellBuffer[i - 1]; }
+            else
+            { sellBuffer[i] = 0; }
 
             int cnt = 0;
             for (int j = 0; j < 10 && j <= i; j++)
@@ -119,7 +125,10 @@ int OnCalculate(const int rates_total,
         }
         else
         {
-            buyBuffer[i] = buyBuffer[i - 1];
+            if (i > 0)
+            { buyBuffer[i] = buyBuffer[i - 1]; }
+            else
+            { buyBuffer[i] = 0; }
 
             int cnt = 0;
             for (int j = 0; j < 10 && j <= i; j++)
@@ -141,7 +150,11 @@ int OnCalculate(const int rates_total,
                 maxLowStop = newLowStop;
             }
             else
-            {   stopBuffer[i] = stopBuffer[i - 1];
+            {   
+                if (i > 0)
+                { stopBuffer[i] = stopBuffer[i - 1]; }
+                else
+                { stopBuffer[i] = 0; }
 
                 if (stopBuffer[i]   > low[i])
                 if (stopBuffer[i-1] > low[i-1])
