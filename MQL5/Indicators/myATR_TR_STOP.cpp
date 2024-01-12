@@ -46,6 +46,7 @@ double atr[];
 const double maxResetValue = 0.0;
 const double minResetValue = DBL_MAX;
 
+//+------------------------------------------------------------------+
 void OnInit()
 {
     SetIndexBuffer(0, stopBuffer, INDICATOR_DATA);
@@ -62,6 +63,7 @@ void OnInit()
     //Print("ATR TR ST per: ", ATRper, " Mult: ", Mult);
 }
 
+//+------------------------------------------------------------------+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -152,14 +154,14 @@ int OnCalculate(const int rates_total,
             else
             {   
                 if (i > 0)
-                { stopBuffer[i] = stopBuffer[i - 1]; }
-                else
-                { stopBuffer[i] = 0; }
-
-                if (stopBuffer[i]   > low[i])
-                if (stopBuffer[i-1] > low[i-1])
-                {   trend = -1;
+                {   stopBuffer[i] = stopBuffer[i-1];
+                    if (stopBuffer[i]   > low[i])
+                    if (stopBuffer[i-1] > low[i-1])
+                    {   trend = -1;
+                    }
                 }
+                else
+                {   stopBuffer[i] = 0; }
             }
         }
         else  // downtrend
@@ -172,18 +174,23 @@ int OnCalculate(const int rates_total,
                  minHiStop = newHiStop;
             }
             else
-            {   stopBuffer[i] = stopBuffer[i - 1];
-
-                if (stopBuffer[i]   < high[i])
-                if (stopBuffer[i-1] < high[i-1])
-                {   trend = 1;
+            {
+                if (i > 0)
+                {   stopBuffer[i] = stopBuffer[i-1];
+                    if (stopBuffer[i]   < high[i])
+                    if (stopBuffer[i-1] < high[i-1])
+                    {   trend = 1;
+                    }
                 }
+                else
+                {   stopBuffer[i] = 0; }
             }
         }
     }    
     return (rates_total);
 }
 
+//+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
     IndicatorRelease(hATR);
