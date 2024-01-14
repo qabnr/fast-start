@@ -206,25 +206,35 @@ void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& in
     // else
     // {  incPerBuff[i] = 0; }
 
-    static double step = 0.05;
+    static double step = 0.02;
+    static int  runLen = 5;
 
-    if (i > 0)
-    {
+    if (i > 0) {
         incPerBuff[i] = 0;
-        if( buff[i] < buff[i-1])                        // decreasing
-        {   if (decPerBuff[i-1] <= 0)                   //      already in decreasing trend
+        if( buff[i] < buff[i-1]) {                      // decreasing
+            if (decPerBuff[i-1] <= 0)                   //      already in decreasing trend
             {   decPerBuff[i] = decPerBuff[i-1] - step; //          continue to decrease
             }
-            else                                        //      was increasing before
-            {   decPerBuff[i] = 0;                      //          start new trend
+            else {
+                decPerBuff[i] = 0;                      //          start new trend
+                if (decPerBuff[i - runLen] < 0) {
+                    for (int j = runLen; j > 0; j--) {
+                        decPerBuff[i - j + 1] = decPerBuff[i - j] - step;
+                    }
+                }
             }
         }
-        else                                            // increasing
-        {   if (decPerBuff[i-1] >= 0)                   //      already in increasing trend
+        else {                                          // increasing
+            if (decPerBuff[i-1] >= 0)                   //      already in increasing trend
             {   decPerBuff[i] = decPerBuff[i-1] + step; //          continue to increase
             }
-            else                                        //      was decreasing before
-            {   decPerBuff[i] = 0;                      //          start new trend
+            else {
+                decPerBuff[i] = 0;                      //          start new trend
+                if (decPerBuff[i - runLen] > 0) {
+                    for (int j = runLen; j > 0; j--) {
+                        decPerBuff[i - j + 1] = decPerBuff[i - j] + step;
+                    }
+                }
             }
         }
     }
