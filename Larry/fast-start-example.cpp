@@ -185,13 +185,15 @@ const int buffSize = 300;
 int OnInit()
 {
 
-ATR_list.add(10, 3.0);
     pMACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
     pMACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
 
     pPos = new TradePosition(Symbol());
 
-ATR_list.add(10, 4.0);
+    ATR_list.add(10, 1.0);
+    ATR_list.add(10, 2.0);
+    ATR_list.add(10, 3.0);
+    ATR_list.add(10, 4.0);
 
     return (0);
 }
