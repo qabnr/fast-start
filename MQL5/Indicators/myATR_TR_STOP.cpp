@@ -49,13 +49,13 @@ const double minResetValue = DBL_MAX;
 //+------------------------------------------------------------------+
 void OnInit()
 {
-    SetIndexBuffer(0, stopBuffer, INDICATOR_DATA);
-    SetIndexBuffer(1, stopColorBuffer,   INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(0, stopBuffer,      INDICATOR_DATA);
+    SetIndexBuffer(1, stopColorBuffer, INDICATOR_COLOR_INDEX);
 
-    SetIndexBuffer(2, buyBuffer, INDICATOR_DATA);
-    SetIndexBuffer(3, buyColorBuffer, INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(2, buyBuffer,       INDICATOR_DATA);
+    SetIndexBuffer(3, buyColorBuffer,  INDICATOR_COLOR_INDEX);
 
-    SetIndexBuffer(4, sellBuffer, INDICATOR_DATA);
+    SetIndexBuffer(4, sellBuffer,      INDICATOR_DATA);
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
     hATR = iATR(NULL, ATRtimeframe, ATRper);
@@ -107,7 +107,7 @@ int OnCalculate(const int rates_total,
         else
         {
             if (i > 0) 
-            { sellBuffer[i] = sellBuffer[i - 1]; }
+            { sellBuffer[i] = sellBuffer[i-1]; }
             else
             { sellBuffer[i] = 0; }
 
@@ -128,7 +128,7 @@ int OnCalculate(const int rates_total,
         else
         {
             if (i > 0)
-            { buyBuffer[i] = buyBuffer[i - 1]; }
+            { buyBuffer[i] = buyBuffer[i-1]; }
             else
             { buyBuffer[i] = 0; }
 
@@ -142,7 +142,7 @@ int OnCalculate(const int rates_total,
         }
 
 
-        if (trend > 0)
+        if (trend > 0)  // uptrend
         {
             trend++;
             stopColorBuffer[i] = trend > 2 ? 0 : 2;
