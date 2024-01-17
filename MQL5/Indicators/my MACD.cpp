@@ -103,8 +103,10 @@ int OnInit()
                     GetLastError());
         return (INIT_FAILED);
     }
-    string short_name = StringFormat("iMACD(%s/%s,%d,%d,%d,%s)", _Symbol, EnumToString(period),
-                              fast_ema_period, slow_ema_period, signal_period, EnumToString(applied_price));
+    // string short_name = StringFormat("iMACD(%s/%s,%d,%d,%d,%s)", _Symbol, EnumToString(period),
+    //                           fast_ema_period, slow_ema_period, signal_period, EnumToString(applied_price));
+    string short_name = StringFormat("myMACD(%d,%d,%d)",
+                              fast_ema_period, slow_ema_period, signal_period);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
     return (INIT_SUCCEEDED);
 }
