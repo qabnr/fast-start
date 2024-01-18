@@ -87,6 +87,17 @@ int OnCalculate(const int rates_total,
 
     for (i = prev_calculated; i < rates_total; i++)
     {
+        if (i == 0) {
+            sellBuffer[i] = low[i];
+            buyBuffer[i]  = high[i];
+            stopBuffer[i] = low[i];
+
+            sellColorBuffer[i] = 2;
+            buyColorBuffer[i]  = 2;
+            stopColorBuffer[i] = 2;
+
+            continue;
+        }
         const int holdingPeriod = 10;
 
         double atrI = (i > ATRper) ? atr[i - prev_calculated] : 0;
@@ -99,48 +110,40 @@ int OnCalculate(const int rates_total,
         sellColorBuffer[i] = (maxSellStop == maxResetValue) ? 2 : 0;
         buyColorBuffer[i]  = (minBuyStop  == minResetValue) ? 2 : 1;
 
-        if (newSellStop > maxSellStop)
-        {
-            sellBuffer[i] = newSellStop;
+        if (newSellStop > maxSellStop) {
             is_newSellStop = true;
+            sellBuffer[i] = newSellStop;
             maxSellStop = newSellStop;
         }
-        else
-        {
-            if (i > 0) 
-            { sellBuffer[i] = sellBuffer[i-1]; }
-            else
-            { sellBuffer[i] = 0; }
+        else {
+            sellBuffer[i] = sellBuffer[i-1];
 
             int cnt = 0;
-            for (int j = 0; j < holdingPeriod && j <= i; j++)
-            {   if (sellBuffer[i-j] > low[i-j])
+            for (int j = 0; j < holdingPeriod && j <= i; j++) {
+                if (sellBuffer[i-j] > low[i-j])
                 {   cnt++; }
             }
-            if (cnt == holdingPeriod)
-            {   maxSellStop = maxResetValue; }
+            if (cnt == holdingPeriod) {
+                maxSellStop = maxResetValue;
+            }
         }
 
-        if (newBuyStop < minBuyStop)
-        {
-            buyBuffer[i] = newBuyStop;
+        if (newBuyStop < minBuyStop) {
             is_newBuyStop = true;
+            buyBuffer[i] = newBuyStop;
             minBuyStop = newBuyStop;
         }
-        else
-        {
-            if (i > 0)
-            { buyBuffer[i] = buyBuffer[i-1]; }
-            else
-            { buyBuffer[i] = 0; }
+        else {
+            buyBuffer[i] = buyBuffer[i-1];
 
             int cnt = 0;
-            for (int j = 0; j < holdingPeriod && j <= i; j++)
-            {   if (buyBuffer[i-j] < high[i-j])
+            for (int j = 0; j < holdingPeriod && j <= i; j++) {
+                if (buyBuffer[i-j] < high[i-j])
                 {   cnt++; }
             }
-            if (cnt == holdingPeriod)
-            {   minBuyStop = minResetValue;  }
+            if (cnt == holdingPeriod)  {
+                minBuyStop = minResetValue;
+            }
         }
 
 
@@ -149,20 +152,15 @@ int OnCalculate(const int rates_total,
             trend++;
             stopColorBuffer[i] = trend > 2 ? 0 : 2;
 
-            if (is_newSellStop)
-            {   stopBuffer[i] = newSellStop;
+            if (is_newSellStop) {
+                stopBuffer[i] = newSellStop;
             }
-            else
-            {   
-                if (i > 0)
-                {   stopBuffer[i] = stopBuffer[i-1];
-                    if (stopBuffer[i]   > low[i])
-                    if (stopBuffer[i-1] > low[i-1])
-                    {   trend = -1;
-                    }
+            else {
+                stopBuffer[i] = stopBuffer[i-1];
+                if (stopBuffer[i]   > low[i]
+                &&  stopBuffer[i-1] > low[i-1]) {
+                    trend = -1;
                 }
-                else
-                {   stopBuffer[i] = 0; }
             }
         }
         else  // downtrend
@@ -170,23 +168,18 @@ int OnCalculate(const int rates_total,
             trend--;
             stopColorBuffer[i] = trend < -2 ? 1 : 2;
 
-            if (is_newBuyStop)
-            {    stopBuffer[i] = newBuyStop;
+            if (is_newBuyStop) {
+                stopBuffer[i] = newBuyStop;
             }
-            else
-            {
-                if (i > 0)
-                {   stopBuffer[i] = stopBuffer[i-1];
-                    if (stopBuffer[i]   < high[i])
-                    if (stopBuffer[i-1] < high[i-1])
-                    {   trend = 1;
-                    }
+            else {
+                stopBuffer[i] = stopBuffer[i-1];
+                if (stopBuffer[i]   < high[i]
+                &&  stopBuffer[i-1] < high[i-1]) {
+                    trend = 1;
                 }
-                else
-                {   stopBuffer[i] = 0; }
             }
         }
-    }    
+    }
     return (rates_total);
 }
 
