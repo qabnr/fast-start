@@ -18,13 +18,13 @@
 #property indicator_color2 clrRed, clrGreen, CLR_NONE
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 1
-#property indicator_label2 "Buy TP"
+#property indicator_label2 "Buy ST"
 
 #property indicator_type3  DRAW_COLOR_LINE
 #property indicator_color3 clrRed, clrGreen, CLR_NONE
 #property indicator_style3 STYLE_SOLID
 #property indicator_width3 1
-#property indicator_label3 "Sell TP"
+#property indicator_label3 "Sell ST"
 
 input int    ATRper = 10;        // ATR Period
 input double Mult   = 1;         // Multiplier
@@ -87,22 +87,23 @@ int OnCalculate(const int rates_total,
 
     for (i = prev_calculated; i < rates_total; i++)
     {
-        double atrI = 0;
-        
-        if (i > ATRper) { atrI = atr[i - prev_calculated]; }
+        const int holdingPeriod = 10;
 
-        double newSellStop = low[i] - atrI * Mult;
-        double newBuyStop = high[i] + atrI * Mult;
+        double atrI = (i > ATRper) ? atr[i - prev_calculated] : 0;
+        
+        double newSellStop = low[i]  - atrI * Mult;
+        double newBuyStop  = high[i] + atrI * Mult;
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 
-        sellColorBuffer[i] = 0;
-        buyColorBuffer[i]  = 1;
+        sellColorBuffer[i] = (maxSellStop == maxResetValue) ? 2 : 0;
+        buyColorBuffer[i]  = (minBuyStop  == minResetValue) ? 2 : 1;
 
         if (newSellStop > maxSellStop)
         {
             sellBuffer[i] = newSellStop;
             is_newSellStop = true;
+            maxSellStop = newSellStop;
         }
         else
         {
@@ -112,11 +113,11 @@ int OnCalculate(const int rates_total,
             { sellBuffer[i] = 0; }
 
             int cnt = 0;
-            for (int j = 0; j < 10 && j <= i; j++)
+            for (int j = 0; j < holdingPeriod && j <= i; j++)
             {   if (sellBuffer[i-j] > low[i-j])
                 {   cnt++; }
             }
-            if (cnt == 10)
+            if (cnt == holdingPeriod)
             {   maxSellStop = maxResetValue; }
         }
 
@@ -124,6 +125,7 @@ int OnCalculate(const int rates_total,
         {
             buyBuffer[i] = newBuyStop;
             is_newBuyStop = true;
+            minBuyStop = newBuyStop;
         }
         else
         {
@@ -133,11 +135,11 @@ int OnCalculate(const int rates_total,
             { buyBuffer[i] = 0; }
 
             int cnt = 0;
-            for (int j = 0; j < 10 && j <= i; j++)
+            for (int j = 0; j < holdingPeriod && j <= i; j++)
             {   if (buyBuffer[i-j] < high[i-j])
                 {   cnt++; }
             }
-            if (cnt == 10)
+            if (cnt == holdingPeriod)
             {   minBuyStop = minResetValue;  }
         }
 
@@ -149,7 +151,6 @@ int OnCalculate(const int rates_total,
 
             if (is_newSellStop)
             {   stopBuffer[i] = newSellStop;
-                maxSellStop = newSellStop;
             }
             else
             {   
@@ -171,7 +172,6 @@ int OnCalculate(const int rates_total,
 
             if (is_newBuyStop)
             {    stopBuffer[i] = newBuyStop;
-                 minBuyStop = newBuyStop;
             }
             else
             {
