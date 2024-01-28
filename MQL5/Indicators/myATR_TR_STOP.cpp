@@ -46,6 +46,8 @@ double atr[];
 const double maxResetValue = 0.0;
 const double minResetValue = DBL_MAX;
 
+string short_name;
+    
 //+------------------------------------------------------------------+
 void OnInit()
 {
@@ -59,8 +61,9 @@ void OnInit()
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
     hATR = iATR(NULL, ATRtimeframe, ATRper);
-    
-    //Print("ATR TR ST per: ", ATRper, " Mult: ", Mult);
+
+    short_name = StringFormat("ATR_TRST (%d, %.1f)", ATRper, Mult);
+    IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 }
 
 //+------------------------------------------------------------------+
@@ -98,12 +101,12 @@ int OnCalculate(const int rates_total,
 
             continue;
         }
-        const int holdingPeriod = 10;
+        const int holdingPeriod = Mult * 2;
 
         double atrI = (i > ATRper) ? atr[i - prev_calculated] : 0;
         
-        double newSellStop = low[i]  - atrI * Mult;
-        double newBuyStop  = high[i] + atrI * Mult;
+        double newSellStop = low[i-1]  - atrI * Mult;
+        double newBuyStop  = high[i-1] + atrI * Mult;
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 
@@ -150,36 +153,46 @@ int OnCalculate(const int rates_total,
         if (trend > 0)  // uptrend
         {
             trend++;
-            stopColorBuffer[i] = trend > 2 ? 0 : 2;
+            stopColorBuffer[i] = 0;
 
             if (is_newSellStop) {
                 stopBuffer[i] = newSellStop;
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];
-                if (stopBuffer[i]   > low[i]
-                &&  stopBuffer[i-1] > low[i-1]) {
+                if (stopBuffer[i] > low[i-1]) {
                     trend = -1;
+                    stopBuffer[i] = buyBuffer[i];
+                    stopColorBuffer[i] = 2;
                 }
             }
         }
         else  // downtrend
         {
             trend--;
-            stopColorBuffer[i] = trend < -2 ? 1 : 2;
+            stopColorBuffer[i] = 1;
 
             if (is_newBuyStop) {
                 stopBuffer[i] = newBuyStop;
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];
-                if (stopBuffer[i]   < high[i]
-                &&  stopBuffer[i-1] < high[i-1]) {
+                if (stopBuffer[i] < high[i-1]) {
                     trend = 1;
+                    stopBuffer[i] = sellBuffer[i];
+                    stopColorBuffer[i] = 2;
                 }
             }
         }
+//PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);    
+
+//if (TimeCurrent() > D'2024.01.15')
+//if (TimeCurrent() < D'2024.01.18')
+//PrintFormat("%s: %s: %s H: %.2f L: %.2f ST: %.2f", TimeToString(time[i]),
+//short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);    
     }
+    
+    
     return (rates_total);
 }
 
