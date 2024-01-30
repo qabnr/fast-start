@@ -101,7 +101,7 @@ int OnCalculate(const int rates_total,
 
             continue;
         }
-        const int holdingPeriod = Mult * 2;
+        const int holdingPeriod = int(Mult * 2);
 
         double atrI = (i > ATRper) ? atr[i - prev_calculated] : 0;
         
