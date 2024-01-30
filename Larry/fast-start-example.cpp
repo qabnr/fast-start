@@ -157,7 +157,7 @@ private:
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX))
+        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 10)
     {}
     ~TradePosition() {}
 
@@ -175,7 +175,7 @@ public:
 //************************************************************************
 
 ATR_TR_STOP_List ATR_list;
-MACD *pMACD1, *pMACD2;
+MACD *MACD1, *MACD2;
 TradePosition *pPos;
 const int buffSize = 300;
 
@@ -185,14 +185,16 @@ const int buffSize = 300;
 int OnInit()
 {
 
-    pMACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    pMACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
+    MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
 
     pPos = new TradePosition(Symbol());
 
+/*/
     ATR_list.add(10, 1.0);
     ATR_list.add(10, 2.0);
     ATR_list.add(10, 3.0);
+/*/
     ATR_list.add(10, 4.0);
 
     return (0);
@@ -202,8 +204,8 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    delete pMACD1;
-    delete pMACD2;
+    delete MACD1;
+    delete MACD2;
 }
 //+------------------------------------------------------------------+
 //| Expert tick function
@@ -223,16 +225,16 @@ void OnTick()
 
 if (TimeCurrent() > D'2022.04.27')
 {    
-    if (pMACD2.osMA_Color_Buffer.get(2) != pMACD2.osMA_Color_Buffer.get(1))
+    if (MACD2.osMA_Color_Buffer.get(2) != MACD2.osMA_Color_Buffer.get(1))
     {
-        // Print(" X- ", runLen, " -- ", pMACD2.osMA_Color_Buffer.get(2), " --- ", pMACD2.osMA_Color_Buffer.get(1), "-----------------");
+        // Print(" X- ", runLen, " -- ", MACD2.osMA_Color_Buffer.get(2), " --- ", MACD2.osMA_Color_Buffer.get(1), "-----------------");
     }
     else
     {
         runLen += 1;
         // Print(" X- ", runLen);        
     }
-    if (pMACD2.osMA_Color_Buffer.get(2) > pMACD2.osMA_Color_Buffer.get(1))
+    if (MACD2.osMA_Color_Buffer.get(2) > MACD2.osMA_Color_Buffer.get(1))
     {
         if (runLen > 10)
         {
@@ -241,7 +243,7 @@ if (TimeCurrent() > D'2022.04.27')
         runLen = 0;
     }
     else
-    if (pMACD2.osMA_Color_Buffer.get(2) < pMACD2.osMA_Color_Buffer.get(1))
+    if (MACD2.osMA_Color_Buffer.get(2) < MACD2.osMA_Color_Buffer.get(1))
     {
         if (runLen > 10)
         {
@@ -279,8 +281,8 @@ if (TimeCurrent() > D'2022.04.27')
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!pMACD1.  copyBuffers(buffSize) ||
-        !pMACD2.  copyBuffers(buffSize) ||
+    if (!MACD1.  copyBuffers(buffSize) ||
+        !MACD2.  copyBuffers(buffSize) ||
         !ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
