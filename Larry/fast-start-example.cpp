@@ -65,8 +65,7 @@ public:
 
     void init(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
-        if (handle == INVALID_HANDLE)
-        {
+        if (handle == INVALID_HANDLE) {
             Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
             return;
         }
@@ -79,27 +78,49 @@ public:
     bool copyBuffers(int count) {
         return ST_buffer.copy(count) && color_buffer.copy(count);
     }
+
+    bool isBuyNow(double price) {
+Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
+        return ST_buffer.get(1) < price;
+    }
+
+    bool isSellNow(double price) {
+Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
+        return ST_buffer.get(1) > price;
+    }
 };
 //+------------------------------------------------------------------+
 class ATR_TR_STOP_List
 {
 private:
-    ATR_TR_STOP atrTrSt[];
+    ATR_TR_STOP atrTrStList[];
 
 public:
-    ATR_TR_STOP_List() { ArrayResize(atrTrSt, 0, 100); }
+    ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
     ~ATR_TR_STOP_List() {};
 
     void add(int ATRper, double mult) {
-        ArrayResize(atrTrSt, ArraySize(atrTrSt) + 1, 100);
-        atrTrSt[ArraySize(atrTrSt)-1].init(ATRper, mult);
+        ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);
+        atrTrStList[ArraySize(atrTrStList)-1].init(ATRper, mult);
     }
 
     bool copyBuffers(int count) {
-        for (int i = 0; i < ArraySize(atrTrSt); i++)
-        {   if (!atrTrSt[i].copyBuffers(count)) return false;
+        for (int i = 0; i < ArraySize(atrTrStList); i++)
+        {   if (!atrTrStList[i].copyBuffers(count)) return false;
         }
         return true;
+    }
+    bool isBuyNow(double price) {
+        for (int i = 0; i < ArraySize(atrTrStList); i++)
+        {   if (atrTrStList[i].isBuyNow(price)) return true;
+        }
+        return false;
+    }
+    bool isSellNow(double price) {
+        for (int i = 0; i < ArraySize(atrTrStList); i++)
+        {   if (atrTrStList[i].isSellNow(price)) return true;
+        }
+        return false;
     }
 };
 //************************************************************************
@@ -210,7 +231,49 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 //| Expert tick function
 //+------------------------------------------------------------------+
-int runLen   = 0; 
+#define enum2str_CASE(c) case c: return #c
+#define enum2str_DEFAULT default: return "<UNKNOWN>"
+#define DEF_SET_METHOD(c) void set##c () { state = c; }
+#define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
+
+class SellOrBuy {
+private:
+    enum SellOrBuy_State {
+        None,
+        GetReadyToBuy,
+        BuyNow,
+        GetReadyToSell,
+        SellNow
+    };
+    SellOrBuy_State state;
+
+public:
+    SellOrBuy(): state(None) {}
+    ~SellOrBuy() {}
+
+    DEF_SET_METHOD(None)
+    DEF_SET_METHOD(GetReadyToBuy)
+    DEF_SET_METHOD(BuyNow)
+    DEF_SET_METHOD(GetReadyToSell)
+    DEF_SET_METHOD(SellNow)
+
+    DEF_IS_METHOD(None)
+    DEF_IS_METHOD(GetReadyToBuy)
+    DEF_IS_METHOD(BuyNow)
+    DEF_IS_METHOD(GetReadyToSell)
+    DEF_IS_METHOD(SellNow)
+
+    string toStr() {
+        switch (state) {
+            enum2str_CASE(None);
+            enum2str_CASE(GetReadyToBuy);
+            enum2str_CASE(BuyNow);
+            enum2str_CASE(GetReadyToSell);
+            enum2str_CASE(SellNow);
+            enum2str_DEFAULT;
+        }
+    }
+};
 
 void OnTick()
 {
@@ -220,58 +283,79 @@ void OnTick()
     // minMaxT mM = findMinMax(&Signal1_Buffer);
     // Print("m: ", mM.min, " M: ", mM.max);
 
-    bool BuyNow  = false;
-    bool SellNow = false;
+    static SellOrBuy sellOrBuy;
 
 if (TimeCurrent() > D'2022.04.27')
-{    
-    if (MACD2.osMA_Color_Buffer.get(2) != MACD2.osMA_Color_Buffer.get(1))
-    {
-        // Print(" X- ", runLen, " -- ", MACD2.osMA_Color_Buffer.get(2), " --- ", MACD2.osMA_Color_Buffer.get(1), "-----------------");
-    }
-    else
-    {
-        runLen += 1;
-        // Print(" X- ", runLen);        
-    }
-    if (MACD2.osMA_Color_Buffer.get(2) > MACD2.osMA_Color_Buffer.get(1))
-    {
-        if (runLen > 10)
+{
+    if (sellOrBuy.isNone()) {
+        if (MACD2.decPeriod_OsMA_Buffer.get(1) > 20 * 0.02)
         {
-            BuyNow = true;
+            sellOrBuy.setGetReadyToBuy();
+Print("GetReadyToBuy");
         }
-        runLen = 0;
-    }
-    else
-    if (MACD2.osMA_Color_Buffer.get(2) < MACD2.osMA_Color_Buffer.get(1))
-    {
-        if (runLen > 10)
+        else
+        if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02)
         {
-            SellNow = true;
+            sellOrBuy.setGetReadyToSell();
+Print("GetReadyToSell");
         }
-        runLen = 0;
     }
 }
 
-    if (BuyNow)
+    if (sellOrBuy.isGetReadyToBuy()) {
+        MqlRates bar[2];
+        if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
+//PrintFormat("%d %f %f", __LINE__, bar[0].open, bar[0].low);
+            if (ATR_list.isBuyNow(bar[1].low)) {
+                sellOrBuy.setBuyNow();
+            }
+        }
+        else
+Print(__LINE__);
+    }
+    else
+    if (sellOrBuy.isGetReadyToSell()) {
+        MqlRates bar[2];
+        if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
+Print(__LINE__, " ", bar[1].high);
+            if (ATR_list.isSellNow(bar[1].high)) {
+                sellOrBuy.setSellNow();
+            }
+        }
+        else
+Print(__LINE__);
+    }
+
+
+    if (sellOrBuy.isBuyNow())
     {
         if (pPos.select()) 
         {
             if (pPos.positionType() == POSITION_TYPE_SELL)
                 pPos.positionClose();
-            if (pPos.positionType() == POSITION_TYPE_BUY)
+            if (pPos.positionType() == POSITION_TYPE_BUY) {
+Print(__LINE__, " Already bought");
                 return;
+            }
         }
         pPos.buy();
+        sellOrBuy.setNone();
     }
-    else if (SellNow)
+    else if (sellOrBuy.isSellNow())
     {
+Print(__LINE__, " ", sellOrBuy.toStr());
+        sellOrBuy.setNone();
+Print(__LINE__, " ", sellOrBuy.toStr());
         if (pPos.select())
         {
-            if (pPos.positionType() == POSITION_TYPE_BUY)
+Print(__LINE__, " ", sellOrBuy.toStr());
+            if (pPos.positionType() == POSITION_TYPE_BUY) {
                 pPos.positionClose();
-            if (pPos.positionType() == POSITION_TYPE_SELL)
+            }
+            if (pPos.positionType() == POSITION_TYPE_SELL) {
+Print(__LINE__, " Already sold");
                 return;
+            }
         }
         pPos.sell();
     }
