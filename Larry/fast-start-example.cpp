@@ -80,12 +80,12 @@ public:
     }
 
     bool isBuyNow(double price) {
-Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
+//Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
         return ST_buffer.get(1) < price;
     }
 
     bool isSellNow(double price) {
-Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
+//Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
         return ST_buffer.get(1) > price;
     }
 };
@@ -233,7 +233,7 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 #define enum2str_CASE(c) case c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_SET_METHOD(c) void set##c () { state = c; }
+#define DEF_SET_METHOD(c) void set##c () { state = c; Print("--> ", toStr());  }
 #define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
 
 class SellOrBuy {
@@ -263,8 +263,10 @@ public:
     DEF_IS_METHOD(GetReadyToSell)
     DEF_IS_METHOD(SellNow)
 
-    string toStr() {
-        switch (state) {
+    string toStr() { return toStr(state); }
+    
+    string toStr(SellOrBuy_State s) {
+        switch (s) {
             enum2str_CASE(None);
             enum2str_CASE(GetReadyToBuy);
             enum2str_CASE(BuyNow);
@@ -285,50 +287,39 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
-if (TimeCurrent() > D'2022.04.27')
+if (TimeCurrent() > D'2022.05.05')
 {
     if (sellOrBuy.isNone()) {
-        if (MACD2.decPeriod_OsMA_Buffer.get(1) > 20 * 0.02)
-        {
-            sellOrBuy.setGetReadyToBuy();
-Print("GetReadyToBuy");
+        if (MACD2.decPeriod_OsMA_Buffer.get(1) > 0.4
+        &&  MACD2.OsMA_Buffer.get(1) > 0.4) {
+            sellOrBuy.setGetReadyToSell();
         }
         else
-        if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02)
-        {
-            sellOrBuy.setGetReadyToSell();
-Print("GetReadyToSell");
+        if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02
+        &&  MACD2.OsMA_Buffer.get(1) < -0.4) {
+            sellOrBuy.setGetReadyToBuy();
         }
     }
 }
-
     if (sellOrBuy.isGetReadyToBuy()) {
         MqlRates bar[2];
         if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-//PrintFormat("%d %f %f", __LINE__, bar[0].open, bar[0].low);
             if (ATR_list.isBuyNow(bar[1].low)) {
                 sellOrBuy.setBuyNow();
             }
         }
-        else
-Print(__LINE__);
     }
     else
     if (sellOrBuy.isGetReadyToSell()) {
         MqlRates bar[2];
         if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-Print(__LINE__, " ", bar[1].high);
             if (ATR_list.isSellNow(bar[1].high)) {
                 sellOrBuy.setSellNow();
             }
         }
-        else
-Print(__LINE__);
     }
 
-
-    if (sellOrBuy.isBuyNow())
-    {
+    if (sellOrBuy.isBuyNow()) {
         if (pPos.select()) 
         {
             if (pPos.positionType() == POSITION_TYPE_SELL)
@@ -341,14 +332,9 @@ Print(__LINE__, " Already bought");
         pPos.buy();
         sellOrBuy.setNone();
     }
-    else if (sellOrBuy.isSellNow())
-    {
-Print(__LINE__, " ", sellOrBuy.toStr());
-        sellOrBuy.setNone();
-Print(__LINE__, " ", sellOrBuy.toStr());
+    else if (sellOrBuy.isSellNow()) {
         if (pPos.select())
         {
-Print(__LINE__, " ", sellOrBuy.toStr());
             if (pPos.positionType() == POSITION_TYPE_BUY) {
                 pPos.positionClose();
             }
@@ -358,7 +344,16 @@ Print(__LINE__, " Already sold");
             }
         }
         pPos.sell();
+        sellOrBuy.setNone();
     }
+}
+//+------------------------------------------------------------------+
+MqlRates getPrice()
+{
+    MqlRates bar[2];
+    if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
+    } 
+    return bar[1];
 }
 //+------------------------------------------------------------------+
 //| 
