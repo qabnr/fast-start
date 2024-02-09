@@ -56,9 +56,15 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
 //+------------------------------------------------------------------+
 class ATR_TR_STOP {
 private:
-    int     handle;
-    buffer  ST_buffer;
-    buffer  color_buffer;
+    int    handle;
+    buffer stopBuffer;
+    buffer stopColorBuffer;
+
+    buffer buyBuffer;
+    buffer buyColorBuffer;
+
+    buffer sellBuffer;
+    buffer sellColorBuffer;
 
 public:
     ATR_TR_STOP() {}
@@ -71,22 +77,29 @@ public:
         }
 
         string short_name = StringFormat("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
-        ST_buffer   .addHandleAndBuffNum(short_name, handle, 0);
-        color_buffer.addHandleAndBuffNum(short_name, handle, 1);
+        stopBuffer     .addHandleAndBuffNum(short_name, handle, 0);
+        stopColorBuffer.addHandleAndBuffNum(short_name, handle, 1);
+        buyBuffer      .addHandleAndBuffNum(short_name, handle, 2);
+        buyColorBuffer. addHandleAndBuffNum(short_name, handle, 3);
+        sellBuffer     .addHandleAndBuffNum(short_name, handle, 4);
+        sellColorBuffer.addHandleAndBuffNum(short_name, handle, 5);
     }
 
     bool copyBuffers(int count) {
-        return ST_buffer.copy(count) && color_buffer.copy(count);
+        return 
+           stopBuffer.copy(count) && stopColorBuffer.copy(count)
+        && buyBuffer .copy(count) && buyColorBuffer .copy(count)
+        && sellBuffer.copy(count) && sellColorBuffer.copy(count);
     }
 
     bool isBuyNow(double price) {
-//Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
-        return ST_buffer.get(1) < price;
+//Print(__FUNCTION__, ": ", buyBuffer.get(1), ", ", price);
+        return buyBuffer.get(1) < price;
     }
 
     bool isSellNow(double price) {
-//Print(__FUNCSIG__, ": ", ST_buffer.get(1), ", ", price);
-        return ST_buffer.get(1) > price;
+//Print(__FUNCTION__, ": ", sellBuffer.get(1), ", ", price);
+        return sellBuffer.get(1) > price;
     }
 };
 //+------------------------------------------------------------------+
@@ -217,6 +230,7 @@ int OnInit()
     ATR_list.add(10, 3.0);
 /*/
     ATR_list.add(10, 4.0);
+ //   ATR_list.add(10, 6.0);
 
     return (0);
 }
@@ -277,6 +291,22 @@ public:
     }
 };
 
+string Osma2str(int idx) {
+   return StringFormat("[%.2f %.2f]",
+                  MACD2.decPeriod_OsMA_Buffer.get(idx),
+                  MACD2.OsMA_Buffer.get(idx));
+
+}
+
+void PrintDecOsMa() {
+    string s;
+    for (int i=0; i < 8; i++) {
+      s = s + Osma2str(i) + " ";
+    }
+    Print(s);
+    
+}
+
 void OnTick()
 {
     if (copyBuffers() == false)
@@ -287,35 +317,47 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
-if (TimeCurrent() > D'2022.05.05')
+if (TimeCurrent() > D'2023.08.05')
 {
-    if (sellOrBuy.isNone()) {
-        if (MACD2.decPeriod_OsMA_Buffer.get(1) > 0.4
-        &&  MACD2.OsMA_Buffer.get(1) > 0.4) {
+    //if (sellOrBuy.isNone())
+     {
+        // if (MACD2.decPeriod_OsMA_Buffer.get(1) > 0.4
+        // &&  MACD2.OsMA_Buffer.get(1) > 0.4) {
+//        if (MACD2.osMA_Color_Buffer.get(2) < MACD2.osMA_Color_Buffer.get(1)) {
+        if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
+        &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > 0.19
+        &&  MACD2.OsMA_Buffer.get(0) > 0.79
+        ) {
             sellOrBuy.setGetReadyToSell();
+
+PrintDecOsMa();
+
         }
         else
-        if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02
-        &&  MACD2.OsMA_Buffer.get(1) < -0.4) {
+        // if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02
+        // &&  MACD2.OsMA_Buffer.get(1) < -0.4) {
+//        if (MACD2.osMA_Color_Buffer.get(2) > MACD2.osMA_Color_Buffer.get(1)) {
+        if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
+        &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -0.19
+        &&  MACD2.OsMA_Buffer.get(0) < -0.79
+        ) {
             sellOrBuy.setGetReadyToBuy();
+
+PrintDecOsMa();
         }
     }
 }
     if (sellOrBuy.isGetReadyToBuy()) {
-        MqlRates bar[2];
-        if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-            if (ATR_list.isBuyNow(bar[1].low)) {
-                sellOrBuy.setBuyNow();
-            }
+        if (ATR_list.isBuyNow(getPrice().low)) {
+            sellOrBuy.setBuyNow();
         }
     }
     else
     if (sellOrBuy.isGetReadyToSell()) {
-        MqlRates bar[2];
-        if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-            if (ATR_list.isSellNow(bar[1].high)) {
-                sellOrBuy.setSellNow();
-            }
+        if (ATR_list.isSellNow(getPrice().high)) {
+            sellOrBuy.setSellNow();
         }
     }
 
@@ -325,7 +367,7 @@ if (TimeCurrent() > D'2022.05.05')
             if (pPos.positionType() == POSITION_TYPE_SELL)
                 pPos.positionClose();
             if (pPos.positionType() == POSITION_TYPE_BUY) {
-Print(__LINE__, " Already bought");
+//Print(__LINE__, " Already bought");
                 return;
             }
         }
@@ -339,7 +381,7 @@ Print(__LINE__, " Already bought");
                 pPos.positionClose();
             }
             if (pPos.positionType() == POSITION_TYPE_SELL) {
-Print(__LINE__, " Already sold");
+//Print(__LINE__, " Already sold");
                 return;
             }
         }
