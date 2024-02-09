@@ -191,7 +191,7 @@ private:
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 10)
+        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 1)
     {}
     ~TradePosition() {}
 
@@ -326,8 +326,8 @@ if (TimeCurrent() > D'2023.08.05')
 //        if (MACD2.osMA_Color_Buffer.get(2) < MACD2.osMA_Color_Buffer.get(1)) {
         if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
         &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > 0.19
-        &&  MACD2.OsMA_Buffer.get(0) > 0.79
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > 0.79
+        &&  MACD2.OsMA_Buffer.get(0) > 0.19
         ) {
             sellOrBuy.setGetReadyToSell();
 
@@ -340,8 +340,8 @@ PrintDecOsMa();
 //        if (MACD2.osMA_Color_Buffer.get(2) > MACD2.osMA_Color_Buffer.get(1)) {
         if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
         &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -0.19
-        &&  MACD2.OsMA_Buffer.get(0) < -0.79
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -0.79
+        &&  MACD2.OsMA_Buffer.get(0) < -0.19
         ) {
             sellOrBuy.setGetReadyToBuy();
 
