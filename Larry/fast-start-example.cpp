@@ -9,11 +9,6 @@
 #include <Trade\PositionInfo.mqh>
 
 //+------------------------------------------------------------------+
-struct minMaxT {
-   double min;
-   double max;
-};
-//+------------------------------------------------------------------+
 class buffer
 {
 private:
@@ -312,9 +307,6 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
     
-    // minMaxT mM = findMinMax(&Signal1_Buffer);
-    // Print("m: ", mM.min, " M: ", mM.max);
-
     static SellOrBuy sellOrBuy;
 
 if (TimeCurrent() > D'2023.08.05')
@@ -412,26 +404,6 @@ bool copyBuffers()
     return true;
 }
 
-//+------------------------------------------------------------------+
-//| 
-//+------------------------------------------------------------------+
-minMaxT findMinMax(buffer &buff)
-{
-    double min =  9e99;
-    double max = -9e99;
-
-    int size = buff.getNrCopied();
-
-    for (int i = 0; i < size; i++)
-    {
-        if (buff.get(i) < min) min = buff.get(i);
-        if (buff.get(i) > max) max = buff.get(i);
-    }
-    
-    minMaxT r {min, max};
-
-    return r;
-}
 //+------------------------------------------------------------------+
 //| 
 //+------------------------------------------------------------------+
