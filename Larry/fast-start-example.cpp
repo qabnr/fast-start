@@ -1,13 +1,12 @@
 //+------------------------------------------------------------------+
 //| fast-start-example.mq5
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2012, MetaQuotes Software Corp."
-#property link      "http://www.mql5.com"
-#property version   "1.00"
+#property copyright "Copyright 2024, Mogyo Software Corp."
+#property link      "http://www.mogyo.com"
+#property version   "3.4"
 
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
-
 
 input int MACD2_fast_MA_period  = 71;  // 84;
 input int MACD2_slow_MA_period  = 154; // 182;
@@ -56,6 +55,7 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
         return nrCopied;
     }
 };
+//+------------------------------------------------------------------+
 class ATR_TR_STOP
 {
 private:
@@ -105,6 +105,7 @@ public:
         return sellBuffer.get(1) > price;
     }
 };
+//+------------------------------------------------------------------+
 class ATR_TR_STOP_List
 {
 private:
@@ -138,6 +139,7 @@ public:
         return false;
     }
 };
+//+------------------------------------------------------------------+
 class MACD
 {
 private:
@@ -181,6 +183,7 @@ public:
             incPeriod_OsMA_Buffer.copy(count);
     }
 };
+//+------------------------------------------------------------------+
 class TradePosition
 {
 private:
@@ -207,35 +210,41 @@ public:
     void sell()
     { m_Trade.Sell(volume, my_symbol); }
 };
+//+------------------------------------------------------------------+
+class Global
+{
+public:
+    ATR_TR_STOP_List ATR_list;
+    MACD *MACD1, *MACD2;
+    TradePosition *pPos;
+};
 
-ATR_TR_STOP_List ATR_list;
-MACD *MACD1, *MACD2;
-TradePosition *pPos;
+Global g;
 
 //+------------------------------------------------------------------+
 int OnInit()
 {
 
-    MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
 
-    pPos  = new TradePosition(Symbol());
+    g.pPos  = new TradePosition(Symbol());
 
 /*/
-    ATR_list.add(10, 1.0);
-    ATR_list.add(10, 2.0);
-    ATR_list.add(10, 3.0);
+    g.ATR_list.add(10, 1.0);
+    g.ATR_list.add(10, 2.0);
+    g.ATR_list.add(10, 3.0);
 /*/
-    ATR_list.add(10, 4.0);
- //   ATR_list.add(10, 6.0);
+    g.ATR_list.add(10, 4.0);
+ //   g.ATR_list.add(10, 6.0);
 
     return (0);
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    delete MACD1;
-    delete MACD2;
+    delete g.MACD1;
+    delete g.MACD2;
 }
 //+------------------------------------------------------------------+
 class SellOrBuy {
@@ -286,8 +295,8 @@ public:
 //+------------------------------------------------------------------+
 string Osma2str(int idx) {
    return StringFormat("[%.2f %.2f]",
-                  MACD2.decPeriod_OsMA_Buffer.get(idx),
-                  MACD2.OsMA_Buffer.get(idx));
+                  g.MACD2.decPeriod_OsMA_Buffer.get(idx),
+                  g.MACD2.OsMA_Buffer.get(idx));
 
 }
 //+------------------------------------------------------------------+
@@ -296,7 +305,7 @@ void PrintDecOsMa() {
     for (int i=0; i < 8; i++) {
       s = s + Osma2str(i) + " ";
     }
-    Print(s);
+Print(s);
 }
 //+------------------------------------------------------------------+
 void OnTick()
@@ -311,67 +320,63 @@ if (TimeCurrent() > D'2022.05.23')
 {
     //if (sellOrBuy.isNone())
      {
-        if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
-        &&  MACD2.OsMA_Buffer.get(0) > OsMA_limit
-
-
+        if (g.MACD2.decPeriod_OsMA_Buffer.get(0) <  0.001
+        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
+        &&  g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
+        &&  g.MACD2.OsMA_Buffer.get(0) > OsMA_limit
         ) {
             sellOrBuy.setGetReadyToSell();
-
 PrintDecOsMa();
 
         }
         else
-        if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
-        &&  MACD2.OsMA_Buffer.get(0) < -OsMA_limit
+        if (g.MACD2.decPeriod_OsMA_Buffer.get(0) <  0.001
+        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
+        &&  g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
+        &&  g.MACD2.OsMA_Buffer.get(0) < -OsMA_limit
         ) {
             sellOrBuy.setGetReadyToBuy();
-
 PrintDecOsMa();
         }
     }
 }
     if (sellOrBuy.isGetReadyToBuy()) {
-        if (ATR_list.isBuyNow(getPrice().low)) {
+        if (g.ATR_list.isBuyNow(getPrice().low)) {
             sellOrBuy.setBuyNow();
         }
     }
     else
     if (sellOrBuy.isGetReadyToSell()) {
-        if (ATR_list.isSellNow(getPrice().high)) {
+        if (g.ATR_list.isSellNow(getPrice().high)) {
             sellOrBuy.setSellNow();
         }
     }
 
     if (sellOrBuy.isBuyNow()) {
-        if (pPos.select())
+        if (g.pPos.select())
         {
-            if (pPos.positionType() == POSITION_TYPE_SELL)
-                pPos.positionClose();
-            if (pPos.positionType() == POSITION_TYPE_BUY) {
+            if (g.pPos.positionType() == POSITION_TYPE_SELL)
+                g.pPos.positionClose();
+            if (g.pPos.positionType() == POSITION_TYPE_BUY) {
 //Print(__LINE__, " Already bought");
                 return;
             }
         }
-        pPos.buy();
+        g.pPos.buy();
         sellOrBuy.setNone();
     }
     else if (sellOrBuy.isSellNow()) {
-        if (pPos.select())
+        if (g.pPos.select())
         {
-            if (pPos.positionType() == POSITION_TYPE_BUY) {
-                pPos.positionClose();
+            if (g.pPos.positionType() == POSITION_TYPE_BUY) {
+                g.pPos.positionClose();
             }
-            if (pPos.positionType() == POSITION_TYPE_SELL) {
+            if (g.pPos.positionType() == POSITION_TYPE_SELL) {
 //Print(__LINE__, " Already sold");
                 return;
             }
         }
-        pPos.sell();
+        g.pPos.sell();
         sellOrBuy.setNone();
     }
 }
@@ -388,9 +393,9 @@ bool copyBuffers()
 {
     const int buffSize = 300;
 
-    if (!MACD1.   copyBuffers(buffSize) ||
-        !MACD2.   copyBuffers(buffSize) ||
-        !ATR_list.copyBuffers(buffSize)  )
+    if (!g.MACD1.   copyBuffers(buffSize) ||
+        !g.MACD2.   copyBuffers(buffSize) ||
+        !g.ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
         return false;
