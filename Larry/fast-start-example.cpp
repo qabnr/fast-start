@@ -8,6 +8,14 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
+
+input int MACD2_fast_MA_period  = 71;  // 84;
+input int MACD2_slow_MA_period  = 154; // 182;
+input int MACD2_avg_diff_period = 86;  // 63;
+
+input double OsMA_limit =      0.52;   // 0.19;
+input double decP_OsMa_limit = 0.97;   // 0.79;
+
 //+------------------------------------------------------------------+
 class buffer
 {
@@ -48,8 +56,8 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
         return nrCopied;
     }
 };
-//+------------------------------------------------------------------+
-class ATR_TR_STOP {
+class ATR_TR_STOP
+{
 private:
     int    handle;
     buffer stopBuffer;
@@ -81,7 +89,7 @@ public:
     }
 
     bool copyBuffers(int count) {
-        return 
+        return
            stopBuffer.copy(count) && stopColorBuffer.copy(count)
         && buyBuffer .copy(count) && buyColorBuffer .copy(count)
         && sellBuffer.copy(count) && sellColorBuffer.copy(count);
@@ -97,7 +105,6 @@ public:
         return sellBuffer.get(1) > price;
     }
 };
-//+------------------------------------------------------------------+
 class ATR_TR_STOP_List
 {
 private:
@@ -131,7 +138,6 @@ public:
         return false;
     }
 };
-//+------------------------------------------------------------------+
 class MACD
 {
 private:
@@ -147,7 +153,7 @@ public:
     buffer decPeriod_OsMA_Buffer;
     buffer incPeriod_OsMA_Buffer;
 
-    MACD(string name, int _handle): 
+    MACD(string name, int _handle):
         MACD_Buffer          (5, name, _handle),
         Signal_Buffer        (4, name, _handle),
         OsMA_Buffer          (2, name, _handle),
@@ -175,8 +181,8 @@ public:
             incPeriod_OsMA_Buffer.copy(count);
     }
 };
-//+------------------------------------------------------------------+
-class TradePosition {
+class TradePosition
+{
 private:
     string        my_symbol;
     CTrade        m_Trade;
@@ -201,21 +207,19 @@ public:
     void sell()
     { m_Trade.Sell(volume, my_symbol); }
 };
-//+------------------------------------------------------------------+
 
 ATR_TR_STOP_List ATR_list;
 MACD *MACD1, *MACD2;
 TradePosition *pPos;
-const int buffSize = 300;
 
 //+------------------------------------------------------------------+
 int OnInit()
 {
 
     MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", 84, 182, 63));
+    MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
 
-    pPos = new TradePosition(Symbol());
+    pPos  = new TradePosition(Symbol());
 
 /*/
     ATR_list.add(10, 1.0);
@@ -234,12 +238,12 @@ void OnDeinit(const int reason)
     delete MACD2;
 }
 //+------------------------------------------------------------------+
+class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 #define DEF_SET_METHOD(c) void set##c () { state = c; Print("--> ", toStr());  }
 #define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
-//+------------------------------------------------------------------+
-class SellOrBuy {
+
 private:
     enum SellOrBuy_State {
         None,
@@ -267,7 +271,7 @@ public:
     DEF_IS_METHOD(SellNow)
 
     string toStr() { return toStr(state); }
-    
+
     string toStr(SellOrBuy_State s) {
         switch (s) {
             enum2str_CASE(None);
@@ -293,27 +297,26 @@ void PrintDecOsMa() {
       s = s + Osma2str(i) + " ";
     }
     Print(s);
-    
 }
 //+------------------------------------------------------------------+
 void OnTick()
 {
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
-    
+
     static SellOrBuy sellOrBuy;
 
-if (TimeCurrent() > D'2023.08.05')
+//if (TimeCurrent() > D'2023.08.05')
+if (TimeCurrent() > D'2022.05.23')
 {
     //if (sellOrBuy.isNone())
      {
-        // if (MACD2.decPeriod_OsMA_Buffer.get(1) > 0.4
-        // &&  MACD2.OsMA_Buffer.get(1) > 0.4) {
-//        if (MACD2.osMA_Color_Buffer.get(2) < MACD2.osMA_Color_Buffer.get(1)) {
         if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
         &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > 0.79
-        &&  MACD2.OsMA_Buffer.get(0) > 0.19
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
+        &&  MACD2.OsMA_Buffer.get(0) > OsMA_limit
+
+
         ) {
             sellOrBuy.setGetReadyToSell();
 
@@ -321,13 +324,10 @@ PrintDecOsMa();
 
         }
         else
-        // if (MACD2.decPeriod_OsMA_Buffer.get(1) < -20 * 0.02
-        // &&  MACD2.OsMA_Buffer.get(1) < -0.4) {
-//        if (MACD2.osMA_Color_Buffer.get(2) > MACD2.osMA_Color_Buffer.get(1)) {
         if (MACD2.decPeriod_OsMA_Buffer.get(0) < 0.001
         &&  MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -0.79
-        &&  MACD2.OsMA_Buffer.get(0) < -0.19
+        &&  MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
+        &&  MACD2.OsMA_Buffer.get(0) < -OsMA_limit
         ) {
             sellOrBuy.setGetReadyToBuy();
 
@@ -348,7 +348,7 @@ PrintDecOsMa();
     }
 
     if (sellOrBuy.isBuyNow()) {
-        if (pPos.select()) 
+        if (pPos.select())
         {
             if (pPos.positionType() == POSITION_TYPE_SELL)
                 pPos.positionClose();
@@ -380,14 +380,16 @@ MqlRates getPrice()
 {
     MqlRates bar[2];
     if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-    } 
+    }
     return bar[1];
 }
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    if (!MACD1.  copyBuffers(buffSize) ||
-        !MACD2.  copyBuffers(buffSize) ||
+    const int buffSize = 300;
+
+    if (!MACD1.   copyBuffers(buffSize) ||
+        !MACD2.   copyBuffers(buffSize) ||
         !ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
