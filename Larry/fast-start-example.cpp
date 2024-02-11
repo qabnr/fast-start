@@ -319,24 +319,22 @@ void OnTick()
 if (TimeCurrent() > D'2022.05.23')
 {
     //if (sellOrBuy.isNone())
-     {
+    {
         if (g.MACD2.decPeriod_OsMA_Buffer.get(0) <  0.001
-        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
-        &&  g.MACD2.OsMA_Buffer.get(0) > OsMA_limit
-        ) {
-            sellOrBuy.setGetReadyToSell();
+        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001)
+        {
 PrintDecOsMa();
-
-        }
-        else
-        if (g.MACD2.decPeriod_OsMA_Buffer.get(0) <  0.001
-        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001
-        &&  g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
-        &&  g.MACD2.OsMA_Buffer.get(0) < -OsMA_limit
-        ) {
-            sellOrBuy.setGetReadyToBuy();
-PrintDecOsMa();
+            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
+            &&  g.MACD2.OsMA_Buffer.get(0)           > OsMA_limit)
+            {
+                sellOrBuy.setGetReadyToSell();
+            }
+            else
+            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
+            &&  g.MACD2.OsMA_Buffer.get(0)           < -OsMA_limit)
+            {
+                sellOrBuy.setGetReadyToBuy();
+            }
         }
     }
 }
