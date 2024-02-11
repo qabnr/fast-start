@@ -300,12 +300,31 @@ string Osma2str(int idx) {
 
 }
 //+------------------------------------------------------------------+
-void PrintDecOsMa() {
+void PrintDecOsMa(string prefix) {
     string s;
     for (int i=0; i < 8; i++) {
       s = s + Osma2str(i) + " ";
     }
-Print(s);
+Print(prefix, "[dcPer OsMA]: ", s);
+}
+
+void PrintDecOsMa() {
+    PrintDecOsMa("");
+}
+
+//+------------------------------------------------------------------+
+bool justChangedToDownTrend() {
+    return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
+        && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
+}
+
+bool justChangedToUpTrend() {
+    return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
+        && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
+}
+
+bool justChangedTrends() {
+    return justChangedToDownTrend() || justChangedToUpTrend();
 }
 //+------------------------------------------------------------------+
 void OnTick()
@@ -315,29 +334,27 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
-//if (TimeCurrent() > D'2023.08.05')
-if (TimeCurrent() > D'2022.05.23')
-{
-    //if (sellOrBuy.isNone())
+    //if (TimeCurrent() > D'2023.08.05')
+    if (TimeCurrent() > D'2022.05.23')
     {
-        if (g.MACD2.decPeriod_OsMA_Buffer.get(0) <  0.001
-        &&  g.MACD2.decPeriod_OsMA_Buffer.get(0) > -0.001)
-        {
-PrintDecOsMa();
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit
-            &&  g.MACD2.OsMA_Buffer.get(0)           > OsMA_limit)
-            {
-                sellOrBuy.setGetReadyToSell();
+        if (justChangedToDownTrend()) {
+PrintDecOsMa("v ");
+            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
+                if (g.MACD2.OsMA_Buffer.get(0)           > OsMA_limit) {
+                    sellOrBuy.setGetReadyToSell();
+                }
             }
-            else
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit
-            &&  g.MACD2.OsMA_Buffer.get(0)           < -OsMA_limit)
-            {
-                sellOrBuy.setGetReadyToBuy();
+        }
+        else if (justChangedToUpTrend()) {
+PrintDecOsMa("^ ");
+            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
+                if (g.MACD2.OsMA_Buffer.get(0)           < -OsMA_limit) {
+                    sellOrBuy.setGetReadyToBuy();
+                }
             }
         }
     }
-}
+
     if (sellOrBuy.isGetReadyToBuy()) {
         if (g.ATR_list.isBuyNow(getPrice().low)) {
             sellOrBuy.setBuyNow();
