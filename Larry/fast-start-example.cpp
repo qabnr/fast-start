@@ -201,8 +201,10 @@ public:
 
     bool select()
     { return m_Position.Select(my_symbol); }
-    ENUM_POSITION_TYPE positionType ()
-    { return m_Position.PositionType(); }
+    bool isTypeSELL()
+    { return m_Position.PositionType() == POSITION_TYPE_SELL; }
+    bool isTypeBUY()
+    { return m_Position.PositionType() == POSITION_TYPE_BUY; }
     void positionClose()
     { m_Trade.PositionClose(my_symbol); }
     void buy()
@@ -326,6 +328,17 @@ bool justChangedToUpTrend() {
 bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
+bool getProfitEtc(double &profit, double &balance, double &equity) {
+    for (int i = 0; i < PositionsTotal(); i--) {
+        if (PositionSelectByTicket(PositionGetTicket(i))) {
+            profit  = PositionGetDouble(POSITION_PROFIT);
+            balance = AccountInfoDouble(ACCOUNT_BALANCE);
+            equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+            return true;
+        }
+    }
+    return false;
+}
 //+------------------------------------------------------------------+
 void OnTick()
 {
@@ -334,13 +347,18 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
+double profit, balance, equity, maxProfit;
+if (getProfitEtc(profit, balance, equity)) {
+    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%", profit, balance, equity, profit/balance*100.0);
+}
+
     //if (TimeCurrent() > D'2023.08.05')
     if (TimeCurrent() > D'2022.05.23')
     {
         if (justChangedToDownTrend()) {
 PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)           > OsMA_limit) {
+                if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
                     sellOrBuy.setGetReadyToSell();
                 }
             }
@@ -348,7 +366,7 @@ PrintDecOsMa("v ");
         else if (justChangedToUpTrend()) {
 PrintDecOsMa("^ ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)           < -OsMA_limit) {
+                if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
                     sellOrBuy.setGetReadyToBuy();
                 }
             }
@@ -370,9 +388,10 @@ PrintDecOsMa("^ ");
     if (sellOrBuy.isBuyNow()) {
         if (g.pPos.select())
         {
-            if (g.pPos.positionType() == POSITION_TYPE_SELL)
+            if (g.pPos.isTypeSELL()) {
                 g.pPos.positionClose();
-            if (g.pPos.positionType() == POSITION_TYPE_BUY) {
+            }
+            if (g.pPos.isTypeBUY()) {
 //Print(__LINE__, " Already bought");
                 return;
             }
@@ -383,10 +402,10 @@ PrintDecOsMa("^ ");
     else if (sellOrBuy.isSellNow()) {
         if (g.pPos.select())
         {
-            if (g.pPos.positionType() == POSITION_TYPE_BUY) {
+            if (g.pPos.isTypeBUY()) {
                 g.pPos.positionClose();
             }
-            if (g.pPos.positionType() == POSITION_TYPE_SELL) {
+            if (g.pPos.isTypeSELL()) {
 //Print(__LINE__, " Already sold");
                 return;
             }
