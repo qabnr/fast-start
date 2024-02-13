@@ -8,15 +8,15 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int MACD2_fast_MA_period  =  64; // 71;  // 84;
-input int MACD2_slow_MA_period  = 159; //154; // 182;
-input int MACD2_avg_diff_period =  75; // 86;  // 63;
+input int MACD2_fast_MA_period  =  76; // 71;  // 84;
+input int MACD2_slow_MA_period  = 155; //154; // 182;
+input int MACD2_avg_diff_period =  86; // 86;  // 63;
 
-input double OsMA_limit =        0.05; //0.52;   // 0.19;
-input double decP_OsMa_limit =   0.91; //0.97;   // 0.79;
+input double OsMA_limit =        0.36; //0.52;   // 0.19;
+input double decP_OsMa_limit =   0.97; //0.97;   // 0.79;
 
-input double StopLossLimit     = 0.07; //0.02; //0.1;
-input double maxProfitStopLoss = 0.84; //0.87; //0.8;
+input double StopLossLimit     = 0.03; //0.02; //0.1;
+input double maxProfitStopLoss = 0.76; //0.87; //0.8;
 //+------------------------------------------------------------------+
 class buffer
 {
@@ -208,11 +208,26 @@ public:
     bool isTypeBUY()
     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
     void positionClose()
-    { m_Trade.PositionClose(my_symbol); }
+    {
+        for (int i = 0; i < 5; i++) {
+            if (!m_Trade.PositionClose(my_symbol))
+                return;
+        }
+    }
     void buy()
-    { m_Trade.Buy(volume, my_symbol); }
+    { 
+        for (int i = 0; i < 5; i++) {   
+            if (!m_Trade.Buy(volume, my_symbol))
+                return;
+        }
+    }
     void sell()
-    { m_Trade.Sell(volume, my_symbol); }
+    {
+        for (int i = 0; i < 5; i++) {
+            if (!m_Trade.Sell(volume, my_symbol))
+                return;
+        }
+    }
 };
 //+------------------------------------------------------------------+
 class Global
