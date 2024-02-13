@@ -8,13 +8,15 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int MACD2_fast_MA_period  = 71;  // 84;
-input int MACD2_slow_MA_period  = 154; // 182;
-input int MACD2_avg_diff_period = 86;  // 63;
+input int MACD2_fast_MA_period  =  64; // 71;  // 84;
+input int MACD2_slow_MA_period  = 159; //154; // 182;
+input int MACD2_avg_diff_period =  75; // 86;  // 63;
 
-input double OsMA_limit =      0.52;   // 0.19;
-input double decP_OsMa_limit = 0.97;   // 0.79;
+input double OsMA_limit =        0.05; //0.52;   // 0.19;
+input double decP_OsMa_limit =   0.91; //0.97;   // 0.79;
 
+input double StopLossLimit     = 0.07; //0.02; //0.1;
+input double maxProfitStopLoss = 0.84; //0.87; //0.8;
 //+------------------------------------------------------------------+
 class buffer
 {
@@ -339,6 +341,16 @@ bool getProfitEtc(double &profit, double &balance, double &equity) {
     }
     return false;
 }
+
+void changeDirection(SellOrBuy &sellOrBuy) {
+    if (g.pPos.isTypeBUY()) {
+        sellOrBuy.setSellNow();
+    }
+    else if (g.pPos.isTypeSELL()) {
+        sellOrBuy.setBuyNow();
+    }
+
+}
 //+------------------------------------------------------------------+
 void OnTick()
 {
@@ -347,9 +359,18 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
-double profit, balance, equity, maxProfit;
+double profit, balance, equity;
+static double maxProfit = 0;
+
 if (getProfitEtc(profit, balance, equity)) {
-    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%", profit, balance, equity, profit/balance*100.0);
+    string profDiffstr = "";
+    if (profit > maxProfit) {
+        maxProfit = profit;
+    }
+    if (profit != maxProfit) {
+        profDiffstr = StringFormat(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
+    }
+    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
 }
 
     //if (TimeCurrent() > D'2023.08.05')
@@ -372,6 +393,19 @@ PrintDecOsMa("^ ");
             }
         }
     }
+
+
+if ((maxProfit)/balance > 0.1 && (profit / maxProfit) < maxProfitStopLoss && g.pPos.select())
+{
+Print(__LINE__, " Pr/MaxPr: ", (profit / maxProfit));
+    changeDirection(sellOrBuy);
+}
+
+if (profit < 0 && profit/balance < -StopLossLimit)
+{
+Print(__LINE__, " Pr/Bal: ", (profit/balance));
+    changeDirection(sellOrBuy);
+}
 
     if (sellOrBuy.isGetReadyToBuy()) {
         if (g.ATR_list.isBuyNow(getPrice().low)) {
@@ -397,6 +431,7 @@ PrintDecOsMa("^ ");
             }
         }
         g.pPos.buy();
+        maxProfit = 0;
         sellOrBuy.setNone();
     }
     else if (sellOrBuy.isSellNow()) {
@@ -411,6 +446,7 @@ PrintDecOsMa("^ ");
             }
         }
         g.pPos.sell();
+        maxProfit = 0;
         sellOrBuy.setNone();
     }
 }
