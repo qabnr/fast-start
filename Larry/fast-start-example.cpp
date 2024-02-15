@@ -17,6 +17,9 @@ input double decP_OsMa_limit =   0.97; //0.97;   // 0.79;
 
 input double StopLossLimit     = 0.03; //0.02; //0.1;
 input double maxProfitStopLoss = 0.76; //0.87; //0.8;
+
+input double freeMarginLimit   = 0.33;
+
 //+------------------------------------------------------------------+
 class buffer
 {
@@ -209,23 +212,37 @@ public:
     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
     void positionClose()
     {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 15; i++) {
+PrintFormat("FM: %.1f  E: %.1f", AccountInfoDouble(ACCOUNT_MARGIN_FREE), AccountInfoDouble(ACCOUNT_EQUITY));
             if (!m_Trade.PositionClose(my_symbol))
                 return;
         }
     }
     void buy()
-    { 
-        for (int i = 0; i < 5; i++) {   
-            if (!m_Trade.Buy(volume, my_symbol))
+    {
+        double initialFreeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+        for (int i = 0; i < 15; i++) {
+PrintFormat("FM: %.1f  E: %.1f", AccountInfoDouble(ACCOUNT_MARGIN_FREE), AccountInfoDouble(ACCOUNT_EQUITY));
+
+            if (AccountInfoDouble(ACCOUNT_MARGIN_FREE) / initialFreeMargin < freeMarginLimit) {
                 return;
+            }
+            if (!m_Trade.Buy(volume, my_symbol)) {
+                return;
+            }
         }
     }
     void sell()
     {
-        for (int i = 0; i < 5; i++) {
-            if (!m_Trade.Sell(volume, my_symbol))
+        double initialFreeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+        for (int i = 0; i < 15; i++) {
+PrintFormat("FM: %.1f  E: %.1f", AccountInfoDouble(ACCOUNT_MARGIN_FREE), AccountInfoDouble(ACCOUNT_EQUITY));
+            if (AccountInfoDouble(ACCOUNT_MARGIN_FREE) / initialFreeMargin < freeMarginLimit) {
                 return;
+            }
+            if (!m_Trade.Sell(volume, my_symbol)) {
+                return;
+            }
         }
     }
 };
@@ -243,6 +260,7 @@ Global g;
 //+------------------------------------------------------------------+
 int OnInit()
 {
+    Print("Compiled at: ", __DATETIME__);
 
     g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
     g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
@@ -385,14 +403,14 @@ if (getProfitEtc(profit, balance, equity)) {
     if (profit != maxProfit) {
         profDiffstr = StringFormat(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
     }
-    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
+//    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
 }
 
     //if (TimeCurrent() > D'2023.08.05')
     if (TimeCurrent() > D'2022.05.23')
     {
         if (justChangedToDownTrend()) {
-PrintDecOsMa("v ");
+//PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
                     sellOrBuy.setGetReadyToSell();
@@ -400,7 +418,7 @@ PrintDecOsMa("v ");
             }
         }
         else if (justChangedToUpTrend()) {
-PrintDecOsMa("^ ");
+//PrintDecOsMa("^ ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
                     sellOrBuy.setGetReadyToBuy();
@@ -412,13 +430,13 @@ PrintDecOsMa("^ ");
 
 if ((maxProfit)/balance > 0.1 && (profit / maxProfit) < maxProfitStopLoss && g.pPos.select())
 {
-Print(__LINE__, " Pr/MaxPr: ", (profit / maxProfit));
+//Print(__LINE__, " Pr/MaxPr: ", (profit / maxProfit));
     changeDirection(sellOrBuy);
 }
 
 if (profit < 0 && profit/balance < -StopLossLimit)
 {
-Print(__LINE__, " Pr/Bal: ", (profit/balance));
+//Print(__LINE__, " Pr/Bal: ", (profit/balance));
     changeDirection(sellOrBuy);
 }
 
