@@ -8,12 +8,12 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int MACD2_fast_MA_period  = 71;  // 84;
-input int MACD2_slow_MA_period  = 154; // 182;
-input int MACD2_avg_diff_period = 86;  // 63;
+input int MACD2_fast_MA_period  = 70;
+input int MACD2_slow_MA_period  = 150;
+input int MACD2_avg_diff_period = 85;
 
-input double OsMA_limit =      0.52;   // 0.19;
-input double decP_OsMa_limit = 0.97;   // 0.79;
+input double OsMA_limit =         0.56;
+input double decP_OsMa_limit =    0.99;
 
 //+------------------------------------------------------------------+
 class buffer
@@ -252,7 +252,7 @@ void OnDeinit(const int reason)
 class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_SET_METHOD(c) void set##c () { state = c; Print("--> ", toStr());  }
+#define DEF_SET_METHOD(c) void set##c (int n) { state = c; Print("--> ", toStr(), "(", n, ")");  }
 #define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
 
 private:
@@ -319,15 +319,14 @@ bool justChangedToDownTrend() {
     return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
         && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
 }
-
 bool justChangedToUpTrend() {
     return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
         && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
 }
-
 bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
+//+------------------------------------------------------------------+
 bool getProfitEtc(double &profit, double &balance, double &equity) {
     for (int i = 0; i < PositionsTotal(); i--) {
         if (PositionSelectByTicket(PositionGetTicket(i))) {
@@ -340,6 +339,16 @@ bool getProfitEtc(double &profit, double &balance, double &equity) {
     return false;
 }
 //+------------------------------------------------------------------+
+void changeDirection(SellOrBuy &sellOrBuy) {
+    if (g.pPos.isTypeBUY()) {
+        sellOrBuy.setSellNow(__LINE__);
+    }
+    else if (g.pPos.isTypeSELL()) {
+        sellOrBuy.setBuyNow(__LINE__);
+    }
+
+}
+//+------------------------------------------------------------------+
 void OnTick()
 {
     if (copyBuffers() == false)
@@ -347,27 +356,36 @@ void OnTick()
 
     static SellOrBuy sellOrBuy;
 
-double profit, balance, equity, maxProfit;
+double profit, balance, equity;
+static double maxProfit = 0;
+
 if (getProfitEtc(profit, balance, equity)) {
-    PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%", profit, balance, equity, profit/balance*100.0);
+    string profDiffstr = "";
+    if (profit > maxProfit) {
+        maxProfit = profit;
+    }
+    // if (profit != maxProfit) {
+    //     profDiffstr = StringFormat(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
+    // }
+    // PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
 }
 
     //if (TimeCurrent() > D'2023.08.05')
     if (TimeCurrent() > D'2022.05.23')
     {
         if (justChangedToDownTrend()) {
-PrintDecOsMa("v ");
+//PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    sellOrBuy.setGetReadyToSell();
+                    sellOrBuy.setGetReadyToSell(__LINE__);
                 }
             }
         }
         else if (justChangedToUpTrend()) {
-PrintDecOsMa("^ ");
+//PrintDecOsMa("^ ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    sellOrBuy.setGetReadyToBuy();
+                    sellOrBuy.setGetReadyToBuy(__LINE__);
                 }
             }
         }
@@ -375,13 +393,13 @@ PrintDecOsMa("^ ");
 
     if (sellOrBuy.isGetReadyToBuy()) {
         if (g.ATR_list.isBuyNow(getPrice().low)) {
-            sellOrBuy.setBuyNow();
+            sellOrBuy.setBuyNow(__LINE__);
         }
     }
     else
     if (sellOrBuy.isGetReadyToSell()) {
         if (g.ATR_list.isSellNow(getPrice().high)) {
-            sellOrBuy.setSellNow();
+            sellOrBuy.setSellNow(__LINE__);
         }
     }
 
@@ -397,7 +415,8 @@ PrintDecOsMa("^ ");
             }
         }
         g.pPos.buy();
-        sellOrBuy.setNone();
+        maxProfit = 0;
+        sellOrBuy.setNone(__LINE__);
     }
     else if (sellOrBuy.isSellNow()) {
         if (g.pPos.select())
@@ -411,7 +430,8 @@ PrintDecOsMa("^ ");
             }
         }
         g.pPos.sell();
-        sellOrBuy.setNone();
+        maxProfit = 0;
+        sellOrBuy.setNone(__LINE__);
     }
 }
 //+------------------------------------------------------------------+
