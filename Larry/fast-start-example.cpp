@@ -15,6 +15,7 @@ input int MACD2_avg_diff_period = 85;
 input double OsMA_limit =         0.56;
 input double decP_OsMa_limit =    0.99;
 
+input int minMaxBAckTrack = 8;
 //+------------------------------------------------------------------+
 class buffer
 {
@@ -220,9 +221,8 @@ public:
     MACD *MACD1, *MACD2;
     TradePosition *pPos;
 };
-
+//+-----------
 Global g;
-
 //+------------------------------------------------------------------+
 int OnInit()
 {
@@ -309,20 +309,21 @@ void PrintDecOsMa(string prefix) {
     }
 Print(prefix, "[dcPer OsMA]: ", s);
 }
-
+//+-----------
 void PrintDecOsMa() {
     PrintDecOsMa("");
 }
-
 //+------------------------------------------------------------------+
 bool justChangedToDownTrend() {
     return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
         && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
 }
+//+-----------
 bool justChangedToUpTrend() {
     return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
         && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
 }
+//+-----------
 bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
@@ -346,8 +347,84 @@ void changeDirection(SellOrBuy &sellOrBuy) {
     else if (g.pPos.isTypeSELL()) {
         sellOrBuy.setBuyNow(__LINE__);
     }
-
 }
+//+------------------------------------------------------------------+
+class MACD1_PeaksAndValleys
+{
+private:
+    int sign;
+    int numOf;
+
+    bool isMin() {
+        if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
+        for (int i = 2; i < minMaxBAckTrack; i++) {
+            if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
+        }
+        return true;
+    };
+
+    bool isMax() {
+        if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
+        for (int i = 2; i < minMaxBAckTrack; i++) {
+            if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
+        }
+
+        return true;
+    };
+
+public:
+    MACD1_PeaksAndValleys() : sign(0), numOf(0) {};
+    ~MACD1_PeaksAndValleys() {};
+
+    void process() {
+        if (sign < 0) {
+            if (g.MACD1.MACD_Buffer.get(0) < 0) {
+                if (isMin()) {
+PrintFormat("%.2f %.2f %.2f %.2f %.2f ",
+    g.MACD1.MACD_Buffer.get(0),
+    g.MACD1.MACD_Buffer.get(1),
+    g.MACD1.MACD_Buffer.get(2),
+    g.MACD1.MACD_Buffer.get(3),
+    g.MACD1.MACD_Buffer.get(4)
+);
+                    numOf++;
+Print(__LINE__, ": min, nOf =  ", numOf);
+                }
+            }
+            else {
+                sign  = 1;
+                numOf = 0;
+            }
+        }
+        else {
+            if (g.MACD1.MACD_Buffer.get(0) > 0) {
+                if (isMax()) {
+                    numOf++;
+PrintFormat("%.2f %.2f %.2f %.2f %.2f ",
+    g.MACD1.MACD_Buffer.get(0),
+    g.MACD1.MACD_Buffer.get(1),
+    g.MACD1.MACD_Buffer.get(2),
+    g.MACD1.MACD_Buffer.get(3),
+    g.MACD1.MACD_Buffer.get(4)
+);
+Print(__LINE__, ": Max, nOf =  ", numOf);
+                }
+            }
+            else {
+                sign  = -1;
+                numOf = 0;
+            }
+        }
+    }
+
+    bool isDoublePeak() {
+        return sign > 0 && numOf == 2;
+    }
+
+    bool isDoubleValley() {
+        return sign < 0 && numOf == 2;
+    }
+};
 //+------------------------------------------------------------------+
 void OnTick()
 {
@@ -373,7 +450,17 @@ if (getProfitEtc(profit, balance, equity)) {
     //if (TimeCurrent() > D'2023.08.05')
     if (TimeCurrent() > D'2022.05.23')
     {
-        if (justChangedToDownTrend()) {
+        static MACD1_PeaksAndValleys MACD1peaksAndValleys;
+
+        MACD1peaksAndValleys.process();
+
+        if (MACD1peaksAndValleys.isDoublePeak()) {
+            sellOrBuy.setSellNow(__LINE__);
+        }
+        else if (MACD1peaksAndValleys.isDoubleValley()) {
+            sellOrBuy.setBuyNow(__LINE__);
+        }
+        else if (justChangedToDownTrend()) {
 //PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
@@ -456,7 +543,6 @@ bool copyBuffers()
     }
     return true;
 }
-
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
