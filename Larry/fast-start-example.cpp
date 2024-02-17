@@ -353,76 +353,149 @@ class MACD1_PeaksAndValleys
 {
 private:
     int sign;
-    int numOf;
+    int numOfmins, numOfMaxs;
+    double lastMin, lastMax;
 
     bool isMin() {
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+PrintFormat("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2));
         if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+PrintFormat("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1));
             if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+Print("MIN found");
         return true;
     };
 
     bool isMax() {
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+PrintFormat("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2));
         if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+PrintFormat("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1));
             if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
-
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+Print("MAX found");
         return true;
     };
 
+    void initMinMaxValues() {
+        numOfmins = numOfMaxs = 0;
+        lastMin = 0.00001;
+        lastMax = 999999;
+    };
+
 public:
-    MACD1_PeaksAndValleys() : sign(0), numOf(0) {};
+    MACD1_PeaksAndValleys() : 
+        sign(0), numOfmins(0), numOfMaxs(0)
+        {   initMinMaxValues(); }
     ~MACD1_PeaksAndValleys() {};
 
+    void PrintMACD_Last(int cnt) {
+        string s;
+        for (int i = 0; i < cnt; i++) {
+            s += StringFormat("%.2f ", g.MACD1.MACD_Buffer.get(i));
+        }
+        Print(s);
+    }
+
     void process() {
+
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+PrintMACD_Last(minMaxBAckTrack+1);
+
+        double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (sign < 0) {
-            if (g.MACD1.MACD_Buffer.get(0) < 0) {
+            if (macd0 < 0) {
                 if (isMin()) {
-PrintFormat("%.2f %.2f %.2f %.2f %.2f ",
-    g.MACD1.MACD_Buffer.get(0),
-    g.MACD1.MACD_Buffer.get(1),
-    g.MACD1.MACD_Buffer.get(2),
-    g.MACD1.MACD_Buffer.get(3),
-    g.MACD1.MACD_Buffer.get(4)
-);
-                    numOf++;
-Print(__LINE__, ": min, nOf =  ", numOf);
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+{
+    Print("MIN");
+    Print(macd0  * (1 - 0.05), ", ", macd0, ", ", lastMax);
+}
+                    // if ((macd0 / lastMax) < 1 - 0.05) {
+                    if (macd0  * (1 - 0.05) < lastMax) {
+                        if (numOfmins == numOfMaxs)
+                            numOfmins++;
+                        lastMin = macd0;
+PrintMACD_Last(minMaxBAckTrack+1);
+Print(__LINE__, ": min, nOf =  ", numOfmins);
+                    }
+                }
+                else if (isMax()) {
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+{
+    Print("MAX");
+    Print((macd0 / lastMin), ", ", macd0, ", ", lastMin);
+}
+                    if ((macd0 / lastMin) < 1 - 0.05) {
+                        if (numOfmins > numOfMaxs)
+                            numOfMaxs++;
+                        lastMax = macd0;
+Print(__LINE__, ": Max, nOf =  ", numOfMaxs);
+                    }
                 }
             }
             else {
                 sign  = 1;
-                numOf = 0;
+                initMinMaxValues();
             }
         }
         else {
-            if (g.MACD1.MACD_Buffer.get(0) > 0) {
+            if (macd0 > 0) {
                 if (isMax()) {
-                    numOf++;
-PrintFormat("%.2f %.2f %.2f %.2f %.2f ",
-    g.MACD1.MACD_Buffer.get(0),
-    g.MACD1.MACD_Buffer.get(1),
-    g.MACD1.MACD_Buffer.get(2),
-    g.MACD1.MACD_Buffer.get(3),
-    g.MACD1.MACD_Buffer.get(4)
-);
-Print(__LINE__, ": Max, nOf =  ", numOf);
+                    if (numOfmins == numOfMaxs)
+                        numOfMaxs++;
+                    lastMax = macd0;
+PrintMACD_Last(minMaxBAckTrack+1);
+Print(__LINE__, ": Max, nOf =  ", numOfMaxs);
+                }
+                else if (isMin()){
+if (TimeCurrent() > D'2022.06.13')
+if (TimeCurrent() < D'2022.06.18')
+{
+    Print("MIN");
+    Print((macd0 / lastMin), ", ", macd0, ", ", lastMin);
+}
+                    if ((macd0 / lastMax) < 1 - 0.05) {
+                        if (numOfmins < numOfMaxs)
+                            numOfmins++;
+                        lastMin = macd0;
+    Print(__LINE__, ": min, nOf =  ", numOfmins);
+                    }
                 }
             }
             else {
                 sign  = -1;
-                numOf = 0;
+                initMinMaxValues();
             }
         }
     }
 
     bool isDoublePeak() {
-        return sign > 0 && numOf == 2;
+        bool retval = sign == 1 && numOfMaxs == 2 && numOfmins == 1;
+        if (retval == true) sign++;
+        return retval;
     }
 
     bool isDoubleValley() {
-        return sign < 0 && numOf == 2;
+        bool retval = sign == -1 && numOfmins == 2 && numOfMaxs == 1;
+        if (retval == true) sign++;
+        return retval;
     }
 };
 //+------------------------------------------------------------------+
