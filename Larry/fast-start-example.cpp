@@ -352,9 +352,10 @@ void changeDirection(SellOrBuy &sellOrBuy) {
 class MACD1_PeaksAndValleys
 {
 private:
-    int sign;
-    int numOfmins, numOfMaxs;
-    double lastMin, lastMax;
+    int    sign;
+    int    numOfmins, numOfMaxs;
+    double lastMin,   lastMax;
+    bool   is1stread, is2ndread;
 
     bool isMin() {
 if (TimeCurrent() > D'2022.06.13')
@@ -390,16 +391,17 @@ Print("MAX found");
         return true;
     };
 
-    void initMinMaxValues() {
+    void initValues(int _sign) {
+        sign = _sign;
         numOfmins = numOfMaxs = 0;
         lastMin = 0.00001;
         lastMax = 999999;
+        is1stPeak = false;
+        is2ndPeak = false;
     };
 
 public:
-    MACD1_PeaksAndValleys() : 
-        sign(0), numOfmins(0), numOfMaxs(0)
-        {   initMinMaxValues(); }
+    MACD1_PeaksAndValleys() {   initValues(0); }
     ~MACD1_PeaksAndValleys() {};
 
     void PrintMACD_Last(int cnt) {
@@ -451,8 +453,7 @@ Print(__LINE__, ": Max, nOf =  ", numOfMaxs);
                 }
             }
             else {
-                sign  = 1;
-                initMinMaxValues();
+                initValues(1);
             }
         }
         else {
@@ -480,22 +481,31 @@ if (TimeCurrent() < D'2022.06.18')
                 }
             }
             else {
-                sign  = -1;
-                initMinMaxValues();
+                initValues(-1);
             }
         }
     }
 
-    bool isDoublePeak() {
-        bool retval = sign == 1 && numOfMaxs == 2 && numOfmins == 1;
-        if (retval == true) sign++;
-        return retval;
+    bool is1stPeak() {
+        if (is1stread) return false;
+        is1stread = true;
+        return numOfMaxs == 1 && numOfmins == 0;
+    }
+    bool is2ndPeak() {
+        if (is2ndread) return false;
+        is2ndread = true;
+        return numOfMaxs == 2 && numOfmins == 1;
     }
 
-    bool isDoubleValley() {
-        bool retval = sign == -1 && numOfmins == 2 && numOfMaxs == 1;
-        if (retval == true) sign++;
-        return retval;
+    bool is1stValley() {
+        if (is1stread) return false;
+        is1stread = true;
+        return numOfmins == 1 && numOfMaxs == 0;
+    }
+    bool is2ndValley() {
+        if (is2ndread) return false;
+        is2ndread = true;
+        return numOfmins == 2 && numOfMaxs == 1;
     }
 };
 //+------------------------------------------------------------------+
@@ -527,10 +537,23 @@ if (getProfitEtc(profit, balance, equity)) {
 
         MACD1peaksAndValleys.process();
 
-        if (MACD1peaksAndValleys.isDoublePeak()) {
+        if (MACD1peaksAndValleys.is1stPeak()) {
+PrintFormat("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100);
+if (profit/balance > 0.5) {
+    sellOrBuy.setSellNow(__LINE__);
+}
+        }
+        if (MACD1peaksAndValleys.is2ndPeak()) {
             sellOrBuy.setSellNow(__LINE__);
         }
-        else if (MACD1peaksAndValleys.isDoubleValley()) {
+        else if (MACD1peaksAndValleys.is1stValley()) {
+PrintFormat("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100);
+if (profit/balance > 0.5) {
+    sellOrBuy.setBuyNow(__LINE__);
+}
+
+        }
+        else if (MACD1peaksAndValleys.is2ndValley()) {
             sellOrBuy.setBuyNow(__LINE__);
         }
         else if (justChangedToDownTrend()) {
