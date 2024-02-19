@@ -17,6 +17,8 @@ input double decP_OsMa_limit =    0.99;
 
 input int minMaxBAckTrack = 8;
 //+------------------------------------------------------------------+
+#define SF StringFormat
+//+------------------------------------------------------------------+
 class buffer
 {
 private:
@@ -80,7 +82,7 @@ public:
             return;
         }
 
-        string short_name = StringFormat("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
+        string short_name = SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
         stopBuffer     .addHandleAndBuffNum(short_name, handle, 0);
         stopColorBuffer.addHandleAndBuffNum(short_name, handle, 1);
         buyBuffer      .addHandleAndBuffNum(short_name, handle, 2);
@@ -296,7 +298,7 @@ public:
 };
 //+------------------------------------------------------------------+
 string Osma2str(int idx) {
-   return StringFormat("[%.2f %.2f]",
+   return SF("[%.2f %.2f]",
                   g.MACD2.decPeriod_OsMA_Buffer.get(idx),
                   g.MACD2.OsMA_Buffer.get(idx));
 
@@ -349,45 +351,44 @@ void changeDirection(SellOrBuy &sellOrBuy) {
     }
 }
 //+------------------------------------------------------------------+
+bool isLOG() {
+    // if (TimeCurrent() > D'2022.06.13')
+    if (TimeCurrent() < D'2022.06.18')
+        return true;
+    return false;
+}
+void LOG(const string s) {
+    if (isLOG()) Print(s);
+}
+//+------------------------------------------------------------------+
 class MACD1_PeaksAndValleys
 {
 private:
     int    sign;
     int    numOfmins, numOfMaxs;
     double lastMin,   lastMax;
-    bool   is1stread, is2ndread;
+    bool   is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
+    bool   is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-PrintFormat("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2));
+LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
         if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-PrintFormat("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1));
+LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-Print("MIN found");
+LOG("MIN found");
         return true;
     };
 
     bool isMax() {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-PrintFormat("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2));
+LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
         if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-PrintFormat("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1));
+LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-Print("MAX found");
+LOG("MAX found");
         return true;
     };
 
@@ -396,116 +397,117 @@ Print("MAX found");
         numOfmins = numOfMaxs = 0;
         lastMin = 0.00001;
         lastMax = 999999;
-        is1stPeak = false;
-        is2ndPeak = false;
+        is1stPeakAlreadyFound = false;
+        is2ndPeakAlreadyFound = false;
+        is1stValleyAlreadyFound = false;
+        is2ndValleyAlreadyFound = false;
     };
 
 public:
     MACD1_PeaksAndValleys() {   initValues(0); }
     ~MACD1_PeaksAndValleys() {};
 
-    void PrintMACD_Last(int cnt) {
+    void debugMACD_Last(int cnt) {
+        if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
-            s += StringFormat("%.2f ", g.MACD1.MACD_Buffer.get(i));
+            s += SF("%.2f ", g.MACD1.MACD_Buffer.get(i));
         }
         Print(s);
     }
 
     void process() {
 
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-PrintMACD_Last(minMaxBAckTrack+1);
+debugMACD_Last(minMaxBAckTrack+1);
 
         double macd0 = g.MACD1.MACD_Buffer.get(1);
-        if (sign < 0) {
-            if (macd0 < 0) {
-                if (isMin()) {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-{
-    Print("MIN");
-    Print(macd0  * (1 - 0.05), ", ", macd0, ", ", lastMax);
-}
-                    // if ((macd0 / lastMax) < 1 - 0.05) {
-                    if (macd0  * (1 - 0.05) < lastMax) {
-                        if (numOfmins == numOfMaxs)
-                            numOfmins++;
-                        lastMin = macd0;
-PrintMACD_Last(minMaxBAckTrack+1);
-Print(__LINE__, ": min, nOf =  ", numOfmins);
-                    }
-                }
-                else if (isMax()) {
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-{
-    Print("MAX");
-    Print((macd0 / lastMin), ", ", macd0, ", ", lastMin);
-}
-                    if ((macd0 / lastMin) < 1 - 0.05) {
-                        if (numOfmins > numOfMaxs)
-                            numOfMaxs++;
-                        lastMax = macd0;
-Print(__LINE__, ": Max, nOf =  ", numOfMaxs);
-                    }
+        if (macd0 < 0) {
+            if (sign >= 0) {
+                initValues(-1);
+            }
+            if (isMin()) {
+    LOG("MIN");
+    LOG(SF("%.2f  %.2f  %.2f", macd0  * (1 - 0.05), macd0, lastMax));
+                if (macd0  * (1 - 0.05) < lastMax) {
+                    if (numOfmins == numOfMaxs)
+                        numOfmins++;
+                    lastMin = macd0;
+    debugMACD_Last(minMaxBAckTrack+1);
+    LOG(SF("%d: min, nOf: %.2f", __LINE__, numOfmins));
                 }
             }
-            else {
-                initValues(1);
+            else if (isMax()) {
+    LOG("MAX");
+    LOG(SF("%.2f  %.2f  %.2f", (macd0 / lastMin), macd0, lastMin));
+                if ((macd0 / lastMin) < 1 - 0.05) {
+                    if (numOfmins > numOfMaxs)
+                        numOfMaxs++;
+                    lastMax = macd0;
+    LOG(SF("%d: Max, nOf: %.2f", __LINE__, numOfMaxs));
+                }
             }
         }
         else {
-            if (macd0 > 0) {
-                if (isMax()) {
-                    if (numOfmins == numOfMaxs)
-                        numOfMaxs++;
-                    lastMax = macd0;
-PrintMACD_Last(minMaxBAckTrack+1);
-Print(__LINE__, ": Max, nOf =  ", numOfMaxs);
-                }
-                else if (isMin()){
-if (TimeCurrent() > D'2022.06.13')
-if (TimeCurrent() < D'2022.06.18')
-{
-    Print("MIN");
-    Print((macd0 / lastMin), ", ", macd0, ", ", lastMin);
-}
-                    if ((macd0 / lastMax) < 1 - 0.05) {
-                        if (numOfmins < numOfMaxs)
-                            numOfmins++;
-                        lastMin = macd0;
-    Print(__LINE__, ": min, nOf =  ", numOfmins);
-                    }
-                }
+            if (sign <= 0) {
+                initValues(1);
             }
-            else {
-                initValues(-1);
+            if (isMax()) {
+                if (numOfmins == numOfMaxs)
+                    numOfMaxs++;
+                lastMax = macd0;
+    debugMACD_Last(minMaxBAckTrack+1);
+    LOG(SF("%d: Max, nOf: %.2f", __LINE__, numOfMaxs));
+            }
+            else if (isMin()){
+    LOG("MIN");
+    LOG(SF("%.2f  %.2f  %.2f", (macd0 / lastMin), macd0, lastMin));
+                if ((macd0 / lastMax) < 1 - 0.05) {
+                    if (numOfmins < numOfMaxs)
+                        numOfmins++;
+                    lastMin = macd0;
+    LOG(SF("%d: min, nOf: %.2f",__LINE__, numOfmins));
+                }
             }
         }
     }
 
     bool is1stPeak() {
-        if (is1stread) return false;
-        is1stread = true;
-        return numOfMaxs == 1 && numOfmins == 0;
+LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
+        if (is1stPeakAlreadyFound) return false;
+        if (numOfMaxs == 1 && numOfmins == 0) {
+            is1stPeakAlreadyFound = true;
+            return true;
+        }
+        return false;
     }
     bool is2ndPeak() {
-        if (is2ndread) return false;
-        is2ndread = true;
-        return numOfMaxs == 2 && numOfmins == 1;
+LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+        if (is2ndPeakAlreadyFound) return false;
+        if (numOfMaxs == 2 && numOfmins == 1) {
+            is2ndPeakAlreadyFound = true;
+            return true;
+        }
+        return false;
     }
 
     bool is1stValley() {
-        if (is1stread) return false;
-        is1stread = true;
-        return numOfmins == 1 && numOfMaxs == 0;
+LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+        if (is1stValleyAlreadyFound) return false;
+        if (numOfmins == 1 && numOfMaxs == 0) {
+            is1stValleyAlreadyFound = true;
+            return true;
+        }
+        return false;
     }
+
     bool is2ndValley() {
-        if (is2ndread) return false;
-        is2ndread = true;
-        return numOfmins == 2 && numOfMaxs == 1;
+LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+        if (is2ndValleyAlreadyFound) return false;
+        if (numOfmins == 2 && numOfMaxs == 1) {
+            is2ndValleyAlreadyFound = true;
+            return true;
+        }
+        return false;
     }
 };
 //+------------------------------------------------------------------+
@@ -525,7 +527,7 @@ if (getProfitEtc(profit, balance, equity)) {
         maxProfit = profit;
     }
     // if (profit != maxProfit) {
-    //     profDiffstr = StringFormat(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
+    //     profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
     // }
     // PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
 }
@@ -538,7 +540,7 @@ if (getProfitEtc(profit, balance, equity)) {
         MACD1peaksAndValleys.process();
 
         if (MACD1peaksAndValleys.is1stPeak()) {
-PrintFormat("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100);
+LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
     sellOrBuy.setSellNow(__LINE__);
 }
@@ -547,7 +549,7 @@ if (profit/balance > 0.5) {
             sellOrBuy.setSellNow(__LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
-PrintFormat("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100);
+LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
     sellOrBuy.setBuyNow(__LINE__);
 }
