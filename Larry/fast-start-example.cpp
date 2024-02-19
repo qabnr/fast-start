@@ -19,6 +19,17 @@ input int minMaxBAckTrack = 8;
 //+------------------------------------------------------------------+
 #define SF StringFormat
 //+------------------------------------------------------------------+
+bool isLOG() {
+    // if (TimeCurrent() > D'2022.06.13')
+    if (TimeCurrent() < D'2022.06.18')
+        return true;
+    return false;
+}
+void LOG_Impl(const string s) {
+    if (isLOG()) Print(s);
+}
+#define LOG(s) LOG_Impl(SF("%d: %s", __LINE__, s))
+//+------------------------------------------------------------------+
 class buffer
 {
 private:
@@ -254,7 +265,7 @@ void OnDeinit(const int reason)
 class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_SET_METHOD(c) void set##c (int n) { state = c; Print("--> ", toStr(), "(", n, ")");  }
+#define DEF_SET_METHOD(c) void set##c (int n) { if (state != c) { state = c; LOG(SF("==> %s (%d)", toStr(), n));}  }
 #define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
 
 private:
@@ -351,16 +362,6 @@ void changeDirection(SellOrBuy &sellOrBuy) {
     }
 }
 //+------------------------------------------------------------------+
-bool isLOG() {
-    // if (TimeCurrent() > D'2022.06.13')
-    if (TimeCurrent() < D'2022.06.18')
-        return true;
-    return false;
-}
-void LOG(const string s) {
-    if (isLOG()) Print(s);
-}
-//+------------------------------------------------------------------+
 class MACD1_PeaksAndValleys
 {
 private:
@@ -371,10 +372,10 @@ private:
     bool   is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
-LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
+//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
         if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
+//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
 LOG("MIN found");
@@ -382,10 +383,10 @@ LOG("MIN found");
     };
 
     bool isMax() {
-LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
+//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
         if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
+//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
 LOG("MAX found");
@@ -407,7 +408,7 @@ public:
     MACD1_PeaksAndValleys() {   initValues(0); }
     ~MACD1_PeaksAndValleys() {};
 
-    void debugMACD_Last(int cnt) {
+    void LogMACD_Last(int cnt) {
         if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
@@ -418,32 +419,57 @@ public:
 
     void process() {
 
-debugMACD_Last(minMaxBAckTrack+1);
+//LogMACD_Last(minMaxBAckTrack+1);
 
+
+static datetime barTime = 0;
+datetime currBarTime = iTime(_Symbol, _Period, 0);
+if(barTime != currBarTime)
+{
+    barTime = currBarTime;
+
+    double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
+    double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
+    double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
+
+    if (decMACD0 == 0 && decMACD1 < 0) {
+        LOG("dcMCD: Min");
+    }
+    if (decMACD1 == 0 && decMACD2 < 0) {
+        LOG("dcMCD: Min2");
+    }
+
+    if (decMACD0 == 0 && decMACD1 > 0) {
+        LOG("dcMCD: MAX");
+    }
+    if (decMACD1 == 0 && decMACD2 > 0) {
+        LOG("dcMCD: MAX2");
+    }
+}
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
                 initValues(-1);
             }
             if (isMin()) {
-    LOG("MIN");
-    LOG(SF("%.2f  %.2f  %.2f", macd0  * (1 - 0.05), macd0, lastMax));
+LOG("MIN");
+LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
                 if (macd0  * (1 - 0.05) < lastMax) {
                     if (numOfmins == numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
-    debugMACD_Last(minMaxBAckTrack+1);
-    LOG(SF("%d: min, nOf: %.2f", __LINE__, numOfmins));
+//LogMACD_Last(minMaxBAckTrack+1);
+LOG(SF("min, nOf: %.2f", numOfmins));
                 }
             }
             else if (isMax()) {
-    LOG("MAX");
-    LOG(SF("%.2f  %.2f  %.2f", (macd0 / lastMin), macd0, lastMin));
+LOG("MAX");
+LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
                 if ((macd0 / lastMin) < 1 - 0.05) {
                     if (numOfmins > numOfMaxs)
                         numOfMaxs++;
                     lastMax = macd0;
-    LOG(SF("%d: Max, nOf: %.2f", __LINE__, numOfMaxs));
+LOG(SF("Max, nOf: %.2f", numOfMaxs));
                 }
             }
         }
@@ -455,24 +481,24 @@ debugMACD_Last(minMaxBAckTrack+1);
                 if (numOfmins == numOfMaxs)
                     numOfMaxs++;
                 lastMax = macd0;
-    debugMACD_Last(minMaxBAckTrack+1);
-    LOG(SF("%d: Max, nOf: %.2f", __LINE__, numOfMaxs));
+//LogMACD_Last(minMaxBAckTrack+1);
+LOG(SF("Max, nOf: %.2f", numOfMaxs));
             }
             else if (isMin()){
-    LOG("MIN");
-    LOG(SF("%.2f  %.2f  %.2f", (macd0 / lastMin), macd0, lastMin));
+LOG("MIN");
+LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
                 if ((macd0 / lastMax) < 1 - 0.05) {
                     if (numOfmins < numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
-    LOG(SF("%d: min, nOf: %.2f",__LINE__, numOfmins));
+LOG(SF("min, nOf: %.2f", numOfmins));
                 }
             }
         }
     }
 
     bool is1stPeak() {
-LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
+// LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
         if (is1stPeakAlreadyFound) return false;
         if (numOfMaxs == 1 && numOfmins == 0) {
             is1stPeakAlreadyFound = true;
@@ -481,7 +507,7 @@ LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", 
         return false;
     }
     bool is2ndPeak() {
-LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndPeakAlreadyFound) return false;
         if (numOfMaxs == 2 && numOfmins == 1) {
             is2ndPeakAlreadyFound = true;
@@ -491,7 +517,7 @@ LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", 
     }
 
     bool is1stValley() {
-LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is1stValleyAlreadyFound) return false;
         if (numOfmins == 1 && numOfMaxs == 0) {
             is1stValleyAlreadyFound = true;
@@ -501,7 +527,7 @@ LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F"
     }
 
     bool is2ndValley() {
-LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndValleyAlreadyFound) return false;
         if (numOfmins == 2 && numOfMaxs == 1) {
             is2ndValleyAlreadyFound = true;
