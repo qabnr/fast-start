@@ -21,7 +21,7 @@ input int minMaxBAckTrack = 8;
 //+------------------------------------------------------------------+
 bool isLOG() {
     // if (TimeCurrent() > D'2022.06.13')
-    if (TimeCurrent() < D'2022.06.18')
+    if (TimeCurrent() < D'2022.08.01')
         return true;
     return false;
 }
@@ -421,30 +421,33 @@ public:
 
 //LogMACD_Last(minMaxBAckTrack+1);
 
-
 static datetime barTime = 0;
 datetime currBarTime = iTime(_Symbol, _Period, 0);
-if(barTime != currBarTime)
-{
+if(barTime != currBarTime) {
     barTime = currBarTime;
+}
+else {
+    return;
+}
 
-    double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
-    double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
-    double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
+{
+double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
+double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
+double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
 
-    if (decMACD0 == 0 && decMACD1 < 0) {
-        LOG("dcMCD: Min");
-    }
-    if (decMACD1 == 0 && decMACD2 < 0) {
-        LOG("dcMCD: Min2");
-    }
+if (decMACD0 >= 0 && decMACD1 < 0) {
+    LOG(SF("dcMCD: Min (%.2f)", decMACD1));
+}
+if (decMACD1 >= 0 && decMACD2 < 0) {
+    LOG(SF("dcMCD: Min2 (%.2f)", decMACD2));
+}
 
-    if (decMACD0 == 0 && decMACD1 > 0) {
-        LOG("dcMCD: MAX");
-    }
-    if (decMACD1 == 0 && decMACD2 > 0) {
-        LOG("dcMCD: MAX2");
-    }
+if (decMACD0 <= 0 && decMACD1 > 0) {
+    LOG(SF("dcMCD: MAX (%.2f)", decMACD1));
+}
+if (decMACD1 <= 0 && decMACD2 > 0) {
+    LOG(SF("dcMCD: MAX2 (%.2f)", decMACD2));
+}
 }
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
@@ -568,7 +571,7 @@ if (getProfitEtc(profit, balance, equity)) {
         if (MACD1peaksAndValleys.is1stPeak()) {
 LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-    sellOrBuy.setSellNow(__LINE__);
+//    sellOrBuy.setSellNow(__LINE__);
 }
         }
         if (MACD1peaksAndValleys.is2ndPeak()) {
@@ -577,7 +580,7 @@ if (profit/balance > 0.5) {
         else if (MACD1peaksAndValleys.is1stValley()) {
 LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-    sellOrBuy.setBuyNow(__LINE__);
+//    sellOrBuy.setBuyNow(__LINE__);
 }
 
         }
