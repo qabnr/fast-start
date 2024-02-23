@@ -30,6 +30,29 @@ void LOG_Impl(const string s) {
 }
 #define LOG(s) LOG_Impl(SF("%d: %s", __LINE__, s))
 //+------------------------------------------------------------------+
+string secToStr(int totalSeconds) {
+    int minutes = totalSeconds / 60;
+    int hours   = minutes / 60;
+    int days    = hours / 24;
+    int seconds = totalSeconds - minutes*60;
+    minutes -= hours * 60;
+    hours   -= days * 24;
+
+    if (days > 0 && hours > 0) return SF("%dd %2dh", days, hours);
+    if (days > 0) return SF("%dd", days);
+
+    if (hours > 0 && seconds > 0) return SF("%dh %2dm %2ds", hours, minutes, seconds);
+    if (hours > 0 && minutes > 0) return SF("%dh %2dm", hours, minutes);
+    if (hours > 0) return SF("%dh", hours);
+    if (minutes > 0 && seconds > 0) return SF("%dm %2ds", minutes, seconds);
+    if (minutes > 0) return SF("%dm", minutes);
+    return SF("%ds", seconds);
+}
+//+------------------------------------------------------------------+
+string timeDiffToStr(datetime &then) {
+    return secToStr(int(TimeCurrent() - then));
+}
+//+------------------------------------------------------------------+
 class buffer
 {
 private:
@@ -365,11 +388,12 @@ void changeDirection(SellOrBuy &sellOrBuy) {
 class MACD1_PeaksAndValleys
 {
 private:
-    int    sign;
-    int    numOfmins, numOfMaxs;
-    double lastMin,   lastMax;
-    bool   is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
-    bool   is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
+    int      sign;
+    int      numOfmins, numOfMaxs;
+    double   lastMin,   lastMax;
+    datetime TimeOfLastMin, TimeOfLastMax;
+    bool     is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
+    bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
 //LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
@@ -405,7 +429,10 @@ LOG("MAX found");
     };
 
 public:
-    MACD1_PeaksAndValleys() {   initValues(0); }
+    MACD1_PeaksAndValleys() :
+        TimeOfLastMin(0),
+        TimeOfLastMax(0)
+    {   initValues(0); }
     ~MACD1_PeaksAndValleys() {};
 
     void LogMACD_Last(int cnt) {
@@ -430,6 +457,7 @@ else {
     return;
 }
 
+if(0)
 {
 double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
 double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
@@ -455,23 +483,25 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
                 initValues(-1);
             }
             if (isMin()) {
-LOG("MIN");
+LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
 LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
                 if (macd0  * (1 - 0.05) < lastMax) {
-                    if (numOfmins == numOfMaxs)
+//                    if (numOfmins == numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
+                    TimeOfLastMin = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
 LOG(SF("min, nOf: %.2f", numOfmins));
                 }
             }
             else if (isMax()) {
-LOG("MAX");
+LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
 LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
                 if ((macd0 / lastMin) < 1 - 0.05) {
-                    if (numOfmins > numOfMaxs)
+//                    if (numOfmins > numOfMaxs)
                         numOfMaxs++;
                     lastMax = macd0;
+                    TimeOfLastMax = TimeCurrent();
 LOG(SF("Max, nOf: %.2f", numOfMaxs));
                 }
             }
@@ -481,19 +511,22 @@ LOG(SF("Max, nOf: %.2f", numOfMaxs));
                 initValues(1);
             }
             if (isMax()) {
-                if (numOfmins == numOfMaxs)
+LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+//                if (numOfmins == numOfMaxs)
                     numOfMaxs++;
                 lastMax = macd0;
+                TimeOfLastMax = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
 LOG(SF("Max, nOf: %.2f", numOfMaxs));
             }
             else if (isMin()){
-LOG("MIN");
+LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
 LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
                 if ((macd0 / lastMax) < 1 - 0.05) {
-                    if (numOfmins < numOfMaxs)
+//                    if (numOfmins < numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
+                    TimeOfLastMin = TimeCurrent();
 LOG(SF("min, nOf: %.2f", numOfmins));
                 }
             }
@@ -512,7 +545,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
     bool is2ndPeak() {
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndPeakAlreadyFound) return false;
-        if (numOfMaxs == 2 && numOfmins == 1) {
+//        if (numOfMaxs == 2 && numOfmins == 1) {
+        if (numOfMaxs == 2 && numOfmins <= 1) {
             is2ndPeakAlreadyFound = true;
             return true;
         }
@@ -532,7 +566,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
     bool is2ndValley() {
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndValleyAlreadyFound) return false;
-        if (numOfmins == 2 && numOfMaxs == 1) {
+//        if (numOfmins == 2 && numOfMaxs == 1) {
+        if (numOfmins == 2 && numOfMaxs <= 1) {
             is2ndValleyAlreadyFound = true;
             return true;
         }
