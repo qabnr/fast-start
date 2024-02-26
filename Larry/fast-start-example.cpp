@@ -21,7 +21,7 @@ input int minMaxBAckTrack = 8;
 //+------------------------------------------------------------------+
 bool isLOG() {
     // if (TimeCurrent() > D'2022.06.13')
-    if (TimeCurrent() < D'2022.08.01')
+    if (TimeCurrent() < D'2022.12.01')
         return true;
     return false;
 }
@@ -38,15 +38,15 @@ string secToStr(int totalSeconds) {
     minutes -= hours * 60;
     hours   -= days * 24;
 
-    if (days > 0 && hours > 0) return SF("%dd %2dh", days, hours);
-    if (days > 0) return SF("%dd", days);
+    if (days > 0 && hours > 0) return SF("%2dd %dh", days, hours);
+    if (days > 0) return SF("%2dd", days);
 
-    if (hours > 0 && seconds > 0) return SF("%dh %2dm %2ds", hours, minutes, seconds);
-    if (hours > 0 && minutes > 0) return SF("%dh %2dm", hours, minutes);
-    if (hours > 0) return SF("%dh", hours);
-    if (minutes > 0 && seconds > 0) return SF("%dm %2ds", minutes, seconds);
-    if (minutes > 0) return SF("%dm", minutes);
-    return SF("%ds", seconds);
+    if (hours > 0 && seconds > 0) return SF("%2dh %dm %ds", hours, minutes, seconds);
+    if (hours > 0 && minutes > 0) return SF("%2dh %dm", hours, minutes);
+    if (hours > 0) return SF("%2dh", hours);
+    if (minutes > 0 && seconds > 0) return SF("%2dm %ds", minutes, seconds);
+    if (minutes > 0) return SF("%2dm", minutes);
+    return SF("%2ds", seconds);
 }
 //+------------------------------------------------------------------+
 string timeDiffToStr(datetime &then) {
@@ -389,6 +389,7 @@ class MACD1_PeaksAndValleys
 {
 private:
     int      sign;
+    datetime TimeOfLastChangeOfSign;
     int      numOfmins, numOfMaxs;
     double   lastMin,   lastMax;
     datetime TimeOfLastMin, TimeOfLastMax;
@@ -402,7 +403,7 @@ private:
 //LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
-LOG("MIN found");
+// LOG("MIN found");
         return true;
     };
 
@@ -413,11 +414,16 @@ LOG("MIN found");
 //LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
             if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
         }
-LOG("MAX found");
+// LOG("MAX found");
         return true;
     };
 
     void initValues(int _sign) {
+
+        if (sign != _sign) {
+LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
+            TimeOfLastChangeOfSign = TimeCurrent();
+        }
         sign = _sign;
         numOfmins = numOfMaxs = 0;
         lastMin = 0.00001;
@@ -430,6 +436,8 @@ LOG("MAX found");
 
 public:
     MACD1_PeaksAndValleys() :
+        sign(-2),
+        TimeOfLastChangeOfSign(TimeCurrent()),
         TimeOfLastMin(0),
         TimeOfLastMax(0)
     {   initValues(0); }
@@ -484,25 +492,29 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
             }
             if (isMin()) {
 LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
+// LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
                 if (macd0  * (1 - 0.05) < lastMax) {
 //                    if (numOfmins == numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
-LOG(SF("min, nOf: %.2f", numOfmins));
+string LOGtxt = SF("min: %.2f, nOf: %.2f", macd0, numOfmins);
+if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
+LOG(LOGtxt);
                 }
             }
             else if (isMax()) {
 LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
-LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
+// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
                 if ((macd0 / lastMin) < 1 - 0.05) {
 //                    if (numOfmins > numOfMaxs)
                         numOfMaxs++;
                     lastMax = macd0;
                     TimeOfLastMax = TimeCurrent();
-LOG(SF("Max, nOf: %.2f", numOfMaxs));
+string LOGtxt = (SF("Max: %.2f, nOf: %.2f", macd0, numOfMaxs));
+if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+LOG(LOGtxt);
                 }
             }
         }
@@ -517,17 +529,21 @@ LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
                 lastMax = macd0;
                 TimeOfLastMax = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
-LOG(SF("Max, nOf: %.2f", numOfMaxs));
+string LOGtxt = (SF("Max: %.2f, nOf: %.2f", macd0, numOfMaxs));
+if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+LOG(LOGtxt);
             }
             else if (isMin()){
 LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
+// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
                 if ((macd0 / lastMax) < 1 - 0.05) {
 //                    if (numOfmins < numOfMaxs)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-LOG(SF("min, nOf: %.2f", numOfmins));
+string LOGtxt = (SF("min: %.2f, nOf: %.2f", macd0, numOfmins));
+if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+LOG(LOGtxt);
                 }
             }
         }
@@ -536,7 +552,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
     bool is1stPeak() {
 // LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
         if (is1stPeakAlreadyFound) return false;
-        if (numOfMaxs == 1 && numOfmins == 0) {
+        // if (numOfMaxs == 1 && numOfmins == 0) {
+        if (sign > 0 && numOfMaxs == 1 && numOfmins == 0) {
             is1stPeakAlreadyFound = true;
             return true;
         }
@@ -546,7 +563,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndPeakAlreadyFound) return false;
 //        if (numOfMaxs == 2 && numOfmins == 1) {
-        if (numOfMaxs == 2 && numOfmins <= 1) {
+        // if (numOfMaxs == 2 && numOfmins <= 1) {
+        if (sign > 0 && numOfMaxs == 2 && numOfmins <= 1) {
             is2ndPeakAlreadyFound = true;
             return true;
         }
@@ -556,7 +574,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
     bool is1stValley() {
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is1stValleyAlreadyFound) return false;
-        if (numOfmins == 1 && numOfMaxs == 0) {
+        // if (numOfmins == 1 && numOfMaxs == 0) {
+        if (sign < 0 && numOfmins == 1 && numOfMaxs == 0) {
             is1stValleyAlreadyFound = true;
             return true;
         }
@@ -567,7 +586,8 @@ LOG(SF("min, nOf: %.2f", numOfmins));
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndValleyAlreadyFound) return false;
 //        if (numOfmins == 2 && numOfMaxs == 1) {
-        if (numOfmins == 2 && numOfMaxs <= 1) {
+        // if (numOfmins == 2 && numOfMaxs <= 1) {
+        if (sign < 0 && numOfmins == 2 && numOfMaxs <= 1) {
             is2ndValleyAlreadyFound = true;
             return true;
         }
@@ -604,7 +624,7 @@ if (getProfitEtc(profit, balance, equity)) {
         MACD1peaksAndValleys.process();
 
         if (MACD1peaksAndValleys.is1stPeak()) {
-LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
+// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
 //    sellOrBuy.setSellNow(__LINE__);
 }
@@ -613,7 +633,7 @@ if (profit/balance > 0.5) {
             sellOrBuy.setSellNow(__LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
-LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
+// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
 //    sellOrBuy.setBuyNow(__LINE__);
 }
