@@ -190,6 +190,7 @@ bool FillArraysFromBuffers(int amount, int prev_calculated)
         {   colorBuffer[i] = 1; }
 
         updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
+        incPeriod_MACDBuffer[i] = 0;
         updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
     }
     return (true);
@@ -212,7 +213,14 @@ void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& in
     static int  runLen = 5;
 
     if (i > 0) {
-        incPerBuff[i] = 0;
+        if ((buff[i] > 0 && buff[i-1] <= 0)
+        ||  (buff[i] < 0 && buff[i-1] >= 0)) {
+                incPerBuff[i] = buff[i]/signal_period;
+        }
+        else {
+            incPerBuff[i] = incPerBuff[i-1] + buff[i]/signal_period;
+        }
+        
         if( buff[i] < buff[i-1]) {                      // decreasing
             if (decPerBuff[i-1] <= 0)                   //      already in decreasing trend
             {   decPerBuff[i] = decPerBuff[i-1] - step; //          continue to decrease

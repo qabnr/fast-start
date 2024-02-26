@@ -49,8 +49,12 @@ string secToStr(int totalSeconds) {
     return SF("%2ds", seconds);
 }
 //+------------------------------------------------------------------+
+int timeDiff(datetime &then) {
+    return int(TimeCurrent() - then);
+}
+//+------------------------------------------------------------------+
 string timeDiffToStr(datetime &then) {
-    return secToStr(int(TimeCurrent() - then));
+    return secToStr(timeDiff(then));
 }
 //+------------------------------------------------------------------+
 class buffer
@@ -489,8 +493,8 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
+if (timeDiff(TimeOfLastChangeOfSign) > ) g.sellOrBuy.setSellNow(__LINE__);
                 initValues(-1);
-g.sellOrBuy.setSellNow(__LINE__);
             }
             if (isMin()) {
 LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
