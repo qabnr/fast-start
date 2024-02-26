@@ -250,41 +250,6 @@ public:
     { m_Trade.Sell(volume, my_symbol); }
 };
 //+------------------------------------------------------------------+
-class Global
-{
-public:
-    ATR_TR_STOP_List ATR_list;
-    MACD *MACD1, *MACD2;
-    TradePosition *pPos;
-};
-//+-----------
-Global g;
-//+------------------------------------------------------------------+
-int OnInit()
-{
-
-    g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
-
-    g.pPos  = new TradePosition(Symbol());
-
-/*/
-    g.ATR_list.add(10, 1.0);
-    g.ATR_list.add(10, 2.0);
-    g.ATR_list.add(10, 3.0);
-/*/
-    g.ATR_list.add(10, 4.0);
- //   g.ATR_list.add(10, 6.0);
-
-    return (0);
-}
-//+------------------------------------------------------------------+
-void OnDeinit(const int reason)
-{
-    delete g.MACD1;
-    delete g.MACD2;
-}
-//+------------------------------------------------------------------+
 class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
@@ -331,6 +296,42 @@ public:
     }
 };
 //+------------------------------------------------------------------+
+class Global
+{
+public:
+    ATR_TR_STOP_List ATR_list;
+    MACD *MACD1, *MACD2;
+    TradePosition *pPos;
+    SellOrBuy sellOrBuy;
+};
+//+-----------
+Global g;
+//+------------------------------------------------------------------+
+int OnInit()
+{
+
+    g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+
+    g.pPos  = new TradePosition(Symbol());
+
+/*/
+    g.ATR_list.add(10, 1.0);
+    g.ATR_list.add(10, 2.0);
+    g.ATR_list.add(10, 3.0);
+/*/
+    g.ATR_list.add(10, 4.0);
+ //   g.ATR_list.add(10, 6.0);
+
+    return (0);
+}
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    delete g.MACD1;
+    delete g.MACD2;
+}
+//+------------------------------------------------------------------+
 string Osma2str(int idx) {
    return SF("[%.2f %.2f]",
                   g.MACD2.decPeriod_OsMA_Buffer.get(idx),
@@ -376,12 +377,12 @@ bool getProfitEtc(double &profit, double &balance, double &equity) {
     return false;
 }
 //+------------------------------------------------------------------+
-void changeDirection(SellOrBuy &sellOrBuy) {
+void changeDirection() {
     if (g.pPos.isTypeBUY()) {
-        sellOrBuy.setSellNow(__LINE__);
+        g.sellOrBuy.setSellNow(__LINE__);
     }
     else if (g.pPos.isTypeSELL()) {
-        sellOrBuy.setBuyNow(__LINE__);
+        g.sellOrBuy.setBuyNow(__LINE__);
     }
 }
 //+------------------------------------------------------------------+
@@ -489,6 +490,7 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
         if (macd0 < 0) {
             if (sign >= 0) {
                 initValues(-1);
+g.sellOrBuy.setSellNow(__LINE__);
             }
             if (isMin()) {
 LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
@@ -521,6 +523,7 @@ LOG(LOGtxt);
         else {
             if (sign <= 0) {
                 initValues(1);
+g.sellOrBuy.setBuyNow(__LINE__);
             }
             if (isMax()) {
 LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
@@ -600,8 +603,6 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
 
-    static SellOrBuy sellOrBuy;
-
 double profit, balance, equity;
 static double maxProfit = 0;
 
@@ -626,27 +627,27 @@ if (getProfitEtc(profit, balance, equity)) {
         if (MACD1peaksAndValleys.is1stPeak()) {
 // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-//    sellOrBuy.setSellNow(__LINE__);
+//    g.sellOrBuy.setSellNow(__LINE__);
 }
         }
         if (MACD1peaksAndValleys.is2ndPeak()) {
-            sellOrBuy.setSellNow(__LINE__);
+            g.sellOrBuy.setSellNow(__LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
 // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-//    sellOrBuy.setBuyNow(__LINE__);
+//    g.sellOrBuy.setBuyNow(__LINE__);
 }
 
         }
         else if (MACD1peaksAndValleys.is2ndValley()) {
-            sellOrBuy.setBuyNow(__LINE__);
+            g.sellOrBuy.setBuyNow(__LINE__);
         }
         else if (justChangedToDownTrend()) {
 //PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    sellOrBuy.setGetReadyToSell(__LINE__);
+                    g.sellOrBuy.setGetReadyToSell(__LINE__);
                 }
             }
         }
@@ -654,25 +655,25 @@ if (profit/balance > 0.5) {
 //PrintDecOsMa("^ ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    sellOrBuy.setGetReadyToBuy(__LINE__);
+                    g.sellOrBuy.setGetReadyToBuy(__LINE__);
                 }
             }
         }
     }
 
-    if (sellOrBuy.isGetReadyToBuy()) {
+    if (g.sellOrBuy.isGetReadyToBuy()) {
         if (g.ATR_list.isBuyNow(getPrice().low)) {
-            sellOrBuy.setBuyNow(__LINE__);
+            g.sellOrBuy.setBuyNow(__LINE__);
         }
     }
     else
-    if (sellOrBuy.isGetReadyToSell()) {
+    if (g.sellOrBuy.isGetReadyToSell()) {
         if (g.ATR_list.isSellNow(getPrice().high)) {
-            sellOrBuy.setSellNow(__LINE__);
+            g.sellOrBuy.setSellNow(__LINE__);
         }
     }
 
-    if (sellOrBuy.isBuyNow()) {
+    if (g.sellOrBuy.isBuyNow()) {
         if (g.pPos.select())
         {
             if (g.pPos.isTypeSELL()) {
@@ -685,9 +686,9 @@ if (profit/balance > 0.5) {
         }
         g.pPos.buy();
         maxProfit = 0;
-        sellOrBuy.setNone(__LINE__);
+        g.sellOrBuy.setNone(__LINE__);
     }
-    else if (sellOrBuy.isSellNow()) {
+    else if (g.sellOrBuy.isSellNow()) {
         if (g.pPos.select())
         {
             if (g.pPos.isTypeBUY()) {
@@ -700,7 +701,7 @@ if (profit/balance > 0.5) {
         }
         g.pPos.sell();
         maxProfit = 0;
-        sellOrBuy.setNone(__LINE__);
+        g.sellOrBuy.setNone(__LINE__);
     }
 }
 //+------------------------------------------------------------------+
