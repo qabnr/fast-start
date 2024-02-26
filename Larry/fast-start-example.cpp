@@ -30,6 +30,9 @@ void LOG_Impl(const string s) {
 }
 #define LOG(s) LOG_Impl(SF("%d: %s", __LINE__, s))
 //+------------------------------------------------------------------+
+#define DAYS *24*60*60
+#define HOURS *60*60
+//+------------------------------------------------------------------+
 string secToStr(int totalSeconds) {
     int minutes = totalSeconds / 60;
     int hours   = minutes / 60;
@@ -493,7 +496,7 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > ) g.sellOrBuy.setSellNow(__LINE__);
+if (timeDiff(TimeOfLastChangeOfSign) > 24 HOURS) g.sellOrBuy.setSellNow(__LINE__);
                 initValues(-1);
             }
             if (isMin()) {
@@ -501,6 +504,7 @@ LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
 // LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
                 if (macd0  * (1 - 0.05) < lastMax) {
 //                    if (numOfmins == numOfMaxs)
+if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
@@ -526,8 +530,8 @@ LOG(LOGtxt);
         }
         else {
             if (sign <= 0) {
+if (timeDiff(TimeOfLastChangeOfSign) > 24 HOURS) g.sellOrBuy.setBuyNow(__LINE__);
                 initValues(1);
-g.sellOrBuy.setBuyNow(__LINE__);
             }
             if (isMax()) {
 LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
@@ -545,6 +549,7 @@ LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
 // LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
                 if ((macd0 / lastMax) < 1 - 0.05) {
 //                    if (numOfmins < numOfMaxs)
+if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
