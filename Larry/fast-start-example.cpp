@@ -25,10 +25,10 @@ bool isLOG() {
         return true;
     return false;
 }
-void LOG_Impl(const string s) {
+void LOG_Naked(const string s) {
     if (isLOG()) Print(s);
 }
-#define LOG(s) LOG_Impl(SF("%d: %s", __LINE__, s))
+#define LOG(s) LOG_Naked(SF("%d: %s", __LINE__, s))
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60
@@ -236,6 +236,7 @@ private:
     CPositionInfo m_Position;
 
     double        volume;
+    double        equityAtTrade;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
@@ -251,16 +252,23 @@ public:
     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
     void positionClose()
     { m_Trade.PositionClose(my_symbol); }
-    void buy()
-    { m_Trade.Buy(volume, my_symbol); }
-    void sell()
-    { m_Trade.Sell(volume, my_symbol); }
+    void buy() {
+        m_Trade.Buy(volume, my_symbol);
+        equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+    }
+    void sell() {
+        m_Trade.Sell(volume, my_symbol);
+        equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+    }
+    double getEquityAtTrade() {
+        return equityAtTrade;
+    }
 };
 //+------------------------------------------------------------------+
 class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_SET_METHOD(c) void set##c (int n) { if (state != c) { state = c; LOG(SF("==> %s (%d)", toStr(), n));}  }
+#define DEF_SET_METHOD(c) void set##c (int n) { if (state != c) { state = c; LOG_Naked(SF("%d: ==> %s", n, toStr()));}  }
 #define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
 
 private:
@@ -509,7 +517,7 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = SF("min: %.2f, nOf: %.2f", macd0, numOfmins);
+string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
 if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
 LOG(LOGtxt);
                 }
@@ -522,7 +530,7 @@ LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
                         numOfMaxs++;
                     lastMax = macd0;
                     TimeOfLastMax = TimeCurrent();
-string LOGtxt = (SF("Max: %.2f, nOf: %.2f", macd0, numOfMaxs));
+string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
 if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
 LOG(LOGtxt);
                 }
@@ -540,7 +548,7 @@ LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
                 lastMax = macd0;
                 TimeOfLastMax = TimeCurrent();
 //LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = (SF("Max: %.2f, nOf: %.2f", macd0, numOfMaxs));
+string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
 if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
 LOG(LOGtxt);
             }
@@ -553,7 +561,7 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-string LOGtxt = (SF("min: %.2f, nOf: %.2f", macd0, numOfmins));
+string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
 if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
 LOG(LOGtxt);
                 }
@@ -614,20 +622,26 @@ void OnTick()
 
 double profit, balance, equity;
 static double maxProfit = 0;
+static double maxEquity = 0;
 
 if (getProfitEtc(profit, balance, equity)) {
-    string profDiffstr = "";
-    if (profit > maxProfit) {
-        maxProfit = profit;
+    string profDiffstr = "       ";
+    if (profit > maxProfit) { maxProfit = profit; }
+    if (equity > maxEquity) { maxEquity = equity; }
+    if (profit != maxProfit) {
+        // profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
+        profDiffstr = SF("%+6.1f%%", (profit - maxProfit)/maxProfit*100.0);
     }
-    // if (profit != maxProfit) {
-    //     profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
-    // }
-    // PrintFormat("P = %6.0f  B: %6.0f  E: %6.0f  %+6.1f%%  %+6.1f%% %s", profit, balance, equity, profit/balance*100.0, maxProfit/balance*100.0, profDiffstr);
+    PrintFormat("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  P/B: %+6.1f%%",
+        profit,
+        profit/g.pPos.getEquityAtTrade()*100.0,
+        equity,
+        (equity-maxEquity)/maxEquity*100,
+        profit/balance*100.0);
 }
 
     //if (TimeCurrent() > D'2023.08.05')
-    if (TimeCurrent() > D'2022.05.23')
+    // if (TimeCurrent() > D'2022.05.23')
     {
         static MACD1_PeaksAndValleys MACD1peaksAndValleys;
 
