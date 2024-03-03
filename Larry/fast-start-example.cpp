@@ -15,13 +15,16 @@ input int MACD2_avg_diff_period = 85;
 input double OsMA_limit =         0.56;
 input double decP_OsMa_limit =    0.99;
 
-input int minMaxBAckTrack = 8;
+input int    minMaxBAckTrack = 8;
+input double profitLossLimit = 0.2;
+input int    maxTransactions = 3;
+
 //+------------------------------------------------------------------+
 #define SF StringFormat
 //+------------------------------------------------------------------+
 bool isLOG() {
     // if (TimeCurrent() > D'2022.06.13')
-    if (TimeCurrent() < D'2022.12.01')
+    // if (TimeCurrent() < D'2022.12.01')
         return true;
     return false;
 }
@@ -240,24 +243,22 @@ private:
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 1)
+        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 3))
     {}
     ~TradePosition() {}
 
-    bool select()
-    { return m_Position.Select(my_symbol); }
-    bool isTypeSELL()
-    { return m_Position.PositionType() == POSITION_TYPE_SELL; }
-    bool isTypeBUY()
-    { return m_Position.PositionType() == POSITION_TYPE_BUY; }
-    void positionClose()
-    { m_Trade.PositionClose(my_symbol); }
+    bool select()        { return m_Position.Select(my_symbol); }
+    bool isTypeSELL()    { return m_Position.PositionType() == POSITION_TYPE_SELL; }
+    bool isTypeBUY()     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
+    void positionClose() { 
+        while(m_Trade.PositionClose(my_symbol)) {}
+    }
     void buy() {
-        m_Trade.Buy(volume, my_symbol);
+        for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {}
         equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
     }
     void sell() {
-        m_Trade.Sell(volume, my_symbol);
+        for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {}
         equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
     }
     double getEquityAtTrade() {
@@ -632,12 +633,20 @@ if (getProfitEtc(profit, balance, equity)) {
         // profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
         profDiffstr = SF("%+6.1f%%", (profit - maxProfit)/maxProfit*100.0);
     }
-    PrintFormat("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  P/B: %+6.1f%%",
+
+    double profitRate = profit/g.pPos.getEquityAtTrade();
+
+    LOG(SF("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  B: %.0f  P2: %.0f",
         profit,
-        profit/g.pPos.getEquityAtTrade()*100.0,
+        profitRate*100.0,
         equity,
         (equity-maxEquity)/maxEquity*100,
-        profit/balance*100.0);
+        balance,
+        equity - balance));
+
+    if (profitRate < -profitLossLimit) {
+        changeDirection();
+    }
 }
 
     //if (TimeCurrent() > D'2023.08.05')
