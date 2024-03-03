@@ -381,10 +381,9 @@ bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
 //+------------------------------------------------------------------+
-bool getProfitEtc(double &profit, double &balance, double &equity) {
+bool getBalanceEquity(double &balance, double &equity) {
     for (int i = 0; i < PositionsTotal(); i--) {
         if (PositionSelectByTicket(PositionGetTicket(i))) {
-            profit  = PositionGetDouble(POSITION_PROFIT);
             balance = AccountInfoDouble(ACCOUNT_BALANCE);
             equity  = AccountInfoDouble(ACCOUNT_EQUITY);
             return true;
@@ -621,11 +620,12 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
 
-double profit, balance, equity;
+double profit = 0, balance, equity;
 static double maxProfit = 0;
 static double maxEquity = 0;
 
-if (getProfitEtc(profit, balance, equity)) {
+if (getBalanceEquity(balance, equity)) {
+    profit = equity - balance;  // !!!
     string profDiffstr = "       ";
     if (profit > maxProfit) { maxProfit = profit; }
     if (equity > maxEquity) { maxEquity = equity; }
