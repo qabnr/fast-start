@@ -15,9 +15,10 @@ input int MACD2_avg_diff_period = 85;
 input double OsMA_limit =         0.56;
 input double decP_OsMa_limit =    0.99;
 
-input int    minMaxBAckTrack = 8;
-input double profitLossLimit = 0.2;
-input int    maxTransactions = 3;
+input int    minMaxBAckTrack  = 8;
+input double profitLossLimit  = 0.2;
+input int    maxTransactions  = 3;
+input double equityTradeLimit = 0;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -239,7 +240,7 @@ private:
     CPositionInfo m_Position;
 
     double        volume;
-    double        equityAtTrade;
+    double        equityAfterTrade;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
@@ -254,15 +255,25 @@ public:
         while(m_Trade.PositionClose(my_symbol)) {}
     }
     void buy() {
-        for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {}
-        equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        double equityBeforeTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
+            if (AccountInfoDouble(ACCOUNT_EQUITY) < equityBeforeTrade * equityTradeLimit) {
+                break;
+            }
+        }
+        equityAfterTrade = AccountInfoDouble(ACCOUNT_EQUITY);
     }
     void sell() {
-        for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {}
-        equityAtTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        double equityBeforeTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
+            if (AccountInfoDouble(ACCOUNT_EQUITY) < equityBeforeTrade * equityTradeLimit) {
+                break;
+            }
+        }
+        equityAfterTrade = AccountInfoDouble(ACCOUNT_EQUITY);
     }
-    double getEquityAtTrade() {
-        return equityAtTrade;
+    double getEquityAfterTrade() {
+        return equityAfterTrade;
     }
 };
 //+------------------------------------------------------------------+
@@ -620,34 +631,34 @@ void OnTick()
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
 
-double profit = 0, balance, equity;
-static double maxProfit = 0;
-static double maxEquity = 0;
+    double profit = 0, balance, equity;
+    static double maxProfit = 0;
+    static double maxEquity = 0;
 
-if (getBalanceEquity(balance, equity)) {
-    profit = equity - balance;  // !!!
-    string profDiffstr = "       ";
-    if (profit > maxProfit) { maxProfit = profit; }
-    if (equity > maxEquity) { maxEquity = equity; }
-    if (profit != maxProfit) {
-        // profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
-        profDiffstr = SF("%+6.1f%%", (profit - maxProfit)/maxProfit*100.0);
+    if (getBalanceEquity(balance, equity)) {
+        profit = equity - balance;
+        string profDiffstr = "       ";
+        if (profit > maxProfit) { maxProfit = profit; }
+        if (equity > maxEquity) { maxEquity = equity; }
+        if (profit != maxProfit) {
+            // profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
+            profDiffstr = SF("%+6.1f%%", (profit - maxProfit)/maxProfit*100.0);
+        }
+
+        double profitRate = profit/g.pPos.getEquityAfterTrade();
+
+        LOG(SF("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  B: %.0f  P2: %.0f",
+            profit,
+            profitRate*100.0,
+            equity,
+            (equity-maxEquity)/maxEquity*100,
+            balance,
+            equity - balance));
+
+        if (profitRate < -profitLossLimit) {
+            changeDirection();
+        }
     }
-
-    double profitRate = profit/g.pPos.getEquityAtTrade();
-
-    LOG(SF("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  B: %.0f  P2: %.0f",
-        profit,
-        profitRate*100.0,
-        equity,
-        (equity-maxEquity)/maxEquity*100,
-        balance,
-        equity - balance));
-
-    if (profitRate < -profitLossLimit) {
-        changeDirection();
-    }
-}
 
     //if (TimeCurrent() > D'2023.08.05')
     // if (TimeCurrent() > D'2022.05.23')
