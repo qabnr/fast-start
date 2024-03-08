@@ -15,11 +15,16 @@ input int MACD2_avg_diff_period = 85;
 input double OsMA_limit =         0.56;
 input double decP_OsMa_limit =    0.99;
 
-input int    minMaxBAckTrack  = 8;
-input double profitLossLimit  = 0.2;
-input int    maxTransactions  = 3;
-input double equityTradeLimit = 0;
+input int    minMaxBAckTrack   = 8;
+input double profitLossLimit   = 0.2;
+input int    maxTransactions   = 3;
+input double equityTradeLimit  = 0;
+input double tradeSizeFraction = 3.0;
 
+input int LastChangeOfSignLimit = 1000000;
+
+//+------------------------------------------------------------------+
+input double maxRelDrawDownLimit = 0.25;
 //+------------------------------------------------------------------+
 #define SF StringFormat
 //+------------------------------------------------------------------+
@@ -36,6 +41,19 @@ void LOG_Naked(const string s) {
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60
+//+------------------------------------------------------------------+
+string d2str(const double d, const string ThSep = ",") {
+    if (d < 0) return "-" + d2str(-d, ThSep);
+    int i = (int)MathFloor(d);
+
+    if (i < 1000) return (string)i;
+    int thousands = i / 1000;
+    int u = i - thousands * 1000;
+    if (thousands < 1000) return (string)thousands + ThSep + SF("%03d", u);
+    int millions = thousands / 1000;
+    thousands -= millions * 1000;
+    return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+}
 //+------------------------------------------------------------------+
 string secToStr(int totalSeconds) {
     int minutes = totalSeconds / 60;
@@ -240,11 +258,10 @@ private:
     CPositionInfo m_Position;
 
     double        volume;
-    double        equityAfterTrade;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 3))
+        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction))
     {}
     ~TradePosition() {}
 
@@ -255,33 +272,35 @@ public:
         while(m_Trade.PositionClose(my_symbol)) {}
     }
     void buy() {
-        double equityBeforeTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
-            if (AccountInfoDouble(ACCOUNT_EQUITY) < equityBeforeTrade * equityTradeLimit) {
+            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        equityAfterTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+LOG(SF("BUY for %s", d2str(freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
     void sell() {
-        double equityBeforeTrade = AccountInfoDouble(ACCOUNT_EQUITY);
+        double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
-            if (AccountInfoDouble(ACCOUNT_EQUITY) < equityBeforeTrade * equityTradeLimit) {
+            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        equityAfterTrade = AccountInfoDouble(ACCOUNT_EQUITY);
-    }
-    double getEquityAfterTrade() {
-        return equityAfterTrade;
+LOG(SF("SOLD for %s", d2str(freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 };
 //+------------------------------------------------------------------+
 class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_SET_METHOD(c) void set##c (int n) { if (state != c) { state = c; LOG_Naked(SF("%d: ==> %s", n, toStr()));}  }
-#define DEF_IS_METHOD(c)  bool is##c  () { return state == c; }
+#define DEF_SET_METHOD(_state) void set##_state (int n) { if (state != _state) { state = _state; LOG_Naked(SF("%d: ==> %s", n, toStr()));}  }
+#define DEF_SET_METHOD2(_state) void set##_state (int n, string comment) { if (state != _state) { state = _state; LOG_Naked(SF("%d: ==> %s (%s)", n, toStr(), comment));}  }
+#define DEF_IS_METHOD(_state)  bool is##_state  () { return state == _state; }
 
 private:
     enum SellOrBuy_State {
@@ -302,6 +321,12 @@ public:
     DEF_SET_METHOD(BuyNow)
     DEF_SET_METHOD(GetReadyToSell)
     DEF_SET_METHOD(SellNow)
+
+    DEF_SET_METHOD2(None)
+    DEF_SET_METHOD2(GetReadyToBuy)
+    DEF_SET_METHOD2(BuyNow)
+    DEF_SET_METHOD2(GetReadyToSell)
+    DEF_SET_METHOD2(SellNow)
 
     DEF_IS_METHOD(None)
     DEF_IS_METHOD(GetReadyToBuy)
@@ -330,6 +355,9 @@ public:
     MACD *MACD1, *MACD2;
     TradePosition *pPos;
     SellOrBuy sellOrBuy;
+    double maxRelDrawDown;
+
+    Global(): maxRelDrawDown(0) {};
 };
 //+-----------
 Global g;
@@ -405,10 +433,10 @@ bool getBalanceEquity(double &balance, double &equity) {
 //+------------------------------------------------------------------+
 void changeDirection() {
     if (g.pPos.isTypeBUY()) {
-        g.sellOrBuy.setSellNow(__LINE__);
+        g.sellOrBuy.setSellNow(__LINE__, __FUNCTION__);
     }
     else if (g.pPos.isTypeSELL()) {
-        g.sellOrBuy.setBuyNow(__LINE__);
+        g.sellOrBuy.setBuyNow(__LINE__, __FUNCTION__);
     }
 }
 //+------------------------------------------------------------------+
@@ -515,7 +543,7 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > 24 HOURS) g.sellOrBuy.setSellNow(__LINE__);
+if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignLimit) g.sellOrBuy.setSellNow(__LINE__, "Changing sign: (-");
                 initValues(-1);
             }
             if (isMin()) {
@@ -549,7 +577,7 @@ LOG(LOGtxt);
         }
         else {
             if (sign <= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > 24 HOURS) g.sellOrBuy.setBuyNow(__LINE__);
+if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignLimit) g.sellOrBuy.setBuyNow(__LINE__, "change of sign: (+");
                 initValues(1);
             }
             if (isMax()) {
@@ -628,34 +656,36 @@ LOG(LOGtxt);
 //+------------------------------------------------------------------+
 void OnTick()
 {
+
+    if (g.maxRelDrawDown > maxRelDrawDownLimit) return;
+
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
 
     double profit = 0, balance, equity;
-    static double maxProfit = 0;
-    static double maxEquity = 0;
+    static double maxProfit  = 0;
+    static double maxEquity  = 0;
+    static double maxBalance = 0;
 
     if (getBalanceEquity(balance, equity)) {
         profit = equity - balance;
-        string profDiffstr = "       ";
-        if (profit > maxProfit) { maxProfit = profit; }
-        if (equity > maxEquity) { maxEquity = equity; }
-        if (profit != maxProfit) {
-            // profDiffstr = SF(" %+6.1f%%", (profit - maxProfit)/balance*100.0);
-            profDiffstr = SF("%+6.1f%%", (profit - maxProfit)/maxProfit*100.0);
-        }
+        if (profit  > maxProfit)  { maxProfit = profit; }
+        if (equity  > maxEquity)  { maxEquity = equity; }
+        if (balance > maxBalance) { maxBalance = balance; }
 
-        double profitRate = profit/g.pPos.getEquityAfterTrade();
-
-        LOG(SF("P: %6.0f  %+6.1f%%  E: %6.0f  E/Emx: %+6.1f%%  B: %.0f  P2: %.0f",
-            profit,
-            profitRate*100.0,
-            equity,
+        // double relDrawDown = 1 - equity / maxEquity;
+        double relDrawDown = 1 - balance / maxBalance;
+        if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
+        
+        LOG(SF("P: %8s  PR: %+6.1f%%  E: %6s  E/Emx: %+6.1f%%  B: %s  DrDmx: %.1f%%",
+            d2str(profit),
+            profit/balance*100.0,
+            d2str(equity),
             (equity-maxEquity)/maxEquity*100,
-            balance,
-            equity - balance));
+            d2str(balance),
+            g.maxRelDrawDown * 100));
 
-        if (profitRate < -profitLossLimit) {
+        if (profit/balance < -profitLossLimit) {
             changeDirection();
         }
     }
@@ -670,27 +700,27 @@ void OnTick()
         if (MACD1peaksAndValleys.is1stPeak()) {
 // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-//    g.sellOrBuy.setSellNow(__LINE__);
+//    g.sellOrBuy.setSellNow(__LINE__, "1st peak");
 }
         }
         if (MACD1peaksAndValleys.is2ndPeak()) {
-            g.sellOrBuy.setSellNow(__LINE__);
+            g.sellOrBuy.setSellNow(__LINE__, "2nd peak");
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
 // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
 if (profit/balance > 0.5) {
-//    g.sellOrBuy.setBuyNow(__LINE__);
+//    g.sellOrBuy.setBuyNow(__LINE__, "1st valey");
 }
 
         }
         else if (MACD1peaksAndValleys.is2ndValley()) {
-            g.sellOrBuy.setBuyNow(__LINE__);
+            g.sellOrBuy.setBuyNow(__LINE__, "2nd valley");
         }
         else if (justChangedToDownTrend()) {
 //PrintDecOsMa("v ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    g.sellOrBuy.setGetReadyToSell(__LINE__);
+                    g.sellOrBuy.setGetReadyToSell(__LINE__, "decOsMA > limit");
                 }
             }
         }
@@ -698,7 +728,7 @@ if (profit/balance > 0.5) {
 //PrintDecOsMa("^ ");
             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
                 if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    g.sellOrBuy.setGetReadyToBuy(__LINE__);
+                    g.sellOrBuy.setGetReadyToBuy(__LINE__, "decOsMA < -limit");
                 }
             }
         }
@@ -706,13 +736,13 @@ if (profit/balance > 0.5) {
 
     if (g.sellOrBuy.isGetReadyToBuy()) {
         if (g.ATR_list.isBuyNow(getPrice().low)) {
-            g.sellOrBuy.setBuyNow(__LINE__);
+            g.sellOrBuy.setBuyNow(__LINE__, "ATR low");
         }
     }
     else
     if (g.sellOrBuy.isGetReadyToSell()) {
         if (g.ATR_list.isSellNow(getPrice().high)) {
-            g.sellOrBuy.setSellNow(__LINE__);
+            g.sellOrBuy.setSellNow(__LINE__, "ATR high");
         }
     }
 
@@ -729,7 +759,7 @@ if (profit/balance > 0.5) {
         }
         g.pPos.buy();
         maxProfit = 0;
-        g.sellOrBuy.setNone(__LINE__);
+        g.sellOrBuy.setNone(__LINE__, "Bought");
     }
     else if (g.sellOrBuy.isSellNow()) {
         if (g.pPos.select())
@@ -744,7 +774,7 @@ if (profit/balance > 0.5) {
         }
         g.pPos.sell();
         maxProfit = 0;
-        g.sellOrBuy.setNone(__LINE__);
+        g.sellOrBuy.setNone(__LINE__, "Sold");
     }
 }
 //+------------------------------------------------------------------+
@@ -770,7 +800,11 @@ bool copyBuffers()
     return true;
 }
 //+------------------------------------------------------------------+
-
+double OnTester()
+{
+    if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
+    return AccountInfoDouble(ACCOUNT_BALANCE);
+}
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+

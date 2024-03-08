@@ -182,16 +182,21 @@ bool FillArraysFromBuffers(int amount, int prev_calculated)
     decPeriod_OsMABuffer[0] = 0;
     incPeriod_OsMABuffer[0] = 0;
 
+    double tmp = 0;
+
     for (int i = prev_calculated; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
         colorBuffer[i] = 0;
-        if (i > 0 && OsMABuffer[i] < OsMABuffer[i - 1])
-        {   colorBuffer[i] = 1; }
-
-        updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
-        incPeriod_MACDBuffer[i] = 0;
-        updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
+        if (i > 0) {
+            if (OsMABuffer[i] < OsMABuffer[i - 1]) {
+                colorBuffer[i] = 1; 
+            }
+tmp = (OsMABuffer[i] - OsMABuffer[i-1]) * 10;
+            updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
+incPeriod_MACDBuffer[i] = (OsMABuffer[i] - OsMABuffer[i-1]) * 10;
+            updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
+        }
     }
     return (true);
 }
