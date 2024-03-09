@@ -8,23 +8,21 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int MACD2_fast_MA_period  = 70;
-input int MACD2_slow_MA_period  = 150;
-input int MACD2_avg_diff_period = 85;
+input int    MACD2_fast_MA_period     = 78;
+input int    MACD2_slow_MA_period     = 152;
+input int    MACD2_avg_diff_period    = 95;
+input double OsMA_limit               = 0.59;
+input double decP_OsMa_limit          = 1.09;
+input int    minMaxBAckTrack          = 5;
+input double profitLossLimit          = 0.266;
+input int    maxTransactions          = 58;
+input double equityTradeLimit         = 0.74;
+input double tradeSizeFraction        = 1.16;
+input int    LastChangeOfSignMinLimit = 85820;
+input int    LastChangeOfSignMaxLimit = 439600;
 
-input double OsMA_limit =         0.56;
-input double decP_OsMa_limit =    0.99;
+input double maxRelDrawDownLimit      = 0.7;
 
-input int    minMaxBAckTrack   = 8;
-input double profitLossLimit   = 0.2;
-input int    maxTransactions   = 3;
-input double equityTradeLimit  = 0;
-input double tradeSizeFraction = 3.0;
-
-input int LastChangeOfSignLimit = 1000000;
-
-//+------------------------------------------------------------------+
-input double maxRelDrawDownLimit = 0.25;
 //+------------------------------------------------------------------+
 #define SF StringFormat
 //+------------------------------------------------------------------+
@@ -299,7 +297,7 @@ class SellOrBuy {
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 #define DEF_SET_METHOD(_state) void set##_state (int n) { if (state != _state) { state = _state; LOG_Naked(SF("%d: ==> %s", n, toStr()));}  }
-#define DEF_SET_METHOD2(_state) void set##_state (int n, string comment) { if (state != _state) { state = _state; LOG_Naked(SF("%d: ==> %s (%s)", n, toStr(), comment));}  }
+#define DEF_SET_METHOD2(_state) void set##_state (int n, string comment) { if (state != _state) { state = _state; LOG_Naked(SF("%d: ==> %s <== %s", n, toStr(), comment));}  }
 #define DEF_IS_METHOD(_state)  bool is##_state  () { return state == _state; }
 
 private:
@@ -543,7 +541,9 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
         double macd0 = g.MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignLimit) g.sellOrBuy.setSellNow(__LINE__, "Changing sign: (-");
+if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
+if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+    g.sellOrBuy.setSellNow(__LINE__, "Change of  sign: (-)");
                 initValues(-1);
             }
             if (isMin()) {
@@ -577,7 +577,9 @@ LOG(LOGtxt);
         }
         else {
             if (sign <= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignLimit) g.sellOrBuy.setBuyNow(__LINE__, "change of sign: (+");
+if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
+if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+    g.sellOrBuy.setBuyNow(__LINE__, "Change of  sign: (+)");
                 initValues(1);
             }
             if (isMax()) {
