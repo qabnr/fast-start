@@ -12,14 +12,14 @@ input int    MACD2_fast_MA_period     = 78;
 input int    MACD2_slow_MA_period     = 152;
 input int    MACD2_avg_diff_period    = 95;
 input double OsMA_limit               = 0.59;
-input double decP_OsMa_limit          = 1.09;
+input double decP_OsMa_limit          = 0.93;
 input int    minMaxBAckTrack          = 5;
-input double profitLossLimit          = 0.266;
-input int    maxTransactions          = 58;
-input double equityTradeLimit         = 0.74;
-input double tradeSizeFraction        = 1.16;
-input int    LastChangeOfSignMinLimit = 85820;
-input int    LastChangeOfSignMaxLimit = 439600;
+input double profitLossLimit          = 0.258;
+input int    maxTransactions          = 170;
+input double equityTradeLimit         = 0.55;
+input double tradeSizeFraction        = 1.17;
+input int    LastChangeOfSignMinLimit = 70003;
+input int    LastChangeOfSignMaxLimit = 403621;
 
 input double maxRelDrawDownLimit      = 0.7;
 
