@@ -8,20 +8,21 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int    MACD2_fast_MA_period     = 78;
-input int    MACD2_slow_MA_period     = 152;
-input int    MACD2_avg_diff_period    = 95;
-input double OsMA_limit               = 0.59;
-input double decP_OsMa_limit          = 0.93;
-input int    minMaxBAckTrack          = 5;
-input double profitLossLimit          = 0.258;
-input int    maxTransactions          = 170;
-input double equityTradeLimit         = 0.55;
-input double tradeSizeFraction        = 1.17;
-input int    LastChangeOfSignMinLimit = 70003;
-input int    LastChangeOfSignMaxLimit = 403621;
+input int    MACD2_fast_MA_period        = 64;
+input int    MACD2_slow_MA_period        = 144;
+input int    MACD2_avg_diff_period       = 90;
+input double OsMA_limit                  = 0.6;
+input double decP_OsMa_limit             = 0.95;
+input int    minMaxBAckTrack             = 5;
+input double profitLossLimit             = 0.277;
+input double profitPerMaxProfitLossLimit = 0.68;
+input int    maxTransactions             = 269;
+input double equityTradeLimit            = 0.53;
+input double tradeSizeFraction           = 1.17;
+input int    LastChangeOfSignMinLimit    = 69000;
+input int    LastChangeOfSignMaxLimit    = 401168;
 
-input double maxRelDrawDownLimit      = 0.7;
+input double maxRelDrawDownLimit         = 0.8;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -51,6 +52,19 @@ string d2str(const double d, const string ThSep = ",") {
     int millions = thousands / 1000;
     thousands -= millions * 1000;
     return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+}
+//+------------------------------------------------------------------+
+bool isNewMinute() {
+    static datetime oldTime = 0;
+
+    datetime now = TimeCurrent();
+
+    datetime nowMinutes = now / 60;
+    datetime oldMinutes = oldTime / 60;
+
+    oldTime = now;
+
+    return nowMinutes != oldMinutes;
 }
 //+------------------------------------------------------------------+
 string secToStr(int totalSeconds) {
@@ -418,17 +432,6 @@ bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
 //+------------------------------------------------------------------+
-bool getBalanceEquity(double &balance, double &equity) {
-    for (int i = 0; i < PositionsTotal(); i--) {
-        if (PositionSelectByTicket(PositionGetTicket(i))) {
-            balance = AccountInfoDouble(ACCOUNT_BALANCE);
-            equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-            return true;
-        }
-    }
-    return false;
-}
-//+------------------------------------------------------------------+
 void changeDirection() {
     if (g.pPos.isTypeBUY()) {
         g.sellOrBuy.setSellNow(__LINE__, __FUNCTION__);
@@ -658,38 +661,44 @@ LOG(LOGtxt);
 //+------------------------------------------------------------------+
 void OnTick()
 {
-
-    if (g.maxRelDrawDown > maxRelDrawDownLimit) return;
+    if (MQLInfoInteger(MQL_TESTER) && g.maxRelDrawDown > maxRelDrawDownLimit) return;
 
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
 
-    double profit = 0, balance, equity;
     static double maxProfit  = 0;
     static double maxEquity  = 0;
     static double maxBalance = 0;
 
-    if (getBalanceEquity(balance, equity)) {
-        profit = equity - balance;
-        if (profit  > maxProfit)  { maxProfit = profit; }
-        if (equity  > maxEquity)  { maxEquity = equity; }
-        if (balance > maxBalance) { maxBalance = balance; }
+    double profit, balance, equity;
 
-        // double relDrawDown = 1 - equity / maxEquity;
-        double relDrawDown = 1 - balance / maxBalance;
-        if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
-        
-        LOG(SF("P: %8s  PR: %+6.1f%%  E: %6s  E/Emx: %+6.1f%%  B: %s  DrDmx: %.1f%%",
-            d2str(profit),
-            profit/balance*100.0,
-            d2str(equity),
-            (equity-maxEquity)/maxEquity*100,
-            d2str(balance),
-            g.maxRelDrawDown * 100));
+    balance = AccountInfoDouble(ACCOUNT_BALANCE);
+    equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+    profit  = equity - balance;
 
-        if (profit/balance < -profitLossLimit) {
-            changeDirection();
-        }
+    if (profit  > maxProfit)  { maxProfit = profit; }
+    if (equity  > maxEquity)  { maxEquity = equity; }
+    if (balance > maxBalance) { maxBalance = balance; }
+
+    double profitRate     = profit / balance;
+    double profitLossRate = (profit-maxProfit) / balance;
+
+    double relDrawDown = 1 - balance / maxBalance;
+    if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
+
+if (isNewMinute())
+LOG(SF("P: %8s  P/Pmx: %+7.1f%%  PR: %+6.1f%%  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
+        d2str(profit),
+        profitLossRate * 100,
+        profitRate * 100.0,
+        d2str(equity),
+        (equity-maxEquity) / maxEquity * 100,
+        d2str(balance),
+        g.maxRelDrawDown * 100));
+
+    if ((profitRate < -profitLossLimit)
+    ||  (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit)) {
+        changeDirection();
     }
 
     //if (TimeCurrent() > D'2023.08.05')
@@ -700,8 +709,8 @@ void OnTick()
         MACD1peaksAndValleys.process();
 
         if (MACD1peaksAndValleys.is1stPeak()) {
-// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
-if (profit/balance > 0.5) {
+// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate * 100));
+if (profitRate > 0.5) {
 //    g.sellOrBuy.setSellNow(__LINE__, "1st peak");
 }
         }
@@ -709,8 +718,8 @@ if (profit/balance > 0.5) {
             g.sellOrBuy.setSellNow(__LINE__, "2nd peak");
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
-// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profit/balance*100));
-if (profit/balance > 0.5) {
+// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate*100));
+if (profitRate > 0.5) {
 //    g.sellOrBuy.setBuyNow(__LINE__, "1st valey");
 }
 
