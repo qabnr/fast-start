@@ -9,18 +9,18 @@
 #include <Trade\PositionInfo.mqh>
 
 input int    MACD2_fast_MA_period        = 64;
-input int    MACD2_slow_MA_period        = 144;
-input int    MACD2_avg_diff_period       = 90;
-input double OsMA_limit                  = 0.6;
-input double decP_OsMa_limit             = 0.95;
+input int    MACD2_slow_MA_period        = 157;
+input int    MACD2_avg_diff_period       = 83;
+input double OsMA_limit                  = 0.52;
+input double decP_OsMa_limit             = 0.89;
 input int    minMaxBAckTrack             = 5;
-input double profitLossLimit             = 0.277;
-input double profitPerMaxProfitLossLimit = 0.68;
-input int    maxTransactions             = 269;
-input double equityTradeLimit            = 0.53;
-input double tradeSizeFraction           = 1.17;
-input int    LastChangeOfSignMinLimit    = 69000;
-input int    LastChangeOfSignMaxLimit    = 401168;
+input double profitLossLimit             = 0.271;
+input double profitPerMaxProfitLossLimit = 0.52;
+input int    maxTransactions             = 290;
+input double equityTradeLimit            = 0.54;
+input double tradeSizeFraction           = 1.20;
+input int    LastChangeOfSignMinLimit    = 70434;
+input int    LastChangeOfSignMaxLimit    = 401101;
 
 input double maxRelDrawDownLimit         = 0.8;
 
