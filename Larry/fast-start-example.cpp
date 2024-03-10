@@ -543,7 +543,7 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
             if (sign >= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
 if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.setSellNow(__LINE__, "Change of  sign: (-)");
+    g.sellOrBuy.setSellNow(__LINE__, "Change of sign: (-)");
                 initValues(-1);
             }
             if (isMin()) {
@@ -579,7 +579,7 @@ LOG(LOGtxt);
             if (sign <= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
 if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.setBuyNow(__LINE__, "Change of  sign: (+)");
+    g.sellOrBuy.setBuyNow(__LINE__, "Change of sign: (+)");
                 initValues(1);
             }
             if (isMax()) {
@@ -804,8 +804,10 @@ bool copyBuffers()
 //+------------------------------------------------------------------+
 double OnTester()
 {
+    // if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
+    // return AccountInfoDouble(ACCOUNT_BALANCE);
     if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
-    return AccountInfoDouble(ACCOUNT_BALANCE);
+    return AccountInfoDouble(ACCOUNT_BALANCE) / g.maxRelDrawDown;
 }
 //+------------------------------------------------------------------+
 
