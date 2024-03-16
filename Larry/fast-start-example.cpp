@@ -10,19 +10,19 @@
 
 input int    MACD2_fast_MA_period        = 64;
 input int    MACD2_slow_MA_period        = 157;
-input int    MACD2_avg_diff_period       = 83;
-input double OsMA_limit                  = 0.52;
-input double decP_OsMa_limit             = 0.89;
+input int    MACD2_avg_diff_period       = 86;
+input double OsMA_limit                  = 0.47;
+input double decP_OsMa_limit             = 0.98;
 input int    minMaxBAckTrack             = 5;
-input double profitLossLimit             = 0.271;
-input double profitPerMaxProfitLossLimit = 0.52;
-input int    maxTransactions             = 290;
-input double equityTradeLimit            = 0.54;
-input double tradeSizeFraction           = 1.20;
-input int    LastChangeOfSignMinLimit    = 70434;
-input int    LastChangeOfSignMaxLimit    = 401101;
+input double profitLossLimit             = 0.21;
+input double profitPerMaxProfitLossLimit = 0.40;
+input int    maxTransactions             = 10;
+input double equityTradeLimit            = 0.75;
+input double tradeSizeFraction           = 1.18;
+input int    LastChangeOfSignMinLimit    = 27100;
+input int    LastChangeOfSignMaxLimit    = 390300;
 
-input double maxRelDrawDownLimit         = 0.8;
+input double maxRelDrawDownLimit         = 0.7;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -269,17 +269,23 @@ private:
     CTrade        m_Trade;
     CPositionInfo m_Position;
 
+    int           posType;
     double        volume;
+    double        pricePaid;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction))
+        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
+        posType(-1), pricePaid(0)
     {}
     ~TradePosition() {}
 
-    bool select()        { return m_Position.Select(my_symbol); }
-    bool isTypeSELL()    { return m_Position.PositionType() == POSITION_TYPE_SELL; }
-    bool isTypeBUY()     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
+    bool select()         { return m_Position.Select(my_symbol); }
+    // bool isTypeSELL()    { return m_Position.PositionType() == POSITION_TYPE_SELL; }
+    // bool isTypeBUY()     { return m_Position.PositionType() == POSITION_TYPE_BUY; }
+    bool isTypeSELL()     { return posType == POSITION_TYPE_SELL; }
+    bool isTypeBUY()      { return posType == POSITION_TYPE_BUY; }
+    double getPricePaid() { return pricePaid; }
     void positionClose() { 
         while(m_Trade.PositionClose(my_symbol)) {}
     }
@@ -287,22 +293,26 @@ public:
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
+            posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-LOG(SF("BUY for %s", d2str(freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+        pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("BUY for %s", d2str(pricePaid)));
 LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
     void sell() {
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
+            posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-LOG(SF("SOLD for %s", d2str(freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+        pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("SELL for %s", d2str(pricePaid)));
 LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 };
@@ -661,7 +671,7 @@ LOG(LOGtxt);
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    if (MQLInfoInteger(MQL_TESTER) && g.maxRelDrawDown > maxRelDrawDownLimit) return;
+    //if (MQLInfoInteger(MQL_TESTER) && g.maxRelDrawDown > maxRelDrawDownLimit) return;
 
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
@@ -682,6 +692,8 @@ void OnTick()
 
     double profitRate     = profit / balance;
     double profitLossRate = (profit-maxProfit) / balance;
+    // double profitRate     = profit / g.pPos.getPricePaid();
+    // double profitLossRate = (profit-maxProfit) / g.pPos.getPricePaid();
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
