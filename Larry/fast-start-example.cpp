@@ -22,6 +22,8 @@ input double tradeSizeFraction           = 1.18;
 input int    LastChangeOfSignMinLimit    = 27100;
 input int    LastChangeOfSignMaxLimit    = 390300;
 
+//input double profitRate_paidLimit        = 1.0;
+
 input double maxRelDrawDownLimit         = 0.7;
 
 //+------------------------------------------------------------------+
@@ -442,12 +444,12 @@ bool justChangedTrends() {
     return justChangedToDownTrend() || justChangedToUpTrend();
 }
 //+------------------------------------------------------------------+
-void changeDirection() {
+void changeDirection(const int lineNo, const string comment) {
     if (g.pPos.isTypeBUY()) {
-        g.sellOrBuy.setSellNow(__LINE__, __FUNCTION__);
+        g.sellOrBuy.setSellNow(lineNo, __FUNCTION__ + " <== " + comment);
     }
     else if (g.pPos.isTypeSELL()) {
-        g.sellOrBuy.setBuyNow(__LINE__, __FUNCTION__);
+        g.sellOrBuy.setBuyNow(lineNo, __FUNCTION__ + " <== " + comment);
     }
 }
 //+------------------------------------------------------------------+
@@ -692,26 +694,34 @@ void OnTick()
 
     double profitRate     = profit / balance;
     double profitLossRate = (profit-maxProfit) / balance;
-    // double profitRate     = profit / g.pPos.getPricePaid();
-    // double profitLossRate = (profit-maxProfit) / g.pPos.getPricePaid();
+    double profitRate_paid     = profit / g.pPos.getPricePaid();
+    double profitLossRate_paid = (profit-maxProfit) / g.pPos.getPricePaid();
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
 
 if (isNewMinute())
-LOG(SF("P: %8s  P/Pmx: %+7.1f%%  PR: %+6.1f%%  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
+LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
         profitLossRate * 100,
+        profitLossRate_paid * 100,
         profitRate * 100.0,
+        profitRate_paid * 100.0,
         d2str(equity),
         (equity-maxEquity) / maxEquity * 100,
         d2str(balance),
         g.maxRelDrawDown * 100));
 
-    if ((profitRate < -profitLossLimit)
-    ||  (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit)) {
-        changeDirection();
+    if (profitRate < -profitLossLimit) {
+        changeDirection(__LINE__, "profitLossLimit");
     }
+    else if (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit) {
+        changeDirection(__LINE__, "profitPerMaxProfitLossLimit");
+    }
+    // else if (profitRate_paid < -profitRate_paidLimit) {
+    //     changeDirection(__LINE__, "profitRate_paidLimit");
+    // }
+
 
     //if (TimeCurrent() > D'2023.08.05')
     // if (TimeCurrent() > D'2022.05.23')
