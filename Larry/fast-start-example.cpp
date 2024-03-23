@@ -8,23 +8,25 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int    MACD2_fast_MA_period        = 64;
-input int    MACD2_slow_MA_period        = 157;
-input int    MACD2_avg_diff_period       = 86;
-input double OsMA_limit                  = 0.47;
-input double decP_OsMa_limit             = 0.98;
-input int    minMaxBAckTrack             = 5;
-input double profitLossLimit             = 0.21;
-input double profitPerMaxProfitLossLimit = 0.40;
-input int    maxTransactions             = 10;
-input double equityTradeLimit            = 0.75;
-input double tradeSizeFraction           = 1.18;
-input int    LastChangeOfSignMinLimit    = 27100;
-input int    LastChangeOfSignMaxLimit    = 390300;
+// input int    MACD2_fast_MA_period        = 64;
+// input int    MACD2_slow_MA_period        = 157;
+// input int    MACD2_avg_diff_period       = 86;
+// input double OsMA_limit                  = 0.47;
+// input double decP_OsMa_limit             = 0.98;
+// input int    minMaxBAckTrack             = 5;
+// input double profitLossLimit             = 0.21;
+// input double profitPerMaxProfitLossLimit = 0.40;
+// input int    maxTransactions             = 10;
+ int    maxTransactions             = 10;
+// input double equityTradeLimit            = 0.75;
+// input double tradeSizeFraction           = 1.18;
+ double tradeSizeFraction           = 1.18;
+// input int    LastChangeOfSignMinLimit    = 27100;
+// input int    LastChangeOfSignMaxLimit    = 390300;
 
-//input double profitRate_paidLimit        = 1.0;
+// //input double profitRate_paidLimit        = 1.0;
 
-input double maxRelDrawDownLimit         = 0.7;
+// input double maxRelDrawDownLimit         = 0.7;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -277,7 +279,8 @@ private:
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
-        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
+        // volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
+        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 3)),
         posType(-1), pricePaid(0)
     {}
     ~TradePosition() {}
@@ -296,9 +299,9 @@ public:
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
             posType = POSITION_TYPE_BUY;
-            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
-                break;
-            }
+            // if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
+            //     break;
+            // }
         }
         pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("BUY for %s", d2str(pricePaid)));
@@ -309,9 +312,9 @@ LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
             posType = POSITION_TYPE_SELL;
-            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
-                break;
-            }
+            // if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
+            //     break;
+            // }
         }
         pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("SELL for %s", d2str(pricePaid)));
@@ -375,11 +378,13 @@ public:
 class Global
 {
 public:
-    ATR_TR_STOP_List ATR_list;
-    MACD *MACD1, *MACD2;
+    // ATR_TR_STOP_List ATR_list;
+    // MACD *MACD1, *MACD2;
     TradePosition *pPos;
     SellOrBuy sellOrBuy;
     double maxRelDrawDown;
+
+    int zzhandle;
 
     Global(): maxRelDrawDown(0) {};
 };
@@ -389,8 +394,10 @@ Global g;
 int OnInit()
 {
 
-    g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    // g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    // g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+
+    g.zzhandle = iCustom(NULL, PERIOD_CURRENT, "Examples/ZigZag", 20,  5,  20);
 
     g.pPos  = new TradePosition(Symbol());
 
@@ -399,7 +406,7 @@ int OnInit()
     g.ATR_list.add(10, 2.0);
     g.ATR_list.add(10, 3.0);
 /*/
-    g.ATR_list.add(10, 4.0);
+    // g.ATR_list.add(10, 4.0);
  //   g.ATR_list.add(10, 6.0);
 
     return (0);
@@ -407,269 +414,269 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    delete g.MACD1;
-    delete g.MACD2;
+    // delete g.MACD1;
+    // delete g.MACD2;
 }
 //+------------------------------------------------------------------+
-string Osma2str(int idx) {
-   return SF("[%.2f %.2f]",
-                  g.MACD2.decPeriod_OsMA_Buffer.get(idx),
-                  g.MACD2.OsMA_Buffer.get(idx));
+// string Osma2str(int idx) {
+//    return SF("[%.2f %.2f]",
+//                   g.MACD2.decPeriod_OsMA_Buffer.get(idx),
+//                   g.MACD2.OsMA_Buffer.get(idx));
 
-}
+// }
 //+------------------------------------------------------------------+
-void PrintDecOsMa(string prefix) {
-    string s;
-    for (int i=0; i < 8; i++) {
-      s = s + Osma2str(i) + " ";
-    }
-Print(prefix, "[dcPer OsMA]: ", s);
-}
+// void PrintDecOsMa(string prefix) {
+//     string s;
+//     for (int i=0; i < 8; i++) {
+//       s = s + Osma2str(i) + " ";
+//     }
+// Print(prefix, "[dcPer OsMA]: ", s);
+// }
 //+-----------
-void PrintDecOsMa() {
-    PrintDecOsMa("");
-}
+// void PrintDecOsMa() {
+//     PrintDecOsMa("");
+// }
 //+------------------------------------------------------------------+
-bool justChangedToDownTrend() {
-    return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
-        && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
-}
-//+-----------
-bool justChangedToUpTrend() {
-    return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
-        && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
-}
-//+-----------
-bool justChangedTrends() {
-    return justChangedToDownTrend() || justChangedToUpTrend();
-}
+// bool justChangedToDownTrend() {
+//     return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
+//         && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
+// }
+// //+-----------
+// bool justChangedToUpTrend() {
+//     return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
+//         && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
+// }
+// //+-----------
+// bool justChangedTrends() {
+//     return justChangedToDownTrend() || justChangedToUpTrend();
+// }
 //+------------------------------------------------------------------+
-void changeDirection(const int lineNo, const string comment) {
-    if (g.pPos.isTypeBUY()) {
-        g.sellOrBuy.setSellNow(lineNo, __FUNCTION__ + " <== " + comment);
-    }
-    else if (g.pPos.isTypeSELL()) {
-        g.sellOrBuy.setBuyNow(lineNo, __FUNCTION__ + " <== " + comment);
-    }
-}
+// void changeDirection(const int lineNo, const string comment) {
+//     if (g.pPos.isTypeBUY()) {
+//         g.sellOrBuy.setSellNow(lineNo, __FUNCTION__ + " <== " + comment);
+//     }
+//     else if (g.pPos.isTypeSELL()) {
+//         g.sellOrBuy.setBuyNow(lineNo, __FUNCTION__ + " <== " + comment);
+//     }
+// }
 //+------------------------------------------------------------------+
-class MACD1_PeaksAndValleys
-{
-private:
-    int      sign;
-    datetime TimeOfLastChangeOfSign;
-    int      numOfmins, numOfMaxs;
-    double   lastMin,   lastMax;
-    datetime TimeOfLastMin, TimeOfLastMax;
-    bool     is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
-    bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
+// class MACD1_PeaksAndValleys
+// {
+// private:
+//     int      sign;
+//     datetime TimeOfLastChangeOfSign;
+//     int      numOfmins, numOfMaxs;
+//     double   lastMin,   lastMax;
+//     datetime TimeOfLastMin, TimeOfLastMax;
+//     bool     is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
+//     bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
-    bool isMin() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
-        if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
-        for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
-            if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
-        }
-// LOG("MIN found");
-        return true;
-    };
+//     bool isMin() {
+// //LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
+//         if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
+//         for (int i = 2; i < minMaxBAckTrack; i++) {
+// //LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
+//             if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
+//         }
+// // LOG("MIN found");
+//         return true;
+//     };
 
-    bool isMax() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
-        if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
-        for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
-            if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
-        }
-// LOG("MAX found");
-        return true;
-    };
+//     bool isMax() {
+// //LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
+//         if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
+//         for (int i = 2; i < minMaxBAckTrack; i++) {
+// //LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
+//             if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
+//         }
+// // LOG("MAX found");
+//         return true;
+//     };
 
-    void initValues(int _sign) {
+//     void initValues(int _sign) {
 
-        if (sign != _sign) {
-LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
-            TimeOfLastChangeOfSign = TimeCurrent();
-        }
-        sign = _sign;
-        numOfmins = numOfMaxs = 0;
-        lastMin = 0.00001;
-        lastMax = 999999;
-        is1stPeakAlreadyFound = false;
-        is2ndPeakAlreadyFound = false;
-        is1stValleyAlreadyFound = false;
-        is2ndValleyAlreadyFound = false;
-    };
+//         if (sign != _sign) {
+// LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
+//             TimeOfLastChangeOfSign = TimeCurrent();
+//         }
+//         sign = _sign;
+//         numOfmins = numOfMaxs = 0;
+//         lastMin = 0.00001;
+//         lastMax = 999999;
+//         is1stPeakAlreadyFound = false;
+//         is2ndPeakAlreadyFound = false;
+//         is1stValleyAlreadyFound = false;
+//         is2ndValleyAlreadyFound = false;
+//     };
 
-public:
-    MACD1_PeaksAndValleys() :
-        sign(-2),
-        TimeOfLastChangeOfSign(TimeCurrent()),
-        TimeOfLastMin(0),
-        TimeOfLastMax(0)
-    {   initValues(0); }
-    ~MACD1_PeaksAndValleys() {};
+// public:
+//     MACD1_PeaksAndValleys() :
+//         sign(-2),
+//         TimeOfLastChangeOfSign(TimeCurrent()),
+//         TimeOfLastMin(0),
+//         TimeOfLastMax(0)
+//     {   initValues(0); }
+//     ~MACD1_PeaksAndValleys() {};
 
-    void LogMACD_Last(int cnt) {
-        if (!isLOG()) return;
-        string s;
-        for (int i = 0; i < cnt; i++) {
-            s += SF("%.2f ", g.MACD1.MACD_Buffer.get(i));
-        }
-        Print(s);
-    }
+//     void LogMACD_Last(int cnt) {
+//         if (!isLOG()) return;
+//         string s;
+//         for (int i = 0; i < cnt; i++) {
+//             s += SF("%.2f ", g.MACD1.MACD_Buffer.get(i));
+//         }
+//         Print(s);
+//     }
 
-    void process() {
+//     void process() {
 
-//LogMACD_Last(minMaxBAckTrack+1);
+// //LogMACD_Last(minMaxBAckTrack+1);
 
-static datetime barTime = 0;
-datetime currBarTime = iTime(_Symbol, _Period, 0);
-if(barTime != currBarTime) {
-    barTime = currBarTime;
-}
-else {
-    return;
-}
+// static datetime barTime = 0;
+// datetime currBarTime = iTime(_Symbol, _Period, 0);
+// if(barTime != currBarTime) {
+//     barTime = currBarTime;
+// }
+// else {
+//     return;
+// }
 
-if(0)
-{
-double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
-double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
-double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
+// if(0)
+// {
+// double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
+// double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
+// double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
 
-if (decMACD0 >= 0 && decMACD1 < 0) {
-    LOG(SF("dcMCD: Min (%.2f)", decMACD1));
-}
-if (decMACD1 >= 0 && decMACD2 < 0) {
-    LOG(SF("dcMCD: Min2 (%.2f)", decMACD2));
-}
+// if (decMACD0 >= 0 && decMACD1 < 0) {
+//     LOG(SF("dcMCD: Min (%.2f)", decMACD1));
+// }
+// if (decMACD1 >= 0 && decMACD2 < 0) {
+//     LOG(SF("dcMCD: Min2 (%.2f)", decMACD2));
+// }
 
-if (decMACD0 <= 0 && decMACD1 > 0) {
-    LOG(SF("dcMCD: MAX (%.2f)", decMACD1));
-}
-if (decMACD1 <= 0 && decMACD2 > 0) {
-    LOG(SF("dcMCD: MAX2 (%.2f)", decMACD2));
-}
-}
-        double macd0 = g.MACD1.MACD_Buffer.get(1);
-        if (macd0 < 0) {
-            if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
-if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.setSellNow(__LINE__, "Change of sign: (-)");
-                initValues(-1);
-            }
-            if (isMin()) {
-LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-// LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
-                if (macd0  * (1 - 0.05) < lastMax) {
-//                    if (numOfmins == numOfMaxs)
-if (timeDiff(TimeOfLastMin) > 25 HOURS)
-                        numOfmins++;
-                    lastMin = macd0;
-                    TimeOfLastMin = TimeCurrent();
-//LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
-if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
-LOG(LOGtxt);
-                }
-            }
-            else if (isMax()) {
-LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
-// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
-                if ((macd0 / lastMin) < 1 - 0.05) {
-//                    if (numOfmins > numOfMaxs)
-                        numOfMaxs++;
-                    lastMax = macd0;
-                    TimeOfLastMax = TimeCurrent();
-string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
-                }
-            }
-        }
-        else {
-            if (sign <= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
-if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.setBuyNow(__LINE__, "Change of sign: (+)");
-                initValues(1);
-            }
-            if (isMax()) {
-LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
-//                if (numOfmins == numOfMaxs)
-                    numOfMaxs++;
-                lastMax = macd0;
-                TimeOfLastMax = TimeCurrent();
-//LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
-            }
-            else if (isMin()){
-LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
-                if ((macd0 / lastMax) < 1 - 0.05) {
-//                    if (numOfmins < numOfMaxs)
-if (timeDiff(TimeOfLastMin) > 25 HOURS)
-                        numOfmins++;
-                    lastMin = macd0;
-                    TimeOfLastMin = TimeCurrent();
-string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
-if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
-                }
-            }
-        }
-    }
+// if (decMACD0 <= 0 && decMACD1 > 0) {
+//     LOG(SF("dcMCD: MAX (%.2f)", decMACD1));
+// }
+// if (decMACD1 <= 0 && decMACD2 > 0) {
+//     LOG(SF("dcMCD: MAX2 (%.2f)", decMACD2));
+// }
+// }
+//         double macd0 = g.MACD1.MACD_Buffer.get(1);
+//         if (macd0 < 0) {
+//             if (sign >= 0) {
+// if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
+// if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+//     g.sellOrBuy.setSellNow(__LINE__, "Change of sign: (-)");
+//                 initValues(-1);
+//             }
+//             if (isMin()) {
+// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
+// // LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
+//                 if (macd0  * (1 - 0.05) < lastMax) {
+// //                    if (numOfmins == numOfMaxs)
+// if (timeDiff(TimeOfLastMin) > 25 HOURS)
+//                         numOfmins++;
+//                     lastMin = macd0;
+//                     TimeOfLastMin = TimeCurrent();
+// //LogMACD_Last(minMaxBAckTrack+1);
+// string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
+// if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
+// LOG(LOGtxt);
+//                 }
+//             }
+//             else if (isMax()) {
+// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+// // LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
+//                 if ((macd0 / lastMin) < 1 - 0.05) {
+// //                    if (numOfmins > numOfMaxs)
+//                         numOfMaxs++;
+//                     lastMax = macd0;
+//                     TimeOfLastMax = TimeCurrent();
+// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
+//                 }
+//             }
+//         }
+//         else {
+//             if (sign <= 0) {
+// if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
+// if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+//     g.sellOrBuy.setBuyNow(__LINE__, "Change of sign: (+)");
+//                 initValues(1);
+//             }
+//             if (isMax()) {
+// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+// //                if (numOfmins == numOfMaxs)
+//                     numOfMaxs++;
+//                 lastMax = macd0;
+//                 TimeOfLastMax = TimeCurrent();
+// //LogMACD_Last(minMaxBAckTrack+1);
+// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
+//             }
+//             else if (isMin()){
+// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
+// // LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
+//                 if ((macd0 / lastMax) < 1 - 0.05) {
+// //                    if (numOfmins < numOfMaxs)
+// if (timeDiff(TimeOfLastMin) > 25 HOURS)
+//                         numOfmins++;
+//                     lastMin = macd0;
+//                     TimeOfLastMin = TimeCurrent();
+// string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
+// if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
+//                 }
+//             }
+//         }
+//     }
 
-    bool is1stPeak() {
-// LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
-        if (is1stPeakAlreadyFound) return false;
-        // if (numOfMaxs == 1 && numOfmins == 0) {
-        if (sign > 0 && numOfMaxs == 1 && numOfmins == 0) {
-            is1stPeakAlreadyFound = true;
-            return true;
-        }
-        return false;
-    }
-    bool is2ndPeak() {
-//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
-        if (is2ndPeakAlreadyFound) return false;
-//        if (numOfMaxs == 2 && numOfmins == 1) {
-        // if (numOfMaxs == 2 && numOfmins <= 1) {
-        if (sign > 0 && numOfMaxs == 2 && numOfmins <= 1) {
-            is2ndPeakAlreadyFound = true;
-            return true;
-        }
-        return false;
-    }
+//     bool is1stPeak() {
+// // LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
+//         if (is1stPeakAlreadyFound) return false;
+//         // if (numOfMaxs == 1 && numOfmins == 0) {
+//         if (sign > 0 && numOfMaxs == 1 && numOfmins == 0) {
+//             is1stPeakAlreadyFound = true;
+//             return true;
+//         }
+//         return false;
+//     }
+//     bool is2ndPeak() {
+// //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//         if (is2ndPeakAlreadyFound) return false;
+// //        if (numOfMaxs == 2 && numOfmins == 1) {
+//         // if (numOfMaxs == 2 && numOfmins <= 1) {
+//         if (sign > 0 && numOfMaxs == 2 && numOfmins <= 1) {
+//             is2ndPeakAlreadyFound = true;
+//             return true;
+//         }
+//         return false;
+//     }
 
-    bool is1stValley() {
-//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
-        if (is1stValleyAlreadyFound) return false;
-        // if (numOfmins == 1 && numOfMaxs == 0) {
-        if (sign < 0 && numOfmins == 1 && numOfMaxs == 0) {
-            is1stValleyAlreadyFound = true;
-            return true;
-        }
-        return false;
-    }
+//     bool is1stValley() {
+// //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//         if (is1stValleyAlreadyFound) return false;
+//         // if (numOfmins == 1 && numOfMaxs == 0) {
+//         if (sign < 0 && numOfmins == 1 && numOfMaxs == 0) {
+//             is1stValleyAlreadyFound = true;
+//             return true;
+//         }
+//         return false;
+//     }
 
-    bool is2ndValley() {
-//LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
-        if (is2ndValleyAlreadyFound) return false;
-//        if (numOfmins == 2 && numOfMaxs == 1) {
-        // if (numOfmins == 2 && numOfMaxs <= 1) {
-        if (sign < 0 && numOfmins == 2 && numOfMaxs <= 1) {
-            is2ndValleyAlreadyFound = true;
-            return true;
-        }
-        return false;
-    }
-};
+//     bool is2ndValley() {
+// //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
+//         if (is2ndValleyAlreadyFound) return false;
+// //        if (numOfmins == 2 && numOfMaxs == 1) {
+//         // if (numOfmins == 2 && numOfMaxs <= 1) {
+//         if (sign < 0 && numOfmins == 2 && numOfMaxs <= 1) {
+//             is2ndValleyAlreadyFound = true;
+//             return true;
+//         }
+//         return false;
+//     }
+// };
 //+------------------------------------------------------------------+
 void OnTick()
 {
@@ -712,72 +719,83 @@ LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  E
         d2str(balance),
         g.maxRelDrawDown * 100));
 
-    if (profitRate < -profitLossLimit) {
-        changeDirection(__LINE__, "profitLossLimit");
-    }
-    else if (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit) {
-        changeDirection(__LINE__, "profitPerMaxProfitLossLimit");
-    }
+    // if (profitRate < -profitLossLimit) {
+    //     changeDirection(__LINE__, "profitLossLimit");
+    // }
+    // else if (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit) {
+    //     changeDirection(__LINE__, "profitPerMaxProfitLossLimit");
+    // }
     // else if (profitRate_paid < -profitRate_paidLimit) {
     //     changeDirection(__LINE__, "profitRate_paidLimit");
     // }
 
 
-    //if (TimeCurrent() > D'2023.08.05')
-    // if (TimeCurrent() > D'2022.05.23')
+    // if (TimeCurrent() > D'2022.11.02 21:00')
+    if (TimeCurrent() == D'2022.11.04 19:00')
     {
-        static MACD1_PeaksAndValleys MACD1peaksAndValleys;
-
-        MACD1peaksAndValleys.process();
-
-        if (MACD1peaksAndValleys.is1stPeak()) {
-// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate * 100));
-if (profitRate > 0.5) {
-//    g.sellOrBuy.setSellNow(__LINE__, "1st peak");
-}
-        }
-        if (MACD1peaksAndValleys.is2ndPeak()) {
-            g.sellOrBuy.setSellNow(__LINE__, "2nd peak");
-        }
-        else if (MACD1peaksAndValleys.is1stValley()) {
-// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate*100));
-if (profitRate > 0.5) {
-//    g.sellOrBuy.setBuyNow(__LINE__, "1st valey");
-}
-
-        }
-        else if (MACD1peaksAndValleys.is2ndValley()) {
-            g.sellOrBuy.setBuyNow(__LINE__, "2nd valley");
-        }
-        else if (justChangedToDownTrend()) {
-//PrintDecOsMa("v ");
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    g.sellOrBuy.setGetReadyToSell(__LINE__, "decOsMA > limit");
-                }
-            }
-        }
-        else if (justChangedToUpTrend()) {
-//PrintDecOsMa("^ ");
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    g.sellOrBuy.setGetReadyToBuy(__LINE__, "decOsMA < -limit");
-                }
-            }
-        }
-    }
-
-    if (g.sellOrBuy.isGetReadyToBuy()) {
-        if (g.ATR_list.isBuyNow(getPrice().low)) {
-            g.sellOrBuy.setBuyNow(__LINE__, "ATR low");
-        }
+LOG(SF("%s", TimeToString(TimeCurrent())));
+        g.sellOrBuy.setBuyNow(__LINE__, "1");
     }
     else
-    if (g.sellOrBuy.isGetReadyToSell()) {
-        if (g.ATR_list.isSellNow(getPrice().high)) {
-            g.sellOrBuy.setSellNow(__LINE__, "ATR high");
-        }
+    if (TimeCurrent() == D'2023.07.19 18:00') {
+        g.sellOrBuy.setSellNow(__LINE__, "2");
     }
+
+    //if (TimeCurrent() > D'2023.08.05')
+    // if (TimeCurrent() > D'2022.05.23')
+//     {
+//         static MACD1_PeaksAndValleys MACD1peaksAndValleys;
+
+//         MACD1peaksAndValleys.process();
+
+//         if (MACD1peaksAndValleys.is1stPeak()) {
+// // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate * 100));
+// if (profitRate > 0.5) {
+// //    g.sellOrBuy.setSellNow(__LINE__, "1st peak");
+// }
+//         }
+//         if (MACD1peaksAndValleys.is2ndPeak()) {
+//             g.sellOrBuy.setSellNow(__LINE__, "2nd peak");
+//         }
+//         else if (MACD1peaksAndValleys.is1stValley()) {
+// // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate*100));
+// if (profitRate > 0.5) {
+// //    g.sellOrBuy.setBuyNow(__LINE__, "1st valey");
+// }
+
+//         }
+//         else if (MACD1peaksAndValleys.is2ndValley()) {
+//             g.sellOrBuy.setBuyNow(__LINE__, "2nd valley");
+//         }
+//         else if (justChangedToDownTrend()) {
+// //PrintDecOsMa("v ");
+//             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
+//                 if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
+//                     g.sellOrBuy.setGetReadyToSell(__LINE__, "decOsMA > limit");
+//                 }
+//             }
+//         }
+//         else if (justChangedToUpTrend()) {
+// //PrintDecOsMa("^ ");
+//             if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
+//                 if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
+//                     g.sellOrBuy.setGetReadyToBuy(__LINE__, "decOsMA < -limit");
+//                 }
+//             }
+//         }
+//     }
+
+    // if (g.sellOrBuy.isGetReadyToBuy()) {
+    //     if (g.ATR_list.isBuyNow(getPrice().low)) {
+    //         g.sellOrBuy.setBuyNow(__LINE__, "ATR low");
+    //     }
+    // }
+    // else
+    // if (g.sellOrBuy.isGetReadyToSell()) {
+    //     if (g.ATR_list.isSellNow(getPrice().high)) {
+    //         g.sellOrBuy.setSellNow(__LINE__, "ATR high");
+    //     }
+    // }
 
     if (g.sellOrBuy.isBuyNow()) {
         if (g.pPos.select())
@@ -821,15 +839,15 @@ MqlRates getPrice()
 //+------------------------------------------------------------------+
 bool copyBuffers()
 {
-    const int buffSize = 300;
+    // const int buffSize = 300;
 
-    if (!g.MACD1.   copyBuffers(buffSize) ||
-        !g.MACD2.   copyBuffers(buffSize) ||
-        !g.ATR_list.copyBuffers(buffSize)  )
-    {
-        Print("Failed to copy data from buffer");
-        return false;
-    }
+    // if (!g.MACD1.   copyBuffers(buffSize) ||
+    //     !g.MACD2.   copyBuffers(buffSize) ||
+    //     !g.ATR_list.copyBuffers(buffSize)  )
+    // {
+    //     Print("Failed to copy data from buffer");
+    //     return false;
+    // }
     return true;
 }
 //+------------------------------------------------------------------+
@@ -837,7 +855,7 @@ double OnTester()
 {
     // if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
     // return AccountInfoDouble(ACCOUNT_BALANCE);
-    if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
+//    if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
     return AccountInfoDouble(ACCOUNT_BALANCE) / g.maxRelDrawDown;
 }
 //+------------------------------------------------------------------+
