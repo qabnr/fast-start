@@ -119,7 +119,7 @@ int OnCalculate(const int        rates_total,
          if ((low[shift]-val) > InpDeviation*_Point)
             val = 0.0;
          else {
-            for(back = 1; back <= InpBackstep; back++) {
+            for(back = 1; back <= InpBackstep && shift >= back; back++) {
                res = LowMapBuffer[shift-back];
                if ((res != 0) && (res > val))
                   LowMapBuffer[shift-back] = 0.0;
@@ -141,7 +141,7 @@ int OnCalculate(const int        rates_total,
             val = 0.0;
          else
            {
-            for(back = 1; back <= InpBackstep; back++)
+            for(back = 1; back <= InpBackstep && shift >= back; back++)
               {
                res = HighMapBuffer[shift-back];
                if ((res != 0) && (res < val))
