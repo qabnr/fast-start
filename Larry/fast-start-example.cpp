@@ -17,7 +17,7 @@
 // input double profitLossLimit             = 0.21;
 // input double profitPerMaxProfitLossLimit = 0.40;
 // input int    maxTransactions             = 10;
- int    maxTransactions             = 10;
+ int    maxTransactions             = 150;
 // input double equityTradeLimit            = 0.75;
 // input double tradeSizeFraction           = 1.18;
  double tradeSizeFraction           = 1.18;
@@ -614,7 +614,7 @@ void OnTick()
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
 
-if(false)
+// if(false)
 if (isNewMinute())
 LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
