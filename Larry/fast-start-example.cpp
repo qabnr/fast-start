@@ -291,7 +291,7 @@ public:
     bool isTypeSELL()     { return posType == POSITION_TYPE_SELL; }
     bool isTypeBUY()      { return posType == POSITION_TYPE_BUY; }
     double getPricePaid() { return pricePaid; }
-    void positionClose() { 
+    void positionClose() {
         while(m_Trade.PositionClose(my_symbol)) {}
     }
     void buy() {
@@ -384,7 +384,8 @@ public:
     SellOrBuy sellOrBuy;
     double maxRelDrawDown;
 
-    int zzhandle;
+    int    zzhandle;
+    double zzBuff[];
 
     Global(): maxRelDrawDown(0) {};
 };
@@ -409,17 +410,65 @@ int OnInit()
     // g.ATR_list.add(10, 4.0);
  //   g.ATR_list.add(10, 6.0);
 
+    LOG("OnInit");
+
     return (0);
+}
+//+------------------------------------------------------------------+
+void copyZZbuff(void)
+{
+    int zzBuffNo = 0;
+    int startPos = 0;
+    int count = 999999;
+
+    // ArrayFree(g.zzBuff);
+    // ArraySetAsSeries(g.zzBuff, true);
+    int copied = CopyBuffer(g.zzhandle, zzBuffNo, startPos, count, g.zzBuff);
+
+    // LOG("Cp'd: " + IntegerToString(copied));
+
+    // if (copied == 3581) {
+    //     printZZbuff();
+    // }
+}
+void printZZbuff(void)
+{
+    ArraySetAsSeries(g.zzBuff, true);
+
+LOG(SF("zzBuff size: %d", ArraySize(g.zzBuff)));
+
+    for (int i = 0; i < ArraySize(g.zzBuff); i++) {
+        if (g.zzBuff[i] > 0.01 && g.zzBuff[i] < 999999.99)
+        {
+            datetime time  = iTime(Symbol(),Period(), i);
+            LOG(SF("%4d: %10s %6.2f", i, TimeToString(time, TIME_DATE|TIME_SECONDS), g.zzBuff[i]));
+        }
+    }    
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+    LOG("Deinitialization reason code = " + IntegerToString(reason));
+
     // delete g.MACD1;
     // delete g.MACD2;
 }
 //+------------------------------------------------------------------+
 void OnTick()
 {
+    static int tickCnt = 0;
+
+    tickCnt++;
+    // LOG("tickCnt: " + IntegerToString(tickCnt));
+    // if (tickCnt == 3512) {
+    // if (tickCnt == 3512)
+    if (tickCnt >= 3500)
+    {
+        copyZZbuff();
+        printZZbuff();
+    }
+
+
     //if (MQLInfoInteger(MQL_TESTER) && g.maxRelDrawDown > maxRelDrawDownLimit) return;
 
     if (copyBuffers() == false)
@@ -447,6 +496,7 @@ void OnTick()
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
 
+if(false)
 if (isNewMinute())
 LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
