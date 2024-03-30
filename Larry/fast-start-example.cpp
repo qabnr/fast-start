@@ -446,6 +446,15 @@ LOG(SF("zzBuff size: %d", ArraySize(g.zzBuff)));
     }    
 }
 //+------------------------------------------------------------------+
+void changeDirection(const int lineNo, const string comment) {
+    if (g.pPos.isTypeBUY()) {
+        g.sellOrBuy.setSellNow(lineNo, __FUNCTION__ + " <== " + comment);
+    }
+    else if (g.pPos.isTypeSELL()) {
+        g.sellOrBuy.setBuyNow(lineNo, __FUNCTION__ + " <== " + comment);
+    }
+}
+//+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
     LOG("Deinitialization reason code = " + IntegerToString(reason));
@@ -455,6 +464,112 @@ void OnDeinit(const int reason)
 
     copyZZbuff();
     printZZbuff();
+}
+//+------------------------------------------------------------------+
+void BS(void)
+{
+    // if (TimeCurrent() == D'2022.03.14 22:00:00') { g.sellOrBuy.setBuyNow(__LINE__, "1"); }
+    // if (TimeCurrent() == D'2022.03.29 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.04.18 19:00:00') { g.sellOrBuy.setBuyNow(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.04.21 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.04.27 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.04.28 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.05.02 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.05.04 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.05.12 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.05.17 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.05.20 20:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.01 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.02 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.02 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.14 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.15 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.16 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.27 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.06.30 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.07.08 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.07.14 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.07.22 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.07.26 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.08.08 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.08.09 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.08.16 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.08.24 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.08.26 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.06 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.12 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.16 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.21 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.23 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.28 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.09.30 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.11.15 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.11.22 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.11.23 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.11.29 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.01 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.07 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.13 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.20 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.21 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2022.12.28 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.01.03 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.01.06 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.01.18 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.01.19 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.02.02 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.02.10 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.02.15 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.03.02 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.03.06 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.03.13 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.03.22 21:00:00') { changeDirection(__LINE__, "1"); }   
+    if (TimeCurrent() == D'2023.03.28 20:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.04.04 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.04.12 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.04.18 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.04.25 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.05.01 20:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.05.04 17:00:00') { changeDirection(__LINE__, "1"); }
+
+    if (TimeCurrent() == D'2023.06.16 16:00:00') { changeDirection(__LINE__, "1"); }
+
+    if (TimeCurrent() == D'2023.06.26 22:00:00') { changeDirection(__LINE__, "1"); }
+
+    if (TimeCurrent() == D'2023.07.05 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.07.10 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.07.19 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.07.24 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.07.31 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.08.18 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.08.24 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.08.25 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.09.01 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.09.07 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.09.14 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.09.27 20:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.09.29 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.10.03 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.10.12 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.10.26 20:00:00') { changeDirection(__LINE__, "1"); }
+
+    // if (TimeCurrent() == D'2023.11.09 22:00:00') { changeDirection(__LINE__, "1"); }
+    // if (TimeCurrent() == D'2023.11.22 16:00:00') { changeDirection(__LINE__, "1"); }
+
+    if (TimeCurrent() == D'2023.11.29 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2023.12.04 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.01.24 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.01.31 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.02.12 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.02.21 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.02.23 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.02.28 16:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.01 21:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.05 22:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.08 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.15 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.21 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.27 17:00:00') { changeDirection(__LINE__, "1"); }
 }
 //+------------------------------------------------------------------+
 void OnTick()
@@ -522,16 +637,7 @@ LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  E
     //     changeDirection(__LINE__, "profitRate_paidLimit");
     // }
 
-
-    if (TimeCurrent() == D'2022.11.04 19:00')
-    {
-// LOG(SF("%s", TimeToString(TimeCurrent())));
-        g.sellOrBuy.setBuyNow(__LINE__, "1");
-    }
-    else
-    if (TimeCurrent() == D'2023.07.19 18:00') {
-        g.sellOrBuy.setSellNow(__LINE__, "2");
-    }
+BS();
 
     if (g.sellOrBuy.isBuyNow()) {
         if (g.pPos.select())
