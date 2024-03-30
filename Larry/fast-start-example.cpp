@@ -425,7 +425,7 @@ void copyZZbuff(void)
     // ArraySetAsSeries(g.zzBuff, true);
     int copied = CopyBuffer(g.zzhandle, zzBuffNo, startPos, count, g.zzBuff);
 
-    // LOG("Cp'd: " + IntegerToString(copied));
+    LOG("Cp'd: " + IntegerToString(copied));
 
     // if (copied == 3581) {
     //     printZZbuff();
@@ -452,6 +452,9 @@ void OnDeinit(const int reason)
 
     // delete g.MACD1;
     // delete g.MACD2;
+
+    copyZZbuff();
+    printZZbuff();
 }
 //+------------------------------------------------------------------+
 void OnTick()
@@ -462,10 +465,10 @@ void OnTick()
     // LOG("tickCnt: " + IntegerToString(tickCnt));
     // if (tickCnt == 3512) {
     // if (tickCnt == 3512)
-    if (tickCnt >= 3500)
+    // if (tickCnt >= 3500)
     {
-        copyZZbuff();
-        printZZbuff();
+        // copyZZbuff();
+        // printZZbuff();
     }
 
 
