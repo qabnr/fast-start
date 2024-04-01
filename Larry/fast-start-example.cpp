@@ -16,8 +16,8 @@
 // input int    minMaxBAckTrack             = 5;
 // input double profitLossLimit             = 0.21;
 // input double profitPerMaxProfitLossLimit = 0.40;
-// input int    maxTransactions             = 10;
- int    maxTransactions             = 150;
+input int    maxTransactions             = 150;
+//  int    maxTransactions             = 150;
 // input double equityTradeLimit            = 0.75;
 // input double tradeSizeFraction           = 1.18;
  double tradeSizeFraction           = 1.18;
@@ -40,7 +40,7 @@ bool isLOG() {
 void LOG_Naked(const string s) {
     if (isLOG()) Print(s);
 }
-#define LOG(s) LOG_Naked(SF("%d: %s", __LINE__, s))
+#define LOG(s) if (isLOG()) Print(SF("%d: %s", __LINE__, s))
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60
@@ -49,13 +49,22 @@ string d2str(const double d, const string ThSep = ",") {
     if (d < 0) return "-" + d2str(-d, ThSep);
     int i = (int)MathFloor(d);
 
-    if (i < 1000) return (string)i;
+    if (i < 1000) {
+        return (string)i;
+    }
     int thousands = i / 1000;
     int u = i - thousands * 1000;
-    if (thousands < 1000) return (string)thousands + ThSep + SF("%03d", u);
+    if (thousands < 1000) {
+        return (string)thousands + ThSep + SF("%03d", u);
+    }
     int millions = thousands / 1000;
     thousands -= millions * 1000;
-    return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+    if (millions < 1000) {
+        return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+    }
+    int trillions = millions / 1000;
+    millions -= trillions * 1000;
+    return (string)trillions + ThSep + SF("%03d", millions) + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
 }
 //+------------------------------------------------------------------+
 bool isNewMinute() {
@@ -274,13 +283,17 @@ private:
     CPositionInfo m_Position;
 
     int           posType;
-    double        volume;
     double        pricePaid;
+
+    double        getVolume(double freeMarginBeforeTrade) {
+        if (freeMarginBeforeTrade <= 100000)
+            return MathFloor(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX) / 3);
+        return SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX);
+    }
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
         // volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
-        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / 3)),
         posType(-1), pricePaid(0)
     {}
     ~TradePosition() {}
@@ -296,6 +309,7 @@ public:
     }
     void buy() {
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        double volume = getVolume(freeMarginBeforeTrade);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
             posType = POSITION_TYPE_BUY;
@@ -309,6 +323,7 @@ LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
     void sell() {
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        double volume = getVolume(freeMarginBeforeTrade);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
             posType = POSITION_TYPE_SELL;
@@ -616,7 +631,7 @@ void OnTick()
 
 // if(false)
 if (isNewMinute())
-LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
+LOG(SF("P: %11s  P/Pmx: %+6.1f%%  (%+6.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
         profitLossRate * 100,
         profitLossRate_paid * 100,
