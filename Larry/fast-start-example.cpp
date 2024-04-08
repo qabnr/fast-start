@@ -285,10 +285,12 @@ private:
     int           posType;
     double        pricePaid;
 
-    double        getVolume(double freeMarginBeforeTrade) {
-        if (freeMarginBeforeTrade <= 100000)
-            return MathFloor(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX) / 3);
-        return SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX);
+    double        getVolume(double freeMarginBeforeTrade)
+    {
+        double maxVol = SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX);
+        if (freeMarginBeforeTrade / maxVol < 10)
+            return MathFloor(maxVol / 3);
+        return maxVol;
     }
 
 public:
@@ -399,7 +401,8 @@ public:
     SellOrBuy sellOrBuy;
     double maxRelDrawDown;
 
-    int    zzhandle;
+    int    zzHandle;
+    int    minMaxHandle;
     double zzBuff[];
 
     Global(): maxRelDrawDown(0) {};
@@ -413,7 +416,9 @@ int OnInit()
     // g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
     // g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
 
-    g.zzhandle = iCustom(NULL, PERIOD_CURRENT, "Examples/ZigZag", 20,  5,  20);
+    g.minMaxHandle = iCustom(NULL, PERIOD_CURRENT, "myMinMax");
+
+    g.zzHandle = iCustom(NULL, PERIOD_CURRENT, "Examples/ZigZag", 20,  5,  20);
 
     g.pPos  = new TradePosition(Symbol());
 
@@ -438,7 +443,7 @@ void copyZZbuff(void)
 
     // ArrayFree(g.zzBuff);
     // ArraySetAsSeries(g.zzBuff, true);
-    int copied = CopyBuffer(g.zzhandle, zzBuffNo, startPos, count, g.zzBuff);
+    int copied = CopyBuffer(g.zzHandle, zzBuffNo, startPos, count, g.zzBuff);
 
     LOG("Cp'd: " + IntegerToString(copied));
 
@@ -456,7 +461,7 @@ LOG(SF("zzBuff size: %d", ArraySize(g.zzBuff)));
         if (g.zzBuff[i] > 0.01 && g.zzBuff[i] < 999999.99)
         {
             datetime time  = iTime(Symbol(),Period(), i);
-            LOG(SF("%4d: %10s %6.2f", i, TimeToString(time, TIME_DATE|TIME_SECONDS), g.zzBuff[i]));
+            // LOG(SF("%4d: %10s %6.2f", i, TimeToString(time, TIME_DATE|TIME_SECONDS), g.zzBuff[i]));
         }
     }    
 }
@@ -584,11 +589,21 @@ void BS(void)
     if (TimeCurrent() == D'2024.03.08 17:00:00') { changeDirection(__LINE__, "1"); }
     if (TimeCurrent() == D'2024.03.15 19:00:00') { changeDirection(__LINE__, "1"); }
     if (TimeCurrent() == D'2024.03.21 19:00:00') { changeDirection(__LINE__, "1"); }
-    if (TimeCurrent() == D'2024.03.27 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.03.27 19:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.04.01 17:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.04.02 18:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.04.04 20:00:00') { changeDirection(__LINE__, "1"); }
 }
 //+------------------------------------------------------------------+
 void OnTick()
 {
+    double mmBuff[2];
+    if(CopyBuffer(g.minMaxHandle, 0, 0, 2, mmBuff) > 0) {
+/*/
+        LOG(SF("mM: %.0f  %.0f", mmBuff[1], mmBuff[0]));
+/**/
+    } 
+
     static int tickCnt = 0;
 
     tickCnt++;
@@ -629,7 +644,7 @@ void OnTick()
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
 
-// if(false)
+/*/
 if (isNewMinute())
 LOG(SF("P: %11s  P/Pmx: %+6.1f%%  (%+6.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
@@ -641,6 +656,7 @@ LOG(SF("P: %11s  P/Pmx: %+6.1f%%  (%+6.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  
         (equity-maxEquity) / maxEquity * 100,
         d2str(balance),
         g.maxRelDrawDown * 100));
+/**/
 
     // if (profitRate < -profitLossLimit) {
     //     changeDirection(__LINE__, "profitLossLimit");
