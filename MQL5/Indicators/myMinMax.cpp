@@ -12,14 +12,14 @@
 #property indicator_plots 2
 
 #property indicator_label1 "minLen"
-#property indicator_type1 DRAW_LINE
-#property indicator_color1 clrBlack
+#property indicator_type1 DRAW_SECTION
+#property indicator_color1 clrOrangeRed
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 2
 
 #property indicator_label2 "maxLen"
-#property indicator_type2 DRAW_LINE
-#property indicator_color2 clrOrangeRed
+#property indicator_type2 DRAW_SECTION
+#property indicator_color2 clrBlack
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 2
 
@@ -41,6 +41,10 @@ int OnInit()
     
     string short_name = "MaxMin";
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
+
+    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
+    PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
+
     return (INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -63,24 +67,34 @@ int OnCalculate(const int       rates_total,
 
         for (j = i-1; j > 0; j--) {
             if (low[j] < low[i]) {
-                minBuffer[i] = MathLog(i-j+2);
+                minBuffer[i] = f(i-1-j);
                 break;
             }
         }
-        if (j == 0) minBuffer[i] = MathLog(i+1+2);
+        if (j == 0) minBuffer[i] = f(i);
 
         maxBuffer[i] = 0;
         for (j = i-1; j > 0; j--) {
             if (high[j] > high[i]) {
-                maxBuffer[i] = MathLog(i-j+2);
+                maxBuffer[i] = f(i-1-j);
                 break;
             }
         }
-        if (j == 0) maxBuffer[i] = MathLog(i+1+2);
+        if (j == 0) maxBuffer[i] = f(i);
     }
 
     //--- return the prev_calculated value for the next call
     return (rates_total);
+}
+//+------------------------------------------------------------------+
+double f(const double x) 
+{
+/*/
+    if (x < 5) return 0;
+/*/
+    if (x < 5) return MathLog(2.0);
+/**/
+    return MathLog(x+2);
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
