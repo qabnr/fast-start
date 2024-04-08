@@ -21,7 +21,7 @@
 #property indicator_type2 DRAW_LINE
 #property indicator_color2 clrOrangeRed
 #property indicator_style2 STYLE_SOLID
-#property indicator_width2 1
+#property indicator_width2 2
 
 double minBuffer[];
 double maxBuffer[];
@@ -56,45 +56,27 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-Print("mMm: rates_total: ", rates_total, "  prev_calculated: ", prev_calculated);
-
-if (prev_calculated == 0) {
-    string s = "";
-    for (int j = 0; j < rates_total; j++) {
-        s += SF("%7.2f", low[j]);
-        if (j%20 == 19) {
-            Print(s);
-            s = "";
-        }
-    }
-    if (s != "") Print(s);
-}
-
     for (int i = prev_calculated; i < rates_total; i++)
     {
         int j;
         minBuffer[i] = 0;
 
-if(i == 8) PrintFormat("mMm: low[%2d]: %4.2f", i, low[i]);
         for (j = i-1; j > 0; j--) {
-if(i == 8) PrintFormat("mMm: low[%2d]: %4.2f", j, low[j]);
             if (low[j] < low[i]) {
-                minBuffer[i] = i-1-j;
+                minBuffer[i] = MathLog(i-j+2);
                 break;
             }
         }
-        if (j == 0) minBuffer[i] = i;
-if(i < 40) PrintFormat("mMm: min[%4d]: %4.0f", i, minBuffer[i]);
-// if(i < 4) PrintFormat("mMm: min[%4d]: %4.0f  %5.2f  %5.2f  %5.2f  %5.2f", i, minBuffer[i], low[i], low[i-1], low[i-2], low[i-3], low[i-4]);
+        if (j == 0) minBuffer[i] = MathLog(i+1+2);
 
         maxBuffer[i] = 0;
         for (j = i-1; j > 0; j--) {
             if (high[j] > high[i]) {
-                maxBuffer[i] = i-1-j;
+                maxBuffer[i] = MathLog(i-j+2);
                 break;
             }
         }
-        if (j == 0) maxBuffer[i] = i;
+        if (j == 0) maxBuffer[i] = MathLog(i+1+2);
     }
 
     //--- return the prev_calculated value for the next call
