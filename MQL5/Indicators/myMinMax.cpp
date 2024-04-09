@@ -70,8 +70,9 @@ int OnCalculate(const int       rates_total,
 {
     for (int i = prev_calculated; i < rates_total; i++)
     {
-        findLen(minBuffer,  low, i, false);
-        findLen(maxBuffer, high, i, true );
+        const bool isMin = false;
+        findLen(minBuffer,  low, i, isMin);
+        findLen(maxBuffer, high, i, !isMin );
 
         diffBuffer[i] = 0;
         if (minBuffer[i] > 0) {
@@ -96,12 +97,12 @@ int OnCalculate(const int       rates_total,
     return (rates_total);
 }
 //+------------------------------------------------------------------+
-void findLen(double &buff[], const double &price[], const int i, const bool isHigh)
+void findLen(double &buff[], const double &price[], const int i, const bool isMax)
 {
     int j, j0 = i-1;
     buff[i] = 0;
     for (j = j0; j > 0; j--) {
-        if ((isHigh && price[j] > price[i]) || (!isHigh && price[j] < price[i])) {
+        if ((isMax && price[j] > price[i]) || (!isMax && price[j] < price[i])) {
             buff[i] = f(j0-j);
             break;
         }
@@ -111,11 +112,8 @@ void findLen(double &buff[], const double &price[], const int i, const bool isHi
 //+------------------------------------------------------------------+
 double f(const double x) 
 {
-/**/
     if (x < 5) return 0;
-
     return MathLog(x+2);
-/**/
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
