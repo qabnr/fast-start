@@ -62,39 +62,43 @@ int OnCalculate(const int       rates_total,
 {
     for (int i = prev_calculated; i < rates_total; i++)
     {
-        int j;
-        minBuffer[i] = 0;
-
-        for (j = i-1; j > 0; j--) {
-            if (low[j] < low[i]) {
-                minBuffer[i] = f(i-1-j);
-                break;
-            }
-        }
-        if (j == 0) minBuffer[i] = f(i);
-
-        maxBuffer[i] = 0;
-        for (j = i-1; j > 0; j--) {
-            if (high[j] > high[i]) {
-                maxBuffer[i] = f(i-1-j);
-                break;
-            }
-        }
-        if (j == 0) maxBuffer[i] = f(i);
+        findLen(minBuffer,  low, i, false);
+        findLen(maxBuffer, high, i, true);
     }
 
     //--- return the prev_calculated value for the next call
     return (rates_total);
 }
 //+------------------------------------------------------------------+
+void findLen(double &buff[], const double &price[], const int i, const bool isHigh)
+{
+    int j, j0 = i-1;
+    buff[i] = 0;
+    for (j = j0; j > 0; j--) {
+        if (isHigh) {
+          if (price[j] > price[i]) {
+            buff[i] = f(j0-j);
+            break;
+          }
+        } else {
+          if (price[j] < price[i]) {
+            buff[i] = f(j0-j);
+            break;
+          }
+        }
+    }
+    if (j == 0) buff[i] = f(i);
+}
+//+------------------------------------------------------------------+
 double f(const double x) 
 {
-/*/
-    if (x < 5) return 0;
+/**/
+    if (x < 5) return 0.01;
+    return x;
 /*/
     if (x < 5) return MathLog(2.0);
-/**/
     return MathLog(x+2);
+/**/
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
