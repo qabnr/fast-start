@@ -75,16 +75,13 @@ void findLen(double &buff[], const double &price[], const int i, const bool isHi
     int j, j0 = i-1;
     buff[i] = 0;
     for (j = j0; j > 0; j--) {
-        if (isHigh) {
-          if (price[j] > price[i]) {
+        if (isHigh && price[j] > price[i]) {
             buff[i] = f(j0-j);
             break;
-          }
-        } else {
-          if (price[j] < price[i]) {
+        } 
+        if (!isHigh && price[j] < price[i]) {
             buff[i] = f(j0-j);
             break;
-          }
         }
     }
     if (j == 0) buff[i] = f(i);
