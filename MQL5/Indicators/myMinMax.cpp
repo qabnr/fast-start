@@ -8,8 +8,8 @@
 #property description "For how long the present value is local min or max"
 
 #property indicator_separate_window
-#property indicator_buffers 2
-#property indicator_plots 2
+#property indicator_buffers 3
+#property indicator_plots   3
 
 #property indicator_label1 "minLen"
 #property indicator_type1 DRAW_SECTION
@@ -23,9 +23,15 @@
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 2
 
+#property indicator_label3 "diff"
+#property indicator_type3 DRAW_SECTION
+#property indicator_color3 clrYellow
+#property indicator_style3 STYLE_SOLID
+#property indicator_width3 2
+
 double minBuffer[];
 double maxBuffer[];
-
+double diffBuffer[];
 
 #define SF StringFormat
 
@@ -36,14 +42,16 @@ int OnInit()
 {
     Print("mMm: OnInit");
 
-    SetIndexBuffer(0, minBuffer, INDICATOR_DATA);
-    SetIndexBuffer(1, maxBuffer, INDICATOR_DATA);
-    
+    SetIndexBuffer(0,  minBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1,  maxBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, diffBuffer, INDICATOR_DATA);
+
     string short_name = "MaxMin";
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 
-    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
-    PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
+    //PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
+    //PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
+    //PlotIndexSetDouble(2, PLOT_EMPTY_VALUE, 0.0);
 
     return (INIT_SUCCEEDED);
 }
@@ -63,7 +71,25 @@ int OnCalculate(const int       rates_total,
     for (int i = prev_calculated; i < rates_total; i++)
     {
         findLen(minBuffer,  low, i, false);
-        findLen(maxBuffer, high, i, true);
+        findLen(maxBuffer, high, i, true );
+
+        diffBuffer[i] = 0;
+        if (minBuffer[i] > 0) {
+            for (int j = i-1; j >= 0; j--) {
+                if (maxBuffer[j] > 0) {
+                    diffBuffer[i] = (high[j] - low[i]) / high[j] * 10;
+                    break;
+                }
+            }
+        }
+        if (maxBuffer[i] > 0) {
+            for (int j = i-1; j >= 0; j--) {
+                if (minBuffer[j] > 0) {
+                    diffBuffer[i] = (high[i] - low[j]) / low[j] * 10;
+                    break;
+                }
+            }
+        }
     }
 
     //--- return the prev_calculated value for the next call
@@ -75,11 +101,7 @@ void findLen(double &buff[], const double &price[], const int i, const bool isHi
     int j, j0 = i-1;
     buff[i] = 0;
     for (j = j0; j > 0; j--) {
-        if (isHigh && price[j] > price[i]) {
-            buff[i] = f(j0-j);
-            break;
-        } 
-        if (!isHigh && price[j] < price[i]) {
+        if ((isHigh && price[j] > price[i]) || (!isHigh && price[j] < price[i])) {
             buff[i] = f(j0-j);
             break;
         }
@@ -90,10 +112,8 @@ void findLen(double &buff[], const double &price[], const int i, const bool isHi
 double f(const double x) 
 {
 /**/
-    if (x < 5) return 0.01;
-    return x;
-/*/
-    if (x < 5) return MathLog(2.0);
+    if (x < 5) return 0;
+
     return MathLog(x+2);
 /**/
 }
