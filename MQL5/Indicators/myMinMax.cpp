@@ -81,6 +81,11 @@ int OnCalculate(const int       rates_total,
                     diffBuffer[i] = (high[j] - low[i]) / (high[j] + low[i]) * 2 * 100;
                     break;
                 }
+
+                if (low[i] < low[j]) {
+                    minBuffer[j]  = 0;
+                    diffBuffer[j] = 0;
+                }
             }
         }
         if (maxBuffer[i] > 0) {
@@ -89,10 +94,13 @@ int OnCalculate(const int       rates_total,
                     diffBuffer[i] = (high[i] - low[j]) / (high[i] + low[j]) * 2 * 100;
                     break;
                 }
+
+                if (high[i] > high[j]) {
+                    maxBuffer[j] = 0;
+                    diffBuffer[j] = 0;
+                }
             }
         }
-
-        
     }
 
     //--- return the prev_calculated value for the next call
