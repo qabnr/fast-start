@@ -25,9 +25,9 @@
 
 #property indicator_label3 "diff"
 #property indicator_type3 DRAW_SECTION
-#property indicator_color3 clrYellow
+#property indicator_color3 clrBlue
 #property indicator_style3 STYLE_SOLID
-#property indicator_width3 2
+#property indicator_width3 1
 
 double minBuffer[];
 double maxBuffer[];
@@ -78,7 +78,7 @@ int OnCalculate(const int       rates_total,
         if (minBuffer[i] > 0) {
             for (int j = i-1; j >= 0; j--) {
                 if (maxBuffer[j] > 0) {
-                    diffBuffer[i] = (high[j] - low[i]) / high[j] * 10;
+                    diffBuffer[i] = (high[j] - low[i]) / high[j] * 100;
                     break;
                 }
             }
@@ -86,7 +86,7 @@ int OnCalculate(const int       rates_total,
         if (maxBuffer[i] > 0) {
             for (int j = i-1; j >= 0; j--) {
                 if (minBuffer[j] > 0) {
-                    diffBuffer[i] = (high[i] - low[j]) / low[j] * 10;
+                    diffBuffer[i] = (high[i] - low[j]) / low[j] * 100;
                     break;
                 }
             }
@@ -95,6 +95,19 @@ int OnCalculate(const int       rates_total,
 
     //--- return the prev_calculated value for the next call
     return (rates_total);
+}
+//+------------------------------------------------------------------+
+void findDiff(double &buff[], const double &price[], const int i, const bool isMax)
+{
+    int j, j0 = i-1;
+    buff[i] = 0;
+    for (j = j0; j > 0; j--) {
+        if ((isMax && price[j] > price[i]) || (!isMax && price[j] < price[i])) {
+            buff[i] = f(j0-j);
+            break;
+        }
+    }
+    if (j == 0) buff[i] = f(i);
 }
 //+------------------------------------------------------------------+
 void findLen(double &buff[], const double &price[], const int i, const bool isMax)

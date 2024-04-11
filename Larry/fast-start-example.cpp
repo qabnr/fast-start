@@ -593,6 +593,7 @@ void BS(void)
     if (TimeCurrent() == D'2024.04.01 17:00:00') { changeDirection(__LINE__, "1"); }
     if (TimeCurrent() == D'2024.04.02 18:00:00') { changeDirection(__LINE__, "1"); }
     if (TimeCurrent() == D'2024.04.04 20:00:00') { changeDirection(__LINE__, "1"); }
+    if (TimeCurrent() == D'2024.04.05 16:00:00') { changeDirection(__LINE__, "1"); }
 }
 //+------------------------------------------------------------------+
 void OnTick()
