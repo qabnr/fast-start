@@ -286,10 +286,11 @@ namespace Reason
         chDir_profitPerMaxProfitLossLimit,
         chDir_profitRate_paidLimit,
         changeOfSign_neg,
-        changeOfSign_pos
+        changeOfSign_pos,
+        size
     };
 
-    string Reason2str(ReasonCode r) {
+    string Reason2str(int r) {
         switch (r) {
             case Bought:            return "Bought";
             case Sold:              return "Sold";
@@ -312,6 +313,60 @@ namespace Reason
     }
 
 };
+//+------------------------------------------------------------------+
+namespace Stats
+{
+
+    enum Operation {
+        buy,
+        sell,
+        close,
+        size
+    };
+
+    string op2str(int op) {
+        switch (op)
+        {
+            case Operation::buy:     return "Buy";
+            case Operation::sell:    return "Sell";
+            case Operation::close:   return "Clse";
+            default:                 return "<UNKNOWN>";
+        }
+    }
+
+    int cntOp[Operation::size][Reason::ReasonCode::size];
+    double sumProfit[Reason::ReasonCode::size];
+
+    void addOpReason(Operation op, Reason::ReasonCode r) {
+        cntOp[op, r]++;
+    }
+    
+    void addProfit(double p, Reason::ReasonCode r) {
+        sumProfit[r] += p;
+    }
+    
+    void print() {
+        string line = SF("%41s", "");
+        for (int op = 0; op < Operation::size; op++) {
+            line += SF("%7s", op2str(op));
+        }
+        Print(line, "        Profit");
+        string lineDiv;
+        StringInit(lineDiv, StringLen(line), '-');
+        Print("              ", lineDiv);
+        double sumSumProfit = 0;
+        for (int r = 0; r < Reason::ReasonCode::size; r++) {
+            line = SF("%40s", Reason::Reason2str(r));
+            for (int op = 0; op < Operation::size; op++) {
+                line += SF("%7d", cntOp[op][r]);
+            }
+            PrintFormat("%s %14s", line, d2str(sumProfit[r]));
+            sumSumProfit += sumProfit[r];
+        }
+        Print("              ", lineDiv);
+        PrintFormat("                                                              %14s", d2str(sumSumProfit));
+    }
+}
 //+------------------------------------------------------------------+
 class SellOrBuy {
 public:
@@ -386,9 +441,22 @@ public:
     bool isTypeSELL()     { return posType == POSITION_TYPE_SELL; }
     bool isTypeBUY()      { return posType == POSITION_TYPE_BUY; }
     double getPricePaid() { return pricePaid; }
-    void close()          { while(m_Trade.PositionClose(my_symbol)) {} }
+
+    void close(Reason::ReasonCode reason) {
+        double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+        double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+        double profit  = equity - balance;
+LOG(SF("Close, profit: %s", d2str(profit)));
+
+        Stats::addOpReason(Stats::close,  reason);
+        Stats::addProfit(profit, reason);
+
+        while(m_Trade.PositionClose(my_symbol)) {}
+    }
 
     void buy(Reason::ReasonCode reason) {
+        Stats::addOpReason(Stats::buy, reason);
+
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
@@ -403,6 +471,8 @@ LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 
     void sell(Reason::ReasonCode reason) {
+        Stats::addOpReason(Stats::sell, reason);
+
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
@@ -417,49 +487,46 @@ LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 };
 //+------------------------------------------------------------------+
-class Global
+namespace g
 {
-public:
     ATR_TR_STOP_List ATR_list;
     MACD *MACD1, *MACD2;
     TradePosition *pPos;
     SellOrBuy sellOrBuy;
-    double maxRelDrawDown;
-
-    Global(): maxRelDrawDown(0) {};
+    double maxRelDrawDown = 0;
 };
-//+-----------
-Global g;
 //+------------------------------------------------------------------+
 int OnInit()
 {
 
-    g.MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
-    g.MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    g::MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    g::MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
 
-    g.pPos  = new TradePosition(Symbol());
+    g::pPos  = new TradePosition(Symbol());
 
 /*/
-    g.ATR_list.add(10, 1.0);
-    g.ATR_list.add(10, 2.0);
-    g.ATR_list.add(10, 3.0);
+    g::ATR_list.add(10, 1.0);
+    g::ATR_list.add(10, 2.0);
+    g::ATR_list.add(10, 3.0);
 /*/
-    g.ATR_list.add(10, 4.0);
- //   g.ATR_list.add(10, 6.0);
+    g::ATR_list.add(10, 4.0);
+ //   g::ATR_list.add(10, 6.0);
 
     return (0);
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    delete g.MACD1;
-    delete g.MACD2;
+    Stats::print();
+
+    delete g::MACD1;
+    delete g::MACD2;
 }
 //+------------------------------------------------------------------+
 string Osma2str(int idx) {
    return SF("[%.2f %.2f]",
-                  g.MACD2.decPeriod_OsMA_Buffer.get(idx),
-                  g.MACD2.OsMA_Buffer.get(idx));
+                  g::MACD2.decPeriod_OsMA_Buffer.get(idx),
+                  g::MACD2.OsMA_Buffer.get(idx));
 
 }
 //+------------------------------------------------------------------+
@@ -476,13 +543,13 @@ void PrintDecOsMa() {
 }
 //+------------------------------------------------------------------+
 bool justChangedToDownTrend() {
-    return g.MACD2.OsMA_Buffer.get(0) < g.MACD2.OsMA_Buffer.get(1)
-        && g.MACD2.OsMA_Buffer.get(1) > g.MACD2.OsMA_Buffer.get(2);
+    return g::MACD2.OsMA_Buffer.get(0) < g::MACD2.OsMA_Buffer.get(1)
+        && g::MACD2.OsMA_Buffer.get(1) > g::MACD2.OsMA_Buffer.get(2);
 }
 //+-----------
 bool justChangedToUpTrend() {
-    return g.MACD2.OsMA_Buffer.get(0) > g.MACD2.OsMA_Buffer.get(1)
-        && g.MACD2.OsMA_Buffer.get(1) < g.MACD2.OsMA_Buffer.get(2);
+    return g::MACD2.OsMA_Buffer.get(0) > g::MACD2.OsMA_Buffer.get(1)
+        && g::MACD2.OsMA_Buffer.get(1) < g::MACD2.OsMA_Buffer.get(2);
 }
 //+-----------
 bool justChangedTrends() {
@@ -490,11 +557,11 @@ bool justChangedTrends() {
 }
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
-    if (g.pPos.isTypeBUY()) {
-        g.sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
+    if (g::pPos.isTypeBUY()) {
+        g::sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
     }
-    else if (g.pPos.isTypeSELL()) {
-        g.sellOrBuy.set(SellOrBuy::State::BuyNow, reason, lineNo);
+    else if (g::pPos.isTypeSELL()) {
+        g::sellOrBuy.set(SellOrBuy::State::BuyNow, reason, lineNo);
     }
 }
 //+------------------------------------------------------------------+
@@ -510,22 +577,22 @@ private:
     bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
-        if (g.MACD1.MACD_Buffer.get(1) < g.MACD1.MACD_Buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.MACD_Buffer.get(1), g::MACD1.MACD_Buffer.get(2)));
+        if (g::MACD1.MACD_Buffer.get(1) < g::MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
-            if (g.MACD1.MACD_Buffer.get(i) > g.MACD1.MACD_Buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.MACD_Buffer.get(i), g::MACD1.MACD_Buffer.get(i+1)));
+            if (g::MACD1.MACD_Buffer.get(i) > g::MACD1.MACD_Buffer.get(i+1)) return false;
         }
 // LOG("MIN found");
         return true;
     };
 
     bool isMax() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g.MACD1.MACD_Buffer.get(1), g.MACD1.MACD_Buffer.get(2)));
-        if (g.MACD1.MACD_Buffer.get(1) > g.MACD1.MACD_Buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.MACD_Buffer.get(1), g::MACD1.MACD_Buffer.get(2)));
+        if (g::MACD1.MACD_Buffer.get(1) > g::MACD1.MACD_Buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g.MACD1.MACD_Buffer.get(i), g.MACD1.MACD_Buffer.get(i+1)));
-            if (g.MACD1.MACD_Buffer.get(i) < g.MACD1.MACD_Buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.MACD_Buffer.get(i), g::MACD1.MACD_Buffer.get(i+1)));
+            if (g::MACD1.MACD_Buffer.get(i) < g::MACD1.MACD_Buffer.get(i+1)) return false;
         }
 // LOG("MAX found");
         return true;
@@ -560,7 +627,7 @@ public:
         if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
-            s += SF("%.2f ", g.MACD1.MACD_Buffer.get(i));
+            s += SF("%.2f ", g::MACD1.MACD_Buffer.get(i));
         }
         Print(s);
     }
@@ -580,9 +647,9 @@ else {
 
 if(0)
 {
-double decMACD0 = g.MACD1.decPeriod_Buffer.get(0);
-double decMACD1 = g.MACD1.decPeriod_Buffer.get(1);
-double decMACD2 = g.MACD1.decPeriod_Buffer.get(2);
+double decMACD0 = g::MACD1.decPeriod_Buffer.get(0);
+double decMACD1 = g::MACD1.decPeriod_Buffer.get(1);
+double decMACD2 = g::MACD1.decPeriod_Buffer.get(2);
 
 if (decMACD0 >= 0 && decMACD1 < 0) {
     LOG(SF("dcMCD: Min (%.2f)", decMACD1));
@@ -598,12 +665,12 @@ if (decMACD1 <= 0 && decMACD2 > 0) {
     LOG(SF("dcMCD: MAX2 (%.2f)", decMACD2));
 }
 }
-        double macd0 = g.MACD1.MACD_Buffer.get(1);
+        double macd0 = g::MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
 if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
+    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
                 initValues(-1);
             }
             if (isMin()) {
@@ -639,7 +706,7 @@ LOG(LOGtxt);
             if (sign <= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
 if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g.sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
+    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
                 initValues(1);
             }
             if (isMax()) {
@@ -718,7 +785,7 @@ LOG(LOGtxt);
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    //if (MQLInfoInteger(MQL_TESTER) && g.maxRelDrawDown > maxRelDrawDownLimit) return;
+    //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
 
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
@@ -739,11 +806,11 @@ void OnTick()
 
     double profitRate     = profit / balance;
     double profitLossRate = (profit-maxProfit) / balance;
-    double profitRate_paid     = profit / g.pPos.getPricePaid();
-    double profitLossRate_paid = (profit-maxProfit) / g.pPos.getPricePaid();
+    double profitRate_paid     = profit / g::pPos.getPricePaid();
+    double profitLossRate_paid = (profit-maxProfit) / g::pPos.getPricePaid();
 
     double relDrawDown = 1 - balance / maxBalance;
-    if (relDrawDown > g.maxRelDrawDown) { g.maxRelDrawDown = relDrawDown; }
+    if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
 
 if (isNewMinute())
 LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
@@ -755,7 +822,7 @@ LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  E
         d2str(equity),
         (equity-maxEquity) / maxEquity * 100,
         d2str(balance),
-        g.maxRelDrawDown * 100));
+        g::maxRelDrawDown * 100));
 
     if (profitRate < -profitLossLimit) {
         changeDirection(Reason::chDir_profitLossLimit, __LINE__);
@@ -778,81 +845,81 @@ LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  E
         if (MACD1peaksAndValleys.is1stPeak()) {
 // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate * 100));
 if (profitRate > 0.5) {
-//    g.sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
+//    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
 }
         }
         if (MACD1peaksAndValleys.is2ndPeak()) {
-            g.sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
+            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
 // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate*100));
 if (profitRate > 0.5) {
-//    g.sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
+//    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
 }
 
         }
         else if (MACD1peaksAndValleys.is2ndValley()) {
-            g.sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
+            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
         }
         else if (justChangedToDownTrend()) {
 //PrintDecOsMa("v ");
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    g.sellOrBuy.set(SellOrBuy::State::GetReadyToSell, Reason::decOSMA_gt_limit,__LINE__);
+            if (g::MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
+                if (g::MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
+                    g::sellOrBuy.set(SellOrBuy::State::GetReadyToSell, Reason::decOSMA_gt_limit,__LINE__);
                 }
             }
         }
         else if (justChangedToUpTrend()) {
 //PrintDecOsMa("^ ");
-            if (g.MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
-                if (g.MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    g.sellOrBuy.set(SellOrBuy::State::GetReadyToBuy, Reason::decOSMA_lt_limit, __LINE__);
+            if (g::MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
+                if (g::MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
+                    g::sellOrBuy.set(SellOrBuy::State::GetReadyToBuy, Reason::decOSMA_lt_limit, __LINE__);
                 }
             }
         }
     }
 
-    if (g.sellOrBuy.isGetReadyToBuy()) {
-        if (g.ATR_list.isBuyNow(getPrice().low)) {
-            g.sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
+    if (g::sellOrBuy.isGetReadyToBuy()) {
+        if (g::ATR_list.isBuyNow(getPrice().low)) {
+            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
         }
     }
     else
-    if (g.sellOrBuy.isGetReadyToSell()) {
-        if (g.ATR_list.isSellNow(getPrice().high)) {
-            g.sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
+    if (g::sellOrBuy.isGetReadyToSell()) {
+        if (g::ATR_list.isSellNow(getPrice().high)) {
+            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }
  
-    if (g.sellOrBuy.isBuyNow()) {
-        if (g.pPos.select())
+    if (g::sellOrBuy.isBuyNow()) {
+        if (g::pPos.select())
         {
-            if (g.pPos.isTypeSELL()) {
-                g.pPos.close();
+            if (g::pPos.isTypeSELL()) {
+                g::pPos.close(g::sellOrBuy.getReason());
             }
-            if (g.pPos.isTypeBUY()) {
+            if (g::pPos.isTypeBUY()) {
 //Print(__LINE__, " Already bought");
                 return;
             }
         }
-        g.pPos.buy(g.sellOrBuy.getReason());
+        g::pPos.buy(g::sellOrBuy.getReason());
         maxProfit = 0;
-        g.sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
     }
-    else if (g.sellOrBuy.isSellNow()) {
-        if (g.pPos.select())
+    else if (g::sellOrBuy.isSellNow()) {
+        if (g::pPos.select())
         {
-            if (g.pPos.isTypeBUY()) {
-                g.pPos.close();
+            if (g::pPos.isTypeBUY()) {
+                g::pPos.close(g::sellOrBuy.getReason());
             }
-            if (g.pPos.isTypeSELL()) {
+            if (g::pPos.isTypeSELL()) {
 //Print(__LINE__, " Already sold");
                 return;
             }
         }
-        g.pPos.sell(g.sellOrBuy.getReason());
+        g::pPos.sell(g::sellOrBuy.getReason());
         maxProfit = 0;
-        g.sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
     }
 }
 //+------------------------------------------------------------------+
@@ -868,9 +935,9 @@ bool copyBuffers()
 {
     const int buffSize = 300;
 
-    if (!g.MACD1.   copyBuffers(buffSize) ||
-        !g.MACD2.   copyBuffers(buffSize) ||
-        !g.ATR_list.copyBuffers(buffSize)  )
+    if (!g::MACD1.   copyBuffers(buffSize) ||
+        !g::MACD2.   copyBuffers(buffSize) ||
+        !g::ATR_list.copyBuffers(buffSize)  )
     {
         Print("Failed to copy data from buffer");
         return false;
@@ -880,10 +947,10 @@ bool copyBuffers()
 //+------------------------------------------------------------------+
 double OnTester()
 {
-    if (g.maxRelDrawDown > maxRelDrawDownLimit) return 0;
+    if (g::maxRelDrawDown > maxRelDrawDownLimit) return 0;
     if (AccountInfoDouble(ACCOUNT_BALANCE) < 10) return 0; 
     // return AccountInfoDouble(ACCOUNT_BALANCE);
-    return AccountInfoDouble(ACCOUNT_BALANCE) / g.maxRelDrawDown;
+    return AccountInfoDouble(ACCOUNT_BALANCE) / g::maxRelDrawDown;
 }
 //+------------------------------------------------------------------+
 
