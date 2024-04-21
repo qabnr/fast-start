@@ -350,21 +350,22 @@ namespace Stats
         for (int op = 0; op < Operation::size; op++) {
             line += SF("%7s", op2str(op));
         }
-        Print(line, "        Profit");
+        LOG("");
+        LOG(line + "        Profit");
         string lineDiv;
         StringInit(lineDiv, StringLen(line), '-');
-        Print("              ", lineDiv);
+        LOG("              " + lineDiv);
         double sumSumProfit = 0;
         for (int r = 0; r < Reason::ReasonCode::size; r++) {
             line = SF("%40s", Reason::Reason2str(r));
             for (int op = 0; op < Operation::size; op++) {
                 line += SF("%7d", cntOp[op][r]);
             }
-            PrintFormat("%s %14s", line, d2str(sumProfit[r]));
+            LOG(SF("%s %14s", line, d2str(sumProfit[r])));
             sumSumProfit += sumProfit[r];
         }
-        Print("              ", lineDiv);
-        PrintFormat("                                                              %14s", d2str(sumSumProfit));
+        LOG("              " + lineDiv);
+        LOG(SF("                                                              %14s", d2str(sumSumProfit)));
     }
 }
 //+------------------------------------------------------------------+
