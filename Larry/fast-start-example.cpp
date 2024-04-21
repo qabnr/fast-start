@@ -364,11 +364,11 @@ namespace Stats
             for (int op = 0; op < Operation::size; op++) {
                 line += SF("%7d", cntOp[op][r]);
             }
-            LOG(SF("%s %14s", line, d2str(sumProfit[r])));
+            LOG(SF("%s %14s", line, d2str(sumProfit[r], false)));
             sumSumProfit += sumProfit[r];
         }
         LOG("              " + lineDiv);
-        LOG(SF("                                                              %14s", d2str(sumSumProfit)));
+        LOG(SF("                                                              %14s", d2str(sumSumProfit, false)));
     }
 }
 //+------------------------------------------------------------------+
