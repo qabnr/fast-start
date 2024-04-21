@@ -43,8 +43,10 @@ void LOG_Naked(const string s) {
 #define DAYS *24*60*60
 #define HOURS *60*60
 //+------------------------------------------------------------------+
-string d2str(const double d, const string ThSep = ",") {
-    if (d < 0) return "-" + d2str(-d, ThSep);
+string d2str(const double d, bool human = true) {
+    const string ThSep = ",";
+
+    if (d < 0) return "-" + d2str(-d, human);
     int i = (int)MathFloor(d);
 
     if (i < 1000) return (string)i;
@@ -53,6 +55,7 @@ string d2str(const double d, const string ThSep = ",") {
     if (thousands < 1000) return (string)thousands + ThSep + SF("%03d", u);
     int millions = thousands / 1000;
     thousands -= millions * 1000;
+    if (human) return (string)millions + ThSep + SF("%02d", thousands/10) + "m";
     return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
 }
 //+------------------------------------------------------------------+
@@ -814,7 +817,7 @@ void OnTick()
     if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
 
 if (isNewMinute())
-LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %6s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
+LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
         d2str(profit),
         profitLossRate * 100,
         profitLossRate_paid * 100,
