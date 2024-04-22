@@ -39,7 +39,7 @@ bool isLOG() {
 void LOG_Naked(const string s) {
     if (isLOG()) Print(s);
 }
-#define LOG(s) LOG_Naked(SF("%d: %s", __LINE__, s))
+#define LOG(s) if (isLOG()) Print(SF("%d: %s", __LINE__, s))
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60
@@ -50,14 +50,24 @@ string d2str(const double d, bool human = true) {
     if (d < 0) return "-" + d2str(-d, human);
     int i = (int)MathFloor(d);
 
-    if (i < 1000) return (string)i;
+    if (i < 1000) {
+        return (string)i;
+    }
     int thousands = i / 1000;
     int u = i - thousands * 1000;
-    if (thousands < 1000) return (string)thousands + ThSep + SF("%03d", u);
+    if (thousands < 1000) {
+        return (string)thousands + ThSep + SF("%03d", u);
+    }
     int millions = thousands / 1000;
     thousands -= millions * 1000;
-    if (human) return (string)millions + ThSep + SF("%02d", thousands/10) + "m";
-    return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+    if (millions < 1000) {
+        if (human) return (string)millions + ThSep + SF("%02d", thousands/10) + "m";
+        return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+    }
+    int trillions = millions / 1000;
+    millions -= trillions * 1000;
+    if (human) return (string)trillions + ThSep + SF("%02d", millions/10) + "tr";
+    return (string)trillions + ThSep + SF("%03d", millions) + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
 }
 //+------------------------------------------------------------------+
 bool isNewMinute() {

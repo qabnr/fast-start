@@ -1,11 +1,10 @@
-//+------------------------------------------------------------------+
-//|                                                       ZigZag.mq5 |
-//|                             Copyright 2000-2024, MetaQuotes Ltd. |
-//|                                             https://www.mql5.com |
-//+------------------------------------------------------------------+
-#property copyright "Copyright 2000-2024, MetaQuotes Ltd."
-#property link      "https://www.mql5.com"
-#property version   "1.00"
+//+--------------+
+//| myZigZag.mq5 |
+//+--------------+
+#property copyright "Copyright 2024, Mogyo Software Corp."
+#property link      "http://www.mogyo.com"
+#property version   "1.0"
+
 #property indicator_chart_window
 #property indicator_buffers 3
 #property indicator_plots   1
@@ -15,6 +14,7 @@
 #property indicator_color1  clrRed
 #property indicator_style1  STYLE_SOLID
 #property indicator_width1  1
+
 //--- input parameters
 input int InpDepth     = 12;  // Depth
 input int InpDeviation = 5;   // Deviation
@@ -78,7 +78,7 @@ int OnCalculate(const int        rates_total,
    }
 
 //--- ZigZag was already calculated before
-   if (prev_calculated > 0) {
+   else {
       i = rates_total - 1;
       //--- searching for the third extremum from the last uncompleted bar
       while(extreme_counter < ExtRecalc && i > rates_total - 100) {
