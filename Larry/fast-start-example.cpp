@@ -11,20 +11,21 @@
 input int    MACD2_fast_MA_period        = 64;
 input int    MACD2_slow_MA_period        = 157;
 input int    MACD2_avg_diff_period       = 86;
-input double OsMA_limit                  = 0.47;
-input double decP_OsMa_limit             = 0.98;
+input double OsMA_limit                  = 0.627;
+input double decP_OsMa_limit             = 0.89;
 input int    minMaxBAckTrack             = 5;
-input double profitLossLimit             = 0.21;
-input double profitPerMaxProfitLossLimit = 0.40;
-input int    maxTransactions             = 10;
+input double profitLossLimit             = 0.27;
+input double profitLossPerBalLimit       = 7.28;
+input int    maxTransactions             = 5000;
 input double equityTradeLimit            = 0.75;
-input double tradeSizeFraction           = 1.18;
-input int    LastChangeOfSignMinLimit    = 27100;
-input int    LastChangeOfSignMaxLimit    = 390300;
+input double tradeSizeFraction           = 1.2;
+input int    LastChangeOfSignMinLimit    = 36950;
+input int    LastChangeOfSignMaxLimit    = 338300;
 
-//input double profitRate_paidLimit        = 1.0;
+input double profitPerPriceLimit         = 9.88;
+input double profitLossPerPriceLimit     = 9.13;
 
-input double maxRelDrawDownLimit         = 0.7;
+input double maxRelDrawDownLimit         = 0.6;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -286,8 +287,9 @@ namespace Reason
         ATR_high,
         ATR_low,
         chDir_profitLossLimit,
-        chDir_profitPerMaxProfitLossLimit,
-        chDir_profitRate_paidLimit,
+        chDir_profitLossPerBalLimit,
+        chDir_profitPerPriceLimit,
+        chDir_profitLossPerPriceLimit,
         changeOfSign_neg,
         changeOfSign_pos,
         size
@@ -305,9 +307,10 @@ namespace Reason
             case decOSMA_lt_limit:  return "decOsMA < -limit";
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
-            case chDir_profitLossLimit:             return "chDir: profitLossLimit";
-            case chDir_profitPerMaxProfitLossLimit: return "chDir: profitPerMaxProfitLossLimit";
-            case chDir_profitRate_paidLimit:        return "chDir: profitRate_paidLimit";
+            case chDir_profitLossLimit:          return "chDir: profitLossLimit";
+            case chDir_profitLossPerBalLimit:    return "chDir: profitLossPerBalLimit";
+            case chDir_profitPerPriceLimit:      return "chDir: profitPerPriceLimit";
+            case chDir_profitLossPerPriceLimit:  return "chDir: profitLossPerPriceLimit";
             case changeOfSign_neg:  return "Change of sign: (-)";
             case changeOfSign_pos:  return "Change of sign: (+)";
 
@@ -437,7 +440,7 @@ private:
 public:
     TradePosition(string symbol): my_symbol(symbol),
         volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
-        posType(-1), pricePaid(0)
+        posType(-1), pricePaid(0.01)
     {}
     ~TradePosition() {}
 
@@ -462,7 +465,7 @@ LOG(SF("Close, profit: %s", d2str(profit)));
         Stats::addOpReason(Stats::buy, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
+// LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
             posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
@@ -471,14 +474,14 @@ LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         }
         pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("BUY for %s", d2str(pricePaid)));
-LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+// LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 
     void sell(Reason::ReasonCode reason) {
         Stats::addOpReason(Stats::sell, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
+// LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
@@ -487,7 +490,7 @@ LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
         }
         pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("SELL for %s", d2str(pricePaid)));
-LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+// LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 };
 //+------------------------------------------------------------------+
@@ -789,6 +792,8 @@ LOG(LOGtxt);
 //+------------------------------------------------------------------+
 void OnTick()
 {
+    static int logCnt = 0;
+
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
 
     if (copyBuffers() == false)
@@ -808,35 +813,44 @@ void OnTick()
     if (equity  > maxEquity)  { maxEquity = equity; }
     if (balance > maxBalance) { maxBalance = balance; }
 
-    double profitRate     = profit / balance;
-    double profitLossRate = (profit-maxProfit) / balance;
-    double profitRate_paid     = profit / g::pPos.getPricePaid();
-    double profitLossRate_paid = (profit-maxProfit) / g::pPos.getPricePaid();
+    double profitPerBalance       = profit / balance;
+    double profitLossPerBal       = (profit-maxProfit) / balance;
+    double profitPerPrice         = profit / g::pPos.getPricePaid();
+    double profitLossPerPrice = (profit-maxProfit) / g::pPos.getPricePaid();
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
 
-if (isNewMinute())
-LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %s  Eq/EqMx: %+6.1f%%  Blc: %s  DrDmx: %.1f%%",
+if (isNewMinute()) {
+    logCnt++;
+    if (logCnt % 20 == 1) {
+        LOG("-- Pro     PrLs/Blc PrLs/Pri  Pro/Blc  Pro/Pri     Eq     Eq/EqMx    Blc   RlDrDn");
+    }
+    LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
         d2str(profit),
-        profitLossRate * 100,
-        profitLossRate_paid * 100,
-        profitRate * 100.0,
-        profitRate_paid * 100.0,
+        profitLossPerBal * 100,
+        profitLossPerPrice * 100,
+        profitPerBalance * 100.0,
+        profitPerPrice * 100.0,
         d2str(equity),
         (equity-maxEquity) / maxEquity * 100,
         d2str(balance),
         g::maxRelDrawDown * 100));
+}
 
-    if (profitRate < -profitLossLimit) {
+    if (profitPerBalance < -profitLossLimit) {
         changeDirection(Reason::chDir_profitLossLimit, __LINE__);
     }
-    else if (maxProfit > 0 && (profitRate < -profitLossLimit/2) && profitLossRate < -profitPerMaxProfitLossLimit) {
-        changeDirection(Reason::chDir_profitPerMaxProfitLossLimit, __LINE__);
+    // else if (maxProfit > 0 && (profitPerBalance < -profitLossLimit/2) && profitLossPerBal < -profitLossPerBalLimit) {
+    else if (maxProfit > 0 && profitLossPerBal < -profitLossPerBalLimit) {
+        changeDirection(Reason::chDir_profitLossPerBalLimit, __LINE__);
     }
-    // else if (profitRate_paid < -profitRate_paidLimit) {
-    // changeDirection(Reason::chDir_profitRate_paidLimit, __LINE__);
-    // }
+    else if (profitPerPrice < -profitPerPriceLimit) {
+        changeDirection(Reason::chDir_profitPerPriceLimit, __LINE__);
+    }
+    else if (profitLossPerPrice < -profitLossPerPriceLimit) {
+        changeDirection(Reason::chDir_profitLossPerPriceLimit, __LINE__);
+    }
 
 
     //if (TimeCurrent() > D'2023.08.05')
@@ -847,8 +861,8 @@ LOG(SF("P: %8s  P/Pmx: %+7.1f%%  (%+7.1f%%)  PR: %+6.1f%%  (%+6.1f%%)  E: %s  Eq
         MACD1peaksAndValleys.process();
 
         if (MACD1peaksAndValleys.is1stPeak()) {
-// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate * 100));
-if (profitRate > 0.5) {
+// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
+if (profitPerBalance > 0.5) {
 //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
 }
         }
@@ -856,8 +870,8 @@ if (profitRate > 0.5) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
-// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitRate*100));
-if (profitRate > 0.5) {
+// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance*100));
+if (profitPerBalance > 0.5) {
 //    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
 }
 
@@ -909,6 +923,7 @@ if (profitRate > 0.5) {
         g::pPos.buy(g::sellOrBuy.getReason());
         maxProfit = 0;
         g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
+        logCnt = 0;
     }
     else if (g::sellOrBuy.isSellNow()) {
         if (g::pPos.select())
@@ -924,6 +939,7 @@ if (profitRate > 0.5) {
         g::pPos.sell(g::sellOrBuy.getReason());
         maxProfit = 0;
         g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
+        logCnt = 0;
     }
 }
 //+------------------------------------------------------------------+
