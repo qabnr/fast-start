@@ -14,7 +14,7 @@ input int    MACD2_avg_diff_period       = 86;
 input double OsMA_limit                  = 0.627;
 input double decP_OsMa_limit             = 0.89;
 input int    minMaxBAckTrack             = 5;
-input double profitLossLimit             = 0.27;
+input double profitPerBalanceLimit       = 0.27;
 input double profitLossPerBalLimit       = 7.28;
 input int    maxTransactions             = 5000;
 input double equityTradeLimit            = 0.75;
@@ -48,26 +48,26 @@ string d2str(const double d, bool human = true) {
     const string ThSep = ",";
 
     if (d < 0) return "-" + d2str(-d, human);
-    int i = (int)MathFloor(d);
+    ulong i = (ulong)MathFloor(d);
 
     if (i < 1000) {
         return (string)i;
     }
-    int thousands = i / 1000;
-    int u = i - thousands * 1000;
+    ulong thousands = i / 1000;
+    int u = int(i - thousands * 1000);
     if (thousands < 1000) {
-        return (string)thousands + ThSep + SF("%03d", u);
+        return (string)thousands + ThSep + SF("%03u", u);
     }
-    int millions = thousands / 1000;
+    uint millions = uint(thousands / 1000);
     thousands -= millions * 1000;
     if (millions < 1000) {
         if (human) return (string)millions + ThSep + SF("%02d", thousands/10) + "m";
-        return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+        return (string)millions + ThSep + SF("%03d", thousands) + ThSep + SF("%03u", u);
     }
-    int trillions = millions / 1000;
+    uint trillions = millions / 1000;
     millions -= trillions * 1000;
     if (human) return (string)trillions + ThSep + SF("%02d", millions/10) + "tr";
-    return (string)trillions + ThSep + SF("%03d", millions) + ThSep + SF("%03d", thousands) + ThSep + SF("%03d", u);
+    return (string)trillions + ThSep + SF("%03u", millions) + ThSep + SF("%03u", thousands) + ThSep + SF("%03u", u);
 }
 //+------------------------------------------------------------------+
 bool isNewMinute() {
@@ -282,7 +282,6 @@ public:
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 #define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
 
-
 namespace Reason
 {
     enum ReasonCode {
@@ -305,7 +304,7 @@ namespace Reason
         size
     };
 
-    string Reason2str(int r) {
+    string toStr(int r) {
         switch (r) {
             case Bought:            return "Bought";
             case Sold:              return "Sold";
@@ -317,7 +316,7 @@ namespace Reason
             case decOSMA_lt_limit:  return "decOsMA < -limit";
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
-            case chDir_profitLossLimit:          return "chDir: profitLossLimit";
+            case chDir_profitLossLimit:          return "chDir: profitPerBalanceLimit";
             case chDir_profitLossPerBalLimit:    return "chDir: profitLossPerBalLimit";
             case chDir_profitPerPriceLimit:      return "chDir: profitPerPriceLimit";
             case chDir_profitLossPerPriceLimit:  return "chDir: profitLossPerPriceLimit";
@@ -328,6 +327,39 @@ namespace Reason
         }
     }
 
+};
+//+------------------------------------------------------------------+
+class List {
+private:
+    double arr[];
+    int    last;
+
+public:
+    List(): last(-1) { ArrayResize(arr, 0, 1000); }
+    ~List() {}
+
+    void push(double val) {
+        last++;
+        ArrayResize(arr, last+1, 1000);
+        arr[last] = val;
+    }
+
+    double variance() {
+        int    size = ArraySize(arr);
+        if (size == 0) return 0;
+
+        double sum = 0;
+        for (int i=0; i < size; i++) { sum += arr[i]; }
+        double avg = sum / size;
+        double diffSqSum = 0;
+        for (int i=0; i < size; i++) {
+            double diff = avg - arr[i];
+            diffSqSum += diff * diff;
+        }
+        return diffSqSum / size;
+    }
+
+    double stdDev() { return MathSqrt(variance()); }
 };
 //+------------------------------------------------------------------+
 namespace Stats
@@ -353,12 +385,15 @@ namespace Stats
     int cntOp[Operation::size][Reason::ReasonCode::size];
     double sumProfit[Reason::ReasonCode::size];
 
+    List profitList[Reason::ReasonCode::size];
+
     void addOpReason(Operation op, Reason::ReasonCode r) {
         cntOp[op, r]++;
     }
     
-    void addProfit(double p, Reason::ReasonCode r) {
-        sumProfit[r] += p;
+    void addProfit(double profit, Reason::ReasonCode reason) {
+        sumProfit [reason] += profit;
+        profitList[reason].push(profit);
     }
     
     void print() {
@@ -367,21 +402,26 @@ namespace Stats
             line += SF("%7s", op2str(op));
         }
         LOG("");
-        LOG(line + "        Profit");
+        line += "   Profit   avgPrf   stdDev";
+        LOG(line);
         string lineDiv;
         StringInit(lineDiv, StringLen(line), '-');
-        LOG("              " + lineDiv);
+        LOG(lineDiv);
         double sumSumProfit = 0;
         for (int r = 0; r < Reason::ReasonCode::size; r++) {
-            line = SF("%40s", Reason::Reason2str(r));
+            line = SF("%40s", Reason::toStr(r));
             for (int op = 0; op < Operation::size; op++) {
                 line += SF("%7d", cntOp[op][r]);
             }
-            LOG(SF("%s %14s", line, d2str(sumProfit[r], false)));
+            double avgProfit = cntOp[Operation::close][r] == 0 ? 0 : sumProfit[r]/cntOp[Operation::close][r];
+            LOG(SF("%s %8s %8.1f %8.1f",
+                line, d2str(sumProfit[r], false),
+                avgProfit,
+                /*d2str*/(profitList[r].stdDev())));
             sumSumProfit += sumProfit[r];
         }
-        LOG("              " + lineDiv);
-        LOG(SF("                                                              %14s", d2str(sumSumProfit, false)));
+        LOG(lineDiv);
+        LOG(SF("                                                              %8s", d2str(sumSumProfit, false)));
     }
 }
 //+------------------------------------------------------------------+
@@ -420,7 +460,7 @@ public:
     DEF_IS_METHOD(GetReadyToSell)
     DEF_IS_METHOD(SellNow)
 
-    string Reason2str() { return Reason::Reason2str(reason); }
+    string Reason2str() { return Reason::toStr(reason); }
 
     string State2str() { return State2str(state); }
 
@@ -459,10 +499,10 @@ public:
     bool isTypeBUY()      { return posType == POSITION_TYPE_BUY; }
     double getPricePaid() { return pricePaid; }
 
-    void close(Reason::ReasonCode reason) {
-        double balance = AccountInfoDouble(ACCOUNT_BALANCE);
-        double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-        double profit  = equity - balance;
+    void close(Reason::ReasonCode reason, double profit) {
+        // double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+        // double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+        // double profit  = equity - balance;
 LOG(SF("Close, profit: %s", d2str(profit)));
 
         Stats::addOpReason(Stats::close,  reason);
@@ -848,10 +888,9 @@ if (isNewMinute()) {
         g::maxRelDrawDown * 100));
 }
 
-    if (profitPerBalance < -profitLossLimit) {
+    if (profitPerBalance < -profitPerBalanceLimit) {
         changeDirection(Reason::chDir_profitLossLimit, __LINE__);
     }
-    // else if (maxProfit > 0 && (profitPerBalance < -profitLossLimit/2) && profitLossPerBal < -profitLossPerBalLimit) {
     else if (maxProfit > 0 && profitLossPerBal < -profitLossPerBalLimit) {
         changeDirection(Reason::chDir_profitLossPerBalLimit, __LINE__);
     }
@@ -923,7 +962,7 @@ if (profitPerBalance > 0.5) {
         if (g::pPos.select())
         {
             if (g::pPos.isTypeSELL()) {
-                g::pPos.close(g::sellOrBuy.getReason());
+                g::pPos.close(g::sellOrBuy.getReason(), profitPerBalance*100);
             }
             if (g::pPos.isTypeBUY()) {
 //Print(__LINE__, " Already bought");
@@ -939,7 +978,7 @@ if (profitPerBalance > 0.5) {
         if (g::pPos.select())
         {
             if (g::pPos.isTypeBUY()) {
-                g::pPos.close(g::sellOrBuy.getReason());
+                g::pPos.close(g::sellOrBuy.getReason(), profitPerBalance*100);
             }
             if (g::pPos.isTypeSELL()) {
 //Print(__LINE__, " Already sold");
