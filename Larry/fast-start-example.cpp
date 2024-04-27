@@ -8,6 +8,9 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
+input int    MACD1_fast_MA_period        = 12;
+input int    MACD1_slow_MA_period        = 26;
+input int    MACD1_avg_diff_period       = 9;
 input int    MACD2_fast_MA_period        = 64;
 input int    MACD2_slow_MA_period        = 157;
 input int    MACD2_avg_diff_period       = 86;
@@ -331,29 +334,34 @@ namespace Reason
 //+------------------------------------------------------------------+
 class List {
 private:
-    double arr[];
-    int    last;
+    double arr_[];
+    int    last_;
+    double sum_;
 
 public:
-    List(): last(-1) { ArrayResize(arr, 0, 1000); }
+    List(): last_(-1), sum_(0) { ArrayResize(arr_, 0, 1000); }
     ~List() {}
 
     void push(double val) {
-        last++;
-        ArrayResize(arr, last+1, 1000);
-        arr[last] = val;
+        sum_ += val;
+        last_++;
+        ArrayResize(arr_, last_+1, 1000);
+        arr_[last_] = val;
     }
 
+    double sum() { return sum_; }
+    double avg() { return last_ <= 0 ? 0: sum_/last_; }
+
     double variance() {
-        int    size = ArraySize(arr);
+        int size = ArraySize(arr_);
         if (size == 0) return 0;
 
         double sum = 0;
-        for (int i=0; i < size; i++) { sum += arr[i]; }
+        for (int i = 0; i < size; i++) { sum += arr_[i]; }
         double avg = sum / size;
         double diffSqSum = 0;
-        for (int i=0; i < size; i++) {
-            double diff = avg - arr[i];
+        for (int i = 0; i < size; i++) {
+            double diff = avg - arr_[i];
             diffSqSum += diff * diff;
         }
         return diffSqSum / size;
@@ -383,7 +391,6 @@ namespace Stats
     }
 
     int cntOp[Operation::size][Reason::ReasonCode::size];
-    double sumProfit[Reason::ReasonCode::size];
 
     List profitList[Reason::ReasonCode::size];
 
@@ -392,7 +399,6 @@ namespace Stats
     }
     
     void addProfit(double profit, Reason::ReasonCode reason) {
-        sumProfit [reason] += profit;
         profitList[reason].push(profit);
     }
     
@@ -413,12 +419,12 @@ namespace Stats
             for (int op = 0; op < Operation::size; op++) {
                 line += SF("%7d", cntOp[op][r]);
             }
-            double avgProfit = cntOp[Operation::close][r] == 0 ? 0 : sumProfit[r]/cntOp[Operation::close][r];
             LOG(SF("%s %8s %8.1f %8.1f",
-                line, d2str(sumProfit[r], false),
-                avgProfit,
-                /*d2str*/(profitList[r].stdDev())));
-            sumSumProfit += sumProfit[r];
+                line,
+                d2str(profitList[r].sum(), false),
+                profitList[r].avg(),
+                profitList[r].stdDev()));
+            sumSumProfit += profitList[r].sum();
         }
         LOG(lineDiv);
         LOG(SF("                                                              %8s", d2str(sumSumProfit, false)));
@@ -556,7 +562,7 @@ namespace g
 int OnInit()
 {
 
-    g::MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", 12,  26,  9));
+    g::MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period));
     g::MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
 
     g::pPos  = new TradePosition(Symbol());
