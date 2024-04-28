@@ -329,7 +329,6 @@ namespace Reason
             enum2str_DEFAULT;
         }
     }
-
 };
 //+------------------------------------------------------------------+
 class List {
@@ -370,9 +369,8 @@ public:
     double stdDev() { return MathSqrt(variance()); }
 };
 //+------------------------------------------------------------------+
-namespace Stats
-{
-
+class Stats {
+public:
     enum Operation {
         buy,
         sell,
@@ -380,6 +378,11 @@ namespace Stats
         size
     };
 
+private:
+    int  cntOp[Operation::size][Reason::ReasonCode::size];
+    List profitList[Reason::ReasonCode::size];
+
+public:
     string op2str(int op) {
         switch (op)
         {
@@ -389,10 +392,6 @@ namespace Stats
             default:                 return "<UNKNOWN>";
         }
     }
-
-    int cntOp[Operation::size][Reason::ReasonCode::size];
-
-    List profitList[Reason::ReasonCode::size];
 
     void addOpReason(Operation op, Reason::ReasonCode r) {
         cntOp[op, r]++;
@@ -429,7 +428,7 @@ namespace Stats
         LOG(lineDiv);
         LOG(SF("                                                              %8s", d2str(sumSumProfit, false)));
     }
-}
+};
 //+------------------------------------------------------------------+
 class SellOrBuy {
 public:
@@ -492,13 +491,14 @@ private:
     int           posType;
     double        volume;
     double        pricePaid;
+    Stats         stats;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
         volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
         posType(-1), pricePaid(0.01)
     {}
-    ~TradePosition() {}
+    ~TradePosition() { stats.print(); }
 
     bool select()         { return m_Position.Select(my_symbol); }
     bool isTypeSELL()     { return posType == POSITION_TYPE_SELL; }
@@ -511,14 +511,14 @@ public:
         // double profit  = equity - balance;
 LOG(SF("Close, profit: %s", d2str(profit)));
 
-        Stats::addOpReason(Stats::close,  reason);
-        Stats::addProfit(profit, reason);
+        stats.addOpReason(stats.close,  reason);
+        stats.addProfit(profit, reason);
 
         while(m_Trade.PositionClose(my_symbol)) {}
     }
 
     void buy(Reason::ReasonCode reason) {
-        Stats::addOpReason(Stats::buy, reason);
+        stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 // LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
@@ -534,7 +534,7 @@ LOG(SF("BUY for %s", d2str(pricePaid)));
     }
 
     void sell(Reason::ReasonCode reason) {
-        Stats::addOpReason(Stats::sell, reason);
+        stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
 // LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
@@ -580,8 +580,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    Stats::print();
-
+    delete g::pPos;
     delete g::MACD1;
     delete g::MACD2;
 }
