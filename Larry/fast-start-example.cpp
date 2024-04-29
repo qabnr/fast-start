@@ -113,7 +113,7 @@ string timeDiffToStr(datetime &then) {
     return secToStr(timeDiff(then));
 }
 //+------------------------------------------------------------------+
-class buffer
+class Buffer
 {
 private:
     string  name;
@@ -123,10 +123,10 @@ private:
     int     nrCopied;
 
 public:
-    buffer(): handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
+    Buffer(): handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
         ArraySetAsSeries(buff, true);
     }
-    buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
+    Buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
     {
         ArraySetAsSeries(buff, true);
 Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
@@ -137,7 +137,7 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
          buffNum = _buffNum;
 Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     }
-    ~buffer() {};
+    ~Buffer() {};
 
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
@@ -157,17 +157,18 @@ class ATR_TR_STOP
 {
 private:
     int    handle;
-    buffer stopBuffer;
-    buffer stopColorBuffer;
+    Buffer stopBuffer;
+    Buffer stopColorBuffer;
 
-    buffer buyBuffer;
-    buffer buyColorBuffer;
+    Buffer buyBuffer;
+    Buffer buyColorBuffer;
 
-    buffer sellBuffer;
-    buffer sellColorBuffer;
+    Buffer sellBuffer;
+    Buffer sellColorBuffer;
 
 public:
-    ATR_TR_STOP() {}
+    ATR_TR_STOP() : handle(INVALID_HANDLE) {}
+    ~ATR_TR_STOP() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
 
     void init(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
@@ -240,19 +241,19 @@ public:
 class MACD
 {
 private:
-    //int handle;
+    int handle;
 
 public:
-    buffer MACD_Buffer;
-    buffer Signal_Buffer;
-    buffer OsMA_Buffer;
-    buffer osMA_Color_Buffer;
-    buffer decPeriod_Buffer;
-    buffer incPeriod_Buffer;
-    buffer decPeriod_OsMA_Buffer;
-    buffer incPeriod_OsMA_Buffer;
+    Buffer MACD_Buffer;
+    Buffer Signal_Buffer;
+    Buffer OsMA_Buffer;
+    Buffer osMA_Color_Buffer;
+    Buffer decPeriod_Buffer;
+    Buffer incPeriod_Buffer;
+    Buffer decPeriod_OsMA_Buffer;
+    Buffer incPeriod_OsMA_Buffer;
 
-    MACD(string name, int _handle):
+    MACD(string name, int _handle): handle(_handle),
         MACD_Buffer          (5, name, _handle),
         Signal_Buffer        (4, name, _handle),
         OsMA_Buffer          (2, name, _handle),
@@ -263,9 +264,9 @@ public:
         incPeriod_OsMA_Buffer(7, name, _handle)
     {
         if(_handle  == INVALID_HANDLE)
-        {   Print("Failed to get the one of the indicator handles"); }
+        {   Print("Failed to get indicator handle"); }
     }
-    ~MACD() {}
+    ~MACD() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
 
     bool copyBuffers(int count)
     {
@@ -278,6 +279,28 @@ public:
             incPeriod_Buffer     .copy(count) &&
             decPeriod_OsMA_Buffer.copy(count) &&
             incPeriod_OsMA_Buffer.copy(count);
+    }
+};
+//+------------------------------------------------------------------+
+class LinRegrChannel
+{
+private:
+    int handle;
+
+public:
+    Buffer buffer;
+
+    LinRegrChannel(string name, int _handle): handle(_handle),
+        buffer(0, name, _handle)
+    {
+        if(_handle  == INVALID_HANDLE)
+        {   Print("Failed to get indicator handle"); }
+    }
+    ~LinRegrChannel() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
+
+    bool copyBuffers(int count)
+    {
+        return buffer.copy(count);
     }
 };
 //+------------------------------------------------------------------+
@@ -553,10 +576,11 @@ LOG(SF("SELL for %s", d2str(pricePaid)));
 namespace g
 {
     ATR_TR_STOP_List ATR_list;
-    MACD *MACD1, *MACD2;
-    TradePosition *pPos;
-    SellOrBuy sellOrBuy;
-    double maxRelDrawDown = 0;
+    MACD            *MACD1, *MACD2;
+    TradePosition   *pPos;
+    LinRegrChannel  *linRegrChannel;
+    SellOrBuy        sellOrBuy;
+    double           maxRelDrawDown = 0;
 };
 //+------------------------------------------------------------------+
 int OnInit()
@@ -564,6 +588,8 @@ int OnInit()
 
     g::MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period));
     g::MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+
+    g::linRegrChannel = new LinRegrChannel("LRCh", iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"));
 
     g::pPos  = new TradePosition(Symbol());
 
@@ -580,6 +606,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
+    delete g::linRegrChannel;
     delete g::pPos;
     delete g::MACD1;
     delete g::MACD2;
@@ -1009,9 +1036,10 @@ bool copyBuffers()
 {
     const int buffSize = 300;
 
-    if (!g::MACD1.   copyBuffers(buffSize) ||
-        !g::MACD2.   copyBuffers(buffSize) ||
-        !g::ATR_list.copyBuffers(buffSize)  )
+    if (!g::MACD1.         copyBuffers(buffSize) ||
+        !g::MACD2.         copyBuffers(buffSize) ||
+        !g::ATR_list.      copyBuffers(buffSize) ||
+        !g::linRegrChannel.copyBuffers(buffSize))
     {
         Print("Failed to copy data from buffer");
         return false;
@@ -1022,6 +1050,7 @@ bool copyBuffers()
 double OnTester()
 {
     if (g::maxRelDrawDown > maxRelDrawDownLimit) return 0;
+    if (g::maxRelDrawDown < 0.01) return 0;
     if (AccountInfoDouble(ACCOUNT_BALANCE) < 10) return 0; 
     // return AccountInfoDouble(ACCOUNT_BALANCE);
     return AccountInfoDouble(ACCOUNT_BALANCE) / g::maxRelDrawDown;
