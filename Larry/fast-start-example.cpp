@@ -123,10 +123,10 @@ private:
     int     nrCopied;
 
 public:
-    Buffer(): handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
+    Buffer(): name("<NO NAME>"), handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
         ArraySetAsSeries(buff, true);
     }
-    Buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum)
+    Buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum), nrCopied(0)
     {
         ArraySetAsSeries(buff, true);
 Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
@@ -253,17 +253,18 @@ public:
     Buffer decPeriod_OsMA_Buffer;
     Buffer incPeriod_OsMA_Buffer;
 
-    MACD(string name, int _handle): handle(_handle),
-        MACD_Buffer          (5, name, _handle),
-        Signal_Buffer        (4, name, _handle),
-        OsMA_Buffer          (2, name, _handle),
-        osMA_Color_Buffer    (3, name, _handle),
-        decPeriod_Buffer     (0, name, _handle),
-        incPeriod_Buffer     (1, name, _handle),
-        decPeriod_OsMA_Buffer(6, name, _handle),
-        incPeriod_OsMA_Buffer(7, name, _handle)
+    MACD(string name, int fast_MA_period, int slow_MA_period, int avg_diff_period)
+        : handle(iCustom(NULL, PERIOD_CURRENT, "myMACD", fast_MA_period, slow_MA_period, avg_diff_period)),
+        MACD_Buffer          (5, name, handle),
+        Signal_Buffer        (4, name, handle),
+        OsMA_Buffer          (2, name, handle),
+        osMA_Color_Buffer    (3, name, handle),
+        decPeriod_Buffer     (0, name, handle),
+        incPeriod_Buffer     (1, name, handle),
+        decPeriod_OsMA_Buffer(6, name, handle),
+        incPeriod_OsMA_Buffer(7, name, handle)
     {
-        if(_handle  == INVALID_HANDLE)
+        if(handle  == INVALID_HANDLE)
         {   Print("Failed to get indicator handle"); }
     }
     ~MACD() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
@@ -290,10 +291,10 @@ private:
 public:
     Buffer buffer;
 
-    LinRegrChannel(string name, int _handle): handle(_handle),
-        buffer(0, name, _handle)
+    LinRegrChannel(string name): handle(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
+        buffer(0, name, handle)
     {
-        if(_handle  == INVALID_HANDLE)
+        if(handle  == INVALID_HANDLE)
         {   Print("Failed to get indicator handle"); }
     }
     ~LinRegrChannel() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
@@ -586,10 +587,10 @@ namespace g
 int OnInit()
 {
 
-    g::MACD1 = new MACD("MACD1", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period));
-    g::MACD2 = new MACD("MACD2", iCustom(NULL, PERIOD_CURRENT, "myMACD", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    g::MACD1 = new MACD("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
+    g::MACD2 = new MACD("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
 
-    g::linRegrChannel = new LinRegrChannel("LRCh", iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"));
+    g::linRegrChannel = new LinRegrChannel("LRCh");
 
     g::pPos  = new TradePosition(Symbol());
 
@@ -1036,10 +1037,11 @@ bool copyBuffers()
 {
     const int buffSize = 300;
 
-    if (!g::MACD1.         copyBuffers(buffSize) ||
-        !g::MACD2.         copyBuffers(buffSize) ||
-        !g::ATR_list.      copyBuffers(buffSize) ||
-        !g::linRegrChannel.copyBuffers(buffSize))
+    if (   !g::MACD1.         copyBuffers(buffSize)
+        || !g::MACD2.         copyBuffers(buffSize)
+        || !g::ATR_list.      copyBuffers(buffSize)
+        || !g::linRegrChannel.copyBuffers(buffSize)
+        )
     {
         Print("Failed to copy data from buffer");
         return false;

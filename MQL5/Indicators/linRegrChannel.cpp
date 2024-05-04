@@ -1,6 +1,4 @@
 //+------------------------------------------------------------------+
-//| fast-start-example.mq5
-//+------------------------------------------------------------------+
 #property copyright "Copyright 2024, Mogyo Software Corp."
 #property link      "http://www.mogyo.com"
 #property version   "1.0"
@@ -67,8 +65,10 @@ int OnCalculate(const int       rates_total,
     int cnt = rates_total;
     if (cnt > 100) cnt = 100;
 
-    for (int i = 0; i < cnt; i++) {
-        widthBuffer[i] = simpleLinRegr(i+10, open).get1();
+    for (int i = 0; i < cnt-10; i++) {
+        double b = simpleLinRegr(i+10, open).get1();
+Print("n = ", i+10, "  b = ", b);
+        // widthBuffer[i] = simpleLinRegr(i+10, open).get1();
     }
 
     return rates_total;
