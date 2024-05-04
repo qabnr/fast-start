@@ -168,8 +168,8 @@ private:
 
 public:
     ATR_TR_STOP() : handle(INVALID_HANDLE) {}
-    ~ATR_TR_STOP() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
-
+    ~ATR_TR_STOP() {}
+    
     void init(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE) {
@@ -267,7 +267,7 @@ public:
         if(handle  == INVALID_HANDLE)
         {   Print("Failed to get indicator handle"); }
     }
-    ~MACD() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
+    ~MACD() {}
 
     bool copyBuffers(int count)
     {
@@ -297,7 +297,7 @@ public:
         if(handle  == INVALID_HANDLE)
         {   Print("Failed to get indicator handle"); }
     }
-    ~LinRegrChannel() { if (handle != INVALID_HANDLE) IndicatorRelease(handle); }
+    ~LinRegrChannel() {}
 
     bool copyBuffers(int count)
     {
