@@ -29,17 +29,18 @@ double aBuffer[];
 double bBuffer[];
 
 //+------------------------------------------------------------------+
+template <typename T>
 class pair
 {
 private:
-    double a_, b_;
+    T a_, b_;
 public:
-    pair(double a, double b) : a_(a), b_(b) {};
-    pair(const pair &p2) { a_ = p2.a_; b_ = p2.b_; }
-    ~pair() {};
+    pair(const T a, const T b) : a_(a), b_(b) {}
+    pair(const pair &p2): a_(p2.a_), b_(p2.b_) {}
+    ~pair() {}
 
-    double get0(void) { return a_; }
-    double get1(void) { return b_; }
+    T get0(void) { return a_; }
+    T get1(void) { return b_; }
 };
 //+------------------------------------------------------------------+
 int OnInit()
@@ -90,7 +91,7 @@ int OnCalculate(const int       rates_total,
     for (int i = 10; i < runLen; i++) {
         int endIndex   = rates_total - i;
         int buffIdx = rates_total - i;
-        pair val = simpleLinRegr(startIndex, endIndex, open);
+        pair<double> val = simpleLinRegr(startIndex, endIndex, open);
         double a = val.get0();
         double b = val.get1();
 // Print("[", buffIdx, "] = ", a);
@@ -101,10 +102,9 @@ int OnCalculate(const int       rates_total,
     return rates_total;
 }
 //+------------------------------------------------------------------+
-pair simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
+pair<double> simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
 //+------------------------------------------------------------------+
 {
-// Print(startIdx, " --> ", endIdx);
     static double sumX  = 0;
     static double sumX2 = 0;
     static double sumY  = 0;
@@ -125,7 +125,6 @@ pair simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
         lastStartIdx = startIdx;
     }
 
-// Print(maxX, " --> ", endIdx);
     for (int x = maxX; x >= endIdx; x--) {
         n++;
         sumX  += x;
@@ -138,8 +137,8 @@ pair simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
 
     double b = (sumXY - sumX * sumY / n) / (sumX2 - sumX * sumX / n);
     double a = sumY/n - b * sumX / n;
-// Print("n = ", n, "  b = ", b);
-    return pair(a, b);
+
+    return pair<double>(a, b);
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
