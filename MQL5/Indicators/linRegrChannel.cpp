@@ -8,22 +8,25 @@
 #property description "2."
 
 #property indicator_separate_window
-#property indicator_buffers 1
-#property indicator_plots 1
+#property indicator_buffers 2
+#property indicator_plots   2
 
-#property indicator_label1 "Width"
+#property indicator_label1 "b"
 #property indicator_type1 DRAW_LINE
 #property indicator_color1 clrBlack
 #property indicator_style1 STYLE_SOLID
 #property indicator_width1 1
 
+#property indicator_label2 "a"
+#property indicator_type2 DRAW_LINE
+#property indicator_color2 clrRed
+#property indicator_style2 STYLE_SOLID
+#property indicator_width2 1
 
-//--- input parameters
-/* input */ ENUM_APPLIED_PRICE applied_price = PRICE_TYPICAL; // type of price
-/* input */ ENUM_TIMEFRAMES period = PERIOD_CURRENT;          // timeframe
 
 //--- indicator buffers
-double widthBuffer[];
+double aBuffer[];
+double bBuffer[];
 
 //+------------------------------------------------------------------+
 class pair
@@ -42,7 +45,8 @@ public:
 int OnInit()
 //+------------------------------------------------------------------+
 {
-    SetIndexBuffer(0, widthBuffer, INDICATOR_DATA);
+    SetIndexBuffer(0, bBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, aBuffer, INDICATOR_DATA);
     string short_name = StringFormat("lrCgh %d", 10);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
     return (INIT_SUCCEEDED);
@@ -60,21 +64,38 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-    if (rates_total < 100) return 0;
+    static const int runLen = 100;
+
+    if (rates_total < runLen) {
+        ArraySetAsSeries(aBuffer, true);   
+        ArraySetAsSeries(bBuffer, true);   
+        for (int i = 0; i < rates_total; i++)
+        aBuffer[i] = bBuffer[i] = 0;
+        return 0;
+    }
 
     int cnt = rates_total;
-    if (cnt > 100) cnt = 100;
+    if (cnt > runLen) cnt = runLen;
 
     ArraySetAsSeries(open, false);   
-    ArraySetAsSeries(widthBuffer, false);   
+    ArraySetAsSeries(aBuffer, false);   
+    ArraySetAsSeries(bBuffer, false);   
+
+    for (int i = 0; i < rates_total; i++) {
+        aBuffer[i] = 0;
+        bBuffer[i] = 0;
+    }
 
     int startIndex = rates_total-1;
-    for (int i = 10, disp = 1; i < 100; i++, disp++) {
+    for (int i = 10; i < runLen; i++) {
         int endIndex   = rates_total - i;
-        int buffIdx = rates_total - disp;
-        double val = simpleLinRegr(startIndex, endIndex, open).get1();
-Print("[", buffIdx, "] = ", val);
-        widthBuffer[buffIdx] = val;
+        int buffIdx = rates_total - i;
+        pair val = simpleLinRegr(startIndex, endIndex, open);
+        double a = val.get0();
+        double b = val.get1();
+// Print("[", buffIdx, "] = ", a);
+        aBuffer[buffIdx] = a;
+        bBuffer[buffIdx] = -5000*b;
     }
 
     return rates_total;
