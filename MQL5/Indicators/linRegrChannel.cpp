@@ -23,7 +23,7 @@
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 2
 
-input uint offset = 0;
+input int offset = 0;
 
 //--- indicator buffers
 double widthBuffer[];
