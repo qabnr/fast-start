@@ -11,22 +11,23 @@
 #property indicator_buffers 2
 #property indicator_plots   2
 
-#property indicator_label1 "b"
+#property indicator_label1 "width"
 #property indicator_type1 DRAW_LINE
 #property indicator_color1 clrBlack
 #property indicator_style1 STYLE_SOLID
-#property indicator_width1 1
+#property indicator_width1 2
 
-#property indicator_label2 "a"
+#property indicator_label2 "0"
 #property indicator_type2 DRAW_LINE
 #property indicator_color2 clrRed
 #property indicator_style2 STYLE_SOLID
-#property indicator_width2 1
+#property indicator_width2 2
 
+input uint offset = 0;
 
 //--- indicator buffers
-double aBuffer[];
-double bBuffer[];
+double widthBuffer[];
+double zeroBuffer[];
 
 //+------------------------------------------------------------------+
 template <typename T>
@@ -39,15 +40,15 @@ public:
     pair(const pair &p2): a_(p2.a_), b_(p2.b_) {}
     ~pair() {}
 
-    T get0(void) { return a_; }
-    T get1(void) { return b_; }
+    T get0(void) const { return a_; }
+    T get1(void) const { return b_; }
 };
 //+------------------------------------------------------------------+
 int OnInit()
 //+------------------------------------------------------------------+
 {
-    SetIndexBuffer(0, bBuffer, INDICATOR_DATA);
-    SetIndexBuffer(1, aBuffer, INDICATOR_DATA);
+    SetIndexBuffer(0, zeroBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, widthBuffer, INDICATOR_DATA);
     string short_name = StringFormat("lrCgh %d", 10);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
     return (INIT_SUCCEEDED);
@@ -65,13 +66,13 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-    static const int runLen = 100;
+    static const int runLen = 500;
 
     if (rates_total < runLen) {
-        ArraySetAsSeries(aBuffer, true);   
-        ArraySetAsSeries(bBuffer, true);   
+        ArraySetAsSeries(widthBuffer, true);   
+        ArraySetAsSeries(zeroBuffer, true);   
         for (int i = 0; i < rates_total; i++)
-        aBuffer[i] = bBuffer[i] = 0;
+        widthBuffer[i] = zeroBuffer[i] = 0;
         return 0;
     }
 
@@ -79,27 +80,44 @@ int OnCalculate(const int       rates_total,
     if (cnt > runLen) cnt = runLen;
 
     ArraySetAsSeries(open, false);   
-    ArraySetAsSeries(aBuffer, false);   
-    ArraySetAsSeries(bBuffer, false);   
+    ArraySetAsSeries(widthBuffer, false);   
+    ArraySetAsSeries(zeroBuffer, false);   
 
     for (int i = 0; i < rates_total; i++) {
-        aBuffer[i] = 0;
-        bBuffer[i] = 0;
+        widthBuffer[i] = 0;
+        zeroBuffer[i] = 0;
     }
 
-    int startIndex = rates_total-1;
-    for (int i = 10; i < runLen; i++) {
+    int startIndex = rates_total - 1 - offset;
+    for (int i = 3; i < runLen; i++) {
         int endIndex   = rates_total - i;
         int buffIdx = rates_total - i;
-        pair<double> val = simpleLinRegr(startIndex, endIndex, open);
-        double a = val.get0();
-        double b = val.get1();
-// Print("[", buffIdx, "] = ", a);
-        aBuffer[buffIdx] = a;
-        bBuffer[buffIdx] = -5000*b;
+        const double spread = getSpread(startIndex, endIndex, open);
+
+        widthBuffer[buffIdx] = spread;
+        zeroBuffer [buffIdx] = 0;
     }
 
     return rates_total;
+}
+//+------------------------------------------------------------------+
+double getSpread(const int startIndex, const int endIndex, const double& price[]) {
+    double maxUpDiff   = 0;
+    double maxDownDiff = 0;
+
+    const pair<double> a_b = simpleLinRegr(startIndex, endIndex, price);
+    const double a = a_b.get0();
+    const double b = a_b.get1();
+
+    for (int x = startIndex; x >= endIndex; x--) {
+        const double y = a + b * x;
+        double diff = price[x] - y;
+        if (diff > 0 && diff > maxUpDiff) { maxUpDiff = diff; }
+        else
+        if (diff < 0 && -diff > maxDownDiff) { maxDownDiff = -diff; }
+    }
+
+    return maxUpDiff + maxDownDiff;
 }
 //+------------------------------------------------------------------+
 pair<double> simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
