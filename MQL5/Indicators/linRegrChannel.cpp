@@ -8,30 +8,43 @@
 #property description "2."
 
 #property indicator_separate_window
-#property indicator_buffers 2
-#property indicator_plots   2
+#property indicator_buffers 4
+#property indicator_plots   4
 
-#property indicator_label1 "width"
+#property indicator_label1 "0"
 #property indicator_type1 DRAW_LINE
 #property indicator_color1 clrBlack
 #property indicator_style1 STYLE_SOLID
-#property indicator_width1 2
+#property indicator_width1 1
 
-#property indicator_label2 "0"
+#property indicator_label2 "width"
 #property indicator_type2 DRAW_LINE
 #property indicator_color2 clrRed
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 2
+
+#property indicator_label3 "a"
+#property indicator_type3 DRAW_LINE
+#property indicator_color3 clrGreen
+#property indicator_style3 STYLE_SOLID
+#property indicator_width3 1
+
+#property indicator_label4 "b"
+#property indicator_type4 DRAW_LINE
+#property indicator_color4 clrBlue
+#property indicator_style4 STYLE_SOLID
+#property indicator_width4 1
 
 input int offset = 0;
 
 //--- indicator buffers
 double widthBuffer[];
 double zeroBuffer[];
+double aBuffer[];
+double bBuffer[];
 
 //+------------------------------------------------------------------+
-template <typename T>
-class pair
+template <typename T> class pair
 {
 private:
     T a_, b_;
@@ -47,8 +60,11 @@ public:
 int OnInit()
 //+------------------------------------------------------------------+
 {
-    SetIndexBuffer(0, zeroBuffer, INDICATOR_DATA);
+    SetIndexBuffer(0, zeroBuffer,  INDICATOR_DATA);
     SetIndexBuffer(1, widthBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, aBuffer,     INDICATOR_DATA);
+    SetIndexBuffer(3, bBuffer,     INDICATOR_DATA);
+    
     string short_name = StringFormat("lrCgh %d", 10);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
     return (INIT_SUCCEEDED);
@@ -68,24 +84,22 @@ int OnCalculate(const int       rates_total,
 {
     static const int runLen = 500;
 
-    if (rates_total < runLen) {
-        ArraySetAsSeries(widthBuffer, true);   
-        ArraySetAsSeries(zeroBuffer, true);   
-        for (int i = 0; i < rates_total; i++)
-        widthBuffer[i] = zeroBuffer[i] = 0;
-        return 0;
-    }
+    if (rates_total < 3000) return 0;
 
     int cnt = rates_total;
     if (cnt > runLen) cnt = runLen;
 
-    ArraySetAsSeries(open, false);   
+    ArraySetAsSeries(open,        false);   
     ArraySetAsSeries(widthBuffer, false);   
-    ArraySetAsSeries(zeroBuffer, false);   
+    ArraySetAsSeries(zeroBuffer,  false);   
+    ArraySetAsSeries(aBuffer,     false);   
+    ArraySetAsSeries(bBuffer,     false);   
 
     for (int i = 0; i < rates_total; i++) {
         widthBuffer[i] = 0;
         zeroBuffer[i] = 0;
+        aBuffer[i] = 0;
+        bBuffer[i] = 0;
     }
 
     int startIndex = rates_total - 1 - offset;
@@ -108,6 +122,9 @@ double getSpread(const int startIndex, const int endIndex, const double& price[]
     const pair<double> a_b = simpleLinRegr(startIndex, endIndex, price);
     const double a = a_b.get0();
     const double b = a_b.get1();
+
+    aBuffer[endIndex] = a / 1000;
+    bBuffer[endIndex] = b * 20;
 
     for (int x = startIndex; x >= endIndex; x--) {
         const double y = a + b * x;
