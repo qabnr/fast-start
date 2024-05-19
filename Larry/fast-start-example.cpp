@@ -8,27 +8,26 @@
 #include <Trade\Trade.mqh>
 #include <Trade\PositionInfo.mqh>
 
-input int    MACD1_fast_MA_period        = 12;
-input int    MACD1_slow_MA_period        = 26;
-input int    MACD1_avg_diff_period       = 9;
-input int    MACD2_fast_MA_period        = 64;
-input int    MACD2_slow_MA_period        = 157;
-input int    MACD2_avg_diff_period       = 86;
-input double OsMA_limit                  = 0.627;
-input double decP_OsMa_limit             = 0.89;
-input int    minMaxBAckTrack             = 5;
-input double profitPerBalanceLimit       = 0.27;
-input double profitLossPerBalLimit       = 7.28;
-input int    maxTransactions             = 5000;
-input double equityTradeLimit            = 0.75;
-input double tradeSizeFraction           = 1.2;
-input int    LastChangeOfSignMinLimit    = 36950;
-input int    LastChangeOfSignMaxLimit    = 338300;
+input int    MACD1_fast_MA_period     = 12;
+input int    MACD1_slow_MA_period     = 26;
+input int    MACD1_avg_diff_period    = 9;
+input int    MACD2_fast_MA_period     = 96;
+input int    MACD2_slow_MA_period     = 208;
+input int    MACD2_avg_diff_period    = 72;
+input double OsMA_limit               = 0.40;
+input double decP_OsMa_limit          = 1.40;
+input int    minMaxBAckTrack          = 5;
+input double profitPerBalanceLimit    = 4.92;
+input double profitLossPerBalLimit    = 2.41;
+input int    maxTransactions          = 1000;
+input double equityTradeLimit         = 0.60;
+input double tradeSizeFraction        = 1.00;
+input int    LastChangeOfSignMinLimit = 79660;
+input int    LastChangeOfSignMaxLimit = 431660;
+input double profitPerPriceLimit      = 0.68;
+input double profitLossPerPriceLimit  = 1.84;
 
-input double profitPerPriceLimit         = 9.88;
-input double profitLossPerPriceLimit     = 9.13;
-
-input double maxRelDrawDownLimit         = 0.6;
+input double maxRelDrawDownLimit      = 0.6;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
