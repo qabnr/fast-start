@@ -27,7 +27,7 @@ input int    LastChangeOfSignMaxLimit = 431660;
 input double profitPerPriceLimit      = 0.68;
 input double profitLossPerPriceLimit  = 1.84;
 
-input double maxRelDrawDownLimit      = 0.6;
+input double maxRelDrawDownLimit      = 0.7;
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -280,6 +280,28 @@ public:
             decPeriod_OsMA_Buffer.copy(count) &&
             incPeriod_OsMA_Buffer.copy(count);
     }
+
+    bool justChangedToDownTrend() {
+        return OsMA_Buffer.get(0) < OsMA_Buffer.get(1)
+            && OsMA_Buffer.get(1) > OsMA_Buffer.get(2);
+    }
+    //+-----------
+    bool justChangedToUpTrend() {
+        return OsMA_Buffer.get(0) > OsMA_Buffer.get(1)
+            && OsMA_Buffer.get(1) < OsMA_Buffer.get(2);
+    }
+
+    bool OsMA_justChangedPositive() {
+        return OsMA_Buffer.get(0) >  0
+            && OsMA_Buffer.get(1) <= 0
+            && MACD_Buffer.get(0) < 0;
+    }
+
+    bool OsMA_justChangedNegative() {
+        return OsMA_Buffer.get(0) <  0
+            && OsMA_Buffer.get(1) >= 0
+            && MACD_Buffer.get(0) > 0;
+    }
 };
 //+------------------------------------------------------------------+
 class LinRegrChannel
@@ -327,6 +349,8 @@ namespace Reason
         chDir_profitLossPerPriceLimit,
         changeOfSign_neg,
         changeOfSign_pos,
+        OsMA_pos,
+        OsMA_neg,
         size
     };
 
@@ -348,6 +372,8 @@ namespace Reason
             case chDir_profitLossPerPriceLimit:  return "chDir: profitLossPerPriceLimit";
             case changeOfSign_neg:  return "Change of sign: (-)";
             case changeOfSign_pos:  return "Change of sign: (+)";
+            case OsMA_pos:          return "OsMA (+))";
+            case OsMA_neg:          return "OsMA (-)";
 
             enum2str_DEFAULT;
         }
@@ -611,16 +637,7 @@ void OnDeinit(const int reason)
     delete g::MACD1;
     delete g::MACD2;
 }
-//+------------------------------------------------------------------+
-bool justChangedToDownTrend() {
-    return g::MACD2.OsMA_Buffer.get(0) < g::MACD2.OsMA_Buffer.get(1)
-        && g::MACD2.OsMA_Buffer.get(1) > g::MACD2.OsMA_Buffer.get(2);
-}
-//+-----------
-bool justChangedToUpTrend() {
-    return g::MACD2.OsMA_Buffer.get(0) > g::MACD2.OsMA_Buffer.get(1)
-        && g::MACD2.OsMA_Buffer.get(1) < g::MACD2.OsMA_Buffer.get(2);
-}
+
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
     if (g::pPos.isTypeBUY()) {
@@ -913,13 +930,20 @@ if (isNewMinute()) {
 
         MACD1peaksAndValleys.process();
 
+if (g::MACD1.OsMA_justChangedPositive()) {
+    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
+} else
+if (g::MACD1.OsMA_justChangedNegative()) {
+    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+} else
+
         if (MACD1peaksAndValleys.is1stPeak()) {
 // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
 if (profitPerBalance > 0.5) {
 //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
 }
         }
-        if (MACD1peaksAndValleys.is2ndPeak()) {
+        else if (MACD1peaksAndValleys.is2ndPeak()) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
         }
         else if (MACD1peaksAndValleys.is1stValley()) {
@@ -932,7 +956,7 @@ if (profitPerBalance > 0.5) {
         else if (MACD1peaksAndValleys.is2ndValley()) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
         }
-        else if (justChangedToDownTrend()) {
+        else if (g::MACD2.justChangedToDownTrend()) {
 //PrintDecOsMa("v ");
             if (g::MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
                 if (g::MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
@@ -940,7 +964,7 @@ if (profitPerBalance > 0.5) {
                 }
             }
         }
-        else if (justChangedToUpTrend()) {
+        else if (g::MACD2.justChangedToUpTrend()) {
 //PrintDecOsMa("^ ");
             if (g::MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
                 if (g::MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
