@@ -1,6 +1,10 @@
 Ötletek
 -------
 
+- MACD1: OsMA sign change
+    - MACD < 0: watch for OsMA going from negative to positive
+    - MACD > 0: watch for OsMA going from positive to negative
+
 - Channels
 
 - Min-max (zig-zag)
