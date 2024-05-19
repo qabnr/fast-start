@@ -613,25 +613,6 @@ void OnDeinit(const int reason)
     delete g::MACD2;
 }
 //+------------------------------------------------------------------+
-string Osma2str(int idx) {
-   return SF("[%.2f %.2f]",
-                  g::MACD2.decPeriod_OsMA_Buffer.get(idx),
-                  g::MACD2.OsMA_Buffer.get(idx));
-
-}
-//+------------------------------------------------------------------+
-void PrintDecOsMa(string prefix) {
-    string s;
-    for (int i=0; i < 8; i++) {
-      s = s + Osma2str(i) + " ";
-    }
-Print(prefix, "[dcPer OsMA]: ", s);
-}
-//+-----------
-void PrintDecOsMa() {
-    PrintDecOsMa("");
-}
-//+------------------------------------------------------------------+
 bool justChangedToDownTrend() {
     return g::MACD2.OsMA_Buffer.get(0) < g::MACD2.OsMA_Buffer.get(1)
         && g::MACD2.OsMA_Buffer.get(1) > g::MACD2.OsMA_Buffer.get(2);
@@ -640,10 +621,6 @@ bool justChangedToDownTrend() {
 bool justChangedToUpTrend() {
     return g::MACD2.OsMA_Buffer.get(0) > g::MACD2.OsMA_Buffer.get(1)
         && g::MACD2.OsMA_Buffer.get(1) < g::MACD2.OsMA_Buffer.get(2);
-}
-//+-----------
-bool justChangedTrends() {
-    return justChangedToDownTrend() || justChangedToUpTrend();
 }
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
@@ -691,7 +668,7 @@ private:
     void initValues(int _sign) {
 
         if (sign != _sign) {
-LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
             TimeOfLastChangeOfSign = TimeCurrent();
         }
         sign = _sign;
@@ -764,31 +741,28 @@ if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
                 initValues(-1);
             }
             if (isMin()) {
-LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-// LOG(SF("Lmt: %.2f  MACD: %.2f  LstMax: %.2f", macd0  * (1 - 0.05), macd0, lastMax));
+// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
                 if (macd0  * (1 - 0.05) < lastMax) {
 //                    if (numOfmins == numOfMaxs)
 if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-//LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
-if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
-LOG(LOGtxt);
+// string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
+// if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
+// LOG(LOGtxt);
                 }
             }
             else if (isMax()) {
-LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
-// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMin: %.2f", (macd0 / lastMin)*100, macd0, lastMin));
+// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
                 if ((macd0 / lastMin) < 1 - 0.05) {
 //                    if (numOfmins > numOfMaxs)
                         numOfMaxs++;
                     lastMax = macd0;
                     TimeOfLastMax = TimeCurrent();
-string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
+// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
                 }
             }
         }
@@ -800,28 +774,26 @@ if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
                 initValues(1);
             }
             if (isMax()) {
-LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
 //                if (numOfmins == numOfMaxs)
                     numOfMaxs++;
                 lastMax = macd0;
                 TimeOfLastMax = TimeCurrent();
-//LogMACD_Last(minMaxBAckTrack+1);
-string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
+// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
             }
             else if (isMin()){
-LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
-// LOG(SF("Lmt: %.2f%%  MACD: %.2f  LstMAX: %.2f", (macd0 / lastMax)*100, macd0, lastMax));
+// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
                 if ((macd0 / lastMax) < 1 - 0.05) {
 //                    if (numOfmins < numOfMaxs)
 if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
-if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-LOG(LOGtxt);
+// string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
+// if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+// LOG(LOGtxt);
                 }
             }
         }
@@ -979,9 +951,6 @@ if (profitPerBalance > 0.5) {
         }
     }
 
-
-
-
     if (g::sellOrBuy.isGetReadyToBuy()) {
         if (g::ATR_list.isBuyNow(getPrice().low)) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
@@ -995,35 +964,37 @@ if (profitPerBalance > 0.5) {
     }
  
     if (g::sellOrBuy.isBuyNow()) {
+        Reason::ReasonCode reason = g::sellOrBuy.getReason();
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
         if (g::pPos.select())
         {
             if (g::pPos.isTypeSELL()) {
-                g::pPos.close(g::sellOrBuy.getReason(), profitPerBalance*100);
+                g::pPos.close(reason, profitPerBalance*100);
             }
-            if (g::pPos.isTypeBUY()) {
-//Print(__LINE__, " Already bought");
+            else if (g::pPos.isTypeBUY()) {
+LOG(" Already bought");
                 return;
             }
         }
-        g::pPos.buy(g::sellOrBuy.getReason());
+        g::pPos.buy(reason);
         maxProfit = 0;
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
         logCnt = 0;
     }
     else if (g::sellOrBuy.isSellNow()) {
+        Reason::ReasonCode reason = g::sellOrBuy.getReason();
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
         if (g::pPos.select())
         {
             if (g::pPos.isTypeBUY()) {
-                g::pPos.close(g::sellOrBuy.getReason(), profitPerBalance*100);
+                g::pPos.close(reason, profitPerBalance*100);
             }
-            if (g::pPos.isTypeSELL()) {
-//Print(__LINE__, " Already sold");
+            else if (g::pPos.isTypeSELL()) {
+LOG(" Already sold");
                 return;
             }
         }
-        g::pPos.sell(g::sellOrBuy.getReason());
+        g::pPos.sell(reason);
         maxProfit = 0;
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
         logCnt = 0;
     }
 }
