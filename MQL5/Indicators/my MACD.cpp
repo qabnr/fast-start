@@ -182,15 +182,21 @@ bool FillArraysFromBuffers(int amount, int prev_calculated)
     decPeriod_OsMABuffer[0] = 0;
     incPeriod_OsMABuffer[0] = 0;
 
+    double tmp = 0;
+
     for (int i = prev_calculated; i < amount; i++)
     {
         OsMABuffer[i] = MACDBuffer[i] - SignalBuffer[i];
         colorBuffer[i] = 0;
-        if (i > 0 && OsMABuffer[i] < OsMABuffer[i - 1])
-        {   colorBuffer[i] = 1; }
-
-        updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
-        updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
+        if (i > 0) {
+            if (OsMABuffer[i] < OsMABuffer[i - 1]) {
+                colorBuffer[i] = 1; 
+            }
+tmp = (OsMABuffer[i] - OsMABuffer[i-1]) * 10;
+            updatePeriodBuffers(i, MACDBuffer, decPeriod_MACDBuffer, incPeriod_MACDBuffer);
+incPeriod_MACDBuffer[i] = (OsMABuffer[i] - OsMABuffer[i-1]) * 10;
+            updatePeriodBuffers(i, OsMABuffer, decPeriod_OsMABuffer, incPeriod_OsMABuffer);
+        }
     }
     return (true);
 }
@@ -212,7 +218,14 @@ void updatePeriodBuffers(int i, double& buff[], double& decPerBuff[], double& in
     static int  runLen = 5;
 
     if (i > 0) {
-        incPerBuff[i] = 0;
+        if ((buff[i] > 0 && buff[i-1] <= 0)
+        ||  (buff[i] < 0 && buff[i-1] >= 0)) {
+                incPerBuff[i] = buff[i]/signal_period;
+        }
+        else {
+            incPerBuff[i] = incPerBuff[i-1] + buff[i]/signal_period;
+        }
+        
         if( buff[i] < buff[i-1]) {                      // decreasing
             if (decPerBuff[i-1] <= 0)                   //      already in decreasing trend
             {   decPerBuff[i] = decPerBuff[i-1] - step; //          continue to decrease
