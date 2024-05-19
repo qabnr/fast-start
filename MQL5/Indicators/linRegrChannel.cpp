@@ -47,14 +47,14 @@ double bBuffer[];
 template <typename T> class pair
 {
 private:
-    T a_, b_;
+    T m0_, m1_;
 public:
-    pair(const T a, const T b) : a_(a), b_(b) {}
-    pair(const pair &p2): a_(p2.a_), b_(p2.b_) {}
+    pair(const T a, const T b) : m0_(a), m1_(b) {}
+    pair(const pair &p2): m0_(p2.m0_), m1_(p2.m1_) {}
     ~pair() {}
 
-    T get0(void) const { return a_; }
-    T get1(void) const { return b_; }
+    T get0(void) const { return m0_; }
+    T get1(void) const { return m1_; }
 };
 //+------------------------------------------------------------------+
 int OnInit()
