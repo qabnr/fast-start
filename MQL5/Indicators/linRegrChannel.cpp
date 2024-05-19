@@ -105,11 +105,7 @@ int OnCalculate(const int       rates_total,
     int startIndex = rates_total - 1 - offset;
     for (int i = 3; i < runLen; i++) {
         int endIndex   = rates_total - i;
-        int buffIdx = rates_total - i;
-        const double spread = getSpread(startIndex, endIndex, open);
-
-        widthBuffer[buffIdx] = spread;
-        zeroBuffer [buffIdx] = 0;
+        widthBuffer[endIndex] = getSpread(startIndex, endIndex, open);
     }
 
     return rates_total;

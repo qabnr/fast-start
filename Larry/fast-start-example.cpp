@@ -590,7 +590,7 @@ int OnInit()
     g::MACD1 = new MACD("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
     g::MACD2 = new MACD("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
 
-    g::linRegrChannel = new LinRegrChannel("LRCh");
+    // g::linRegrChannel = new LinRegrChannel("LRCh");
 
     g::pPos  = new TradePosition(Symbol());
 
@@ -607,7 +607,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    delete g::linRegrChannel;
+    // delete g::linRegrChannel;
     delete g::pPos;
     delete g::MACD1;
     delete g::MACD2;
@@ -1040,7 +1040,7 @@ bool copyBuffers()
     if (   !g::MACD1.         copyBuffers(buffSize)
         || !g::MACD2.         copyBuffers(buffSize)
         || !g::ATR_list.      copyBuffers(buffSize)
-        || !g::linRegrChannel.copyBuffers(buffSize)
+        // || !g::linRegrChannel.copyBuffers(buffSize)
         )
     {
         Print("Failed to copy data from buffer");
