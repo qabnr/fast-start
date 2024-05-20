@@ -366,13 +366,13 @@ namespace Reason
             case decOSMA_lt_limit:  return "decOsMA < -limit";
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
-            case chDir_profitLossLimit:          return "chDir: profitPerBalanceLimit";
-            case chDir_profitLossPerBalLimit:    return "chDir: profitLossPerBalLimit";
-            case chDir_profitPerPriceLimit:      return "chDir: profitPerPriceLimit";
-            case chDir_profitLossPerPriceLimit:  return "chDir: profitLossPerPriceLimit";
+            case chDir_profitLossLimit:          return SF("chDir: profitPerBalanceLimit (-%.1f%%)",   profitPerBalanceLimit  *100);
+            case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (*%.1f%%)",   profitLossPerBalLimit  *100);
+            case chDir_profitPerPriceLimit:      return SF("chDir: profitPerPriceLimit (-%.1f%%)",     profitPerPriceLimit    *100);
+            case chDir_profitLossPerPriceLimit:  return SF("chDir: profitLossPerPriceLimit (-%.1f%%)", profitLossPerPriceLimit*100);
             case changeOfSign_neg:  return "Change of sign: (-)";
             case changeOfSign_pos:  return "Change of sign: (+)";
-            case OsMA_pos:          return "OsMA (+))";
+            case OsMA_pos:          return "OsMA (+)";
             case OsMA_neg:          return "OsMA (-)";
 
             enum2str_DEFAULT;
@@ -555,9 +555,6 @@ public:
     double getPricePaid() { return pricePaid; }
 
     void close(Reason::ReasonCode reason, double profit) {
-        // double balance = AccountInfoDouble(ACCOUNT_BALANCE);
-        // double equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-        // double profit  = equity - balance;
 LOG(SF("Close, profit: %s", d2str(profit)));
 
         stats.addOpReason(stats.close,  reason);
@@ -570,8 +567,16 @@ LOG(SF("Close, profit: %s", d2str(profit)));
         stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
-// LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
-        for (int i = maxTransactions; i > 0 && m_Trade.Buy(volume, my_symbol); i--) {
+
+        double executionPrice   = 0.0;
+        double stopLoss         = 0.0;
+        double takeProfit       = 0.0;
+
+        for (int i = maxTransactions; i > 0; i--)
+        {
+            bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
+            if (!res) break;
+
             posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
@@ -579,7 +584,6 @@ LOG(SF("Close, profit: %s", d2str(profit)));
         }
         pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
 LOG(SF("BUY for %s", d2str(pricePaid)));
-// LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
     }
 
     void sell(Reason::ReasonCode reason) {
@@ -866,6 +870,10 @@ void OnTick()
     static int logCnt = 0;
 
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
+    
+    double pricePaid = g::pPos.getPricePaid();
+
+    if (pricePaid == 0) return;
 
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
@@ -886,8 +894,8 @@ void OnTick()
 
     double profitPerBalance       = profit / balance;
     double profitLossPerBal       = (profit-maxProfit) / balance;
-    double profitPerPrice         = profit / g::pPos.getPricePaid();
-    double profitLossPerPrice = (profit-maxProfit) / g::pPos.getPricePaid();
+    double profitPerPrice         = profit / pricePaid;
+    double profitLossPerPrice = (profit-maxProfit) / pricePaid;
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
@@ -895,7 +903,7 @@ void OnTick()
 if (isNewMinute()) {
     logCnt++;
     if (logCnt % 20 == 1) {
-        LOG("-- Pro     PrLs/Blc PrLs/Pri  Pro/Blc  Pro/Pri     Eq     Eq/EqMx    Blc   RlDrDn");
+        LOG("-- Pro     PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri     Eq     Eq/EqMx    Bal   RlDrDn");
     }
     LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
         d2str(profit),
