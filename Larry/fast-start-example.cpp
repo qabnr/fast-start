@@ -530,8 +530,7 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class TradePosition
-{
+class TradePosition {
 private:
     string        my_symbol;
     CTrade        m_Trade;
@@ -539,28 +538,30 @@ private:
 
     int           posType;
     double        volume;
-    double        pricePaid;
+    double        totalPricePaid;
     Stats         stats;
 
 public:
     TradePosition(string symbol): my_symbol(symbol),
         volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
-        posType(-1), pricePaid(0.01)
+        posType(-1), totalPricePaid(0.01)
     {}
     ~TradePosition() { stats.print(); }
 
-    bool select()         { return m_Position.Select(my_symbol); }
-    bool isTypeSELL()     { return posType == POSITION_TYPE_SELL; }
-    bool isTypeBUY()      { return posType == POSITION_TYPE_BUY; }
-    double getPricePaid() { return pricePaid; }
+    bool select()     { return m_Position.Select(my_symbol); }
+    bool isTypeSELL() { return posType == POSITION_TYPE_SELL; }
+    bool isTypeBUY()  { return posType == POSITION_TYPE_BUY; }
+    double getTotalPricePaid() { return totalPricePaid; }
 
     void close(Reason::ReasonCode reason, double profit) {
-LOG(SF("Close, profit: %s", d2str(profit)));
+LOG(SF("Close, profit: %+.1f%%", (profit)));
 
         stats.addOpReason(stats.close,  reason);
         stats.addProfit(profit, reason);
 
-        while(m_Trade.PositionClose(my_symbol)) {}
+        while(m_Trade.PositionClose(my_symbol)) {
+// LOG(SF("Close: Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
+        }
     }
 
     void buy(Reason::ReasonCode reason) {
@@ -576,30 +577,36 @@ LOG(SF("Close, profit: %s", d2str(profit)));
         {
             bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
             if (!res) break;
-
+// LOG(SF("Buy:   Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
             posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("BUY for %s", d2str(pricePaid)));
+        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
     }
 
     void sell(Reason::ReasonCode reason) {
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
-// LOG(SF("FrMrgn: %s", d2str(freeMarginBeforeTrade)));
-        for (int i = maxTransactions; i > 0 && m_Trade.Sell(volume, my_symbol); i--) {
+
+        double executionPrice   = 0.0;
+        double stopLoss         = 0.0;
+        double takeProfit       = 0.0;
+
+        for (int i = maxTransactions; i > 0; i--) {
+            bool res = m_Trade.Sell(volume, my_symbol, executionPrice, stopLoss, takeProfit);
+            if (!res) break;
+// LOG(SF("Sell:  Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));            
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        pricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("SELL for %s", d2str(pricePaid)));
-// LOG(SF("FrMrgn: %s", d2str(AccountInfoDouble(ACCOUNT_FREEMARGIN))));
+        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
     }
 };
 //+------------------------------------------------------------------+
@@ -871,9 +878,9 @@ void OnTick()
 
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
     
-    double pricePaid = g::pPos.getPricePaid();
+    double totalPricePaid = g::pPos.getTotalPricePaid();
 
-    if (pricePaid == 0) return;
+    if (totalPricePaid == 0) return;
 
     if (copyBuffers() == false)
     {   Print("Failed to copy data from buffer"); return; }
@@ -894,8 +901,8 @@ void OnTick()
 
     double profitPerBalance       = profit / balance;
     double profitLossPerBal       = (profit-maxProfit) / balance;
-    double profitPerPrice         = profit / pricePaid;
-    double profitLossPerPrice = (profit-maxProfit) / pricePaid;
+    double profitPerPrice         = profit / totalPricePaid;
+    double profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
