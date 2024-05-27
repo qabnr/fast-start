@@ -3,121 +3,179 @@
 //|                             Copyright 2000-2024, MetaQuotes Ltd. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
-#property copyright   "Copyright 2000-2024, MetaQuotes Ltd."
-#property link        "https://www.mql5.com"
+#property copyright "Copyright 2000-2024, MetaQuotes Ltd."
+#property link "https://www.mql5.com"
 #property description "Moving Average Convergence/Divergence"
-#include <MovingAverages.mqh>
-//--- indicator settings
-#property indicator_separate_window
-#property indicator_buffers 4
-#property indicator_plots   2
-#property indicator_type1   DRAW_HISTOGRAM
-#property indicator_type2   DRAW_LINE
-#property indicator_color1  Silver
-#property indicator_color2  Red
-#property indicator_width1  2
-#property indicator_width2  1
-#property indicator_label1  "MACD"
-#property indicator_label2  "Signal"
-//--- input parameters
-input int                InpFastEMA=12;               // Fast EMA period
-input int                InpSlowEMA=26;               // Slow EMA period
-input int                InpSignalSMA=9;              // Signal SMA period
-input ENUM_APPLIED_PRICE InpAppliedPrice=PRICE_CLOSE; // Applied price
-//--- indicator buffers
-double ExtMacdBuffer[];
-double ExtSignalBuffer[];
-double ExtFastMaBuffer[];
-double ExtSlowMaBuffer[];
 
-int    ExtFastMaHandle;
-int    ExtSlowMaHandle;
-//+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
+#property indicator_separate_window
+#property indicator_buffers 6
+#property indicator_plots   4
+
+#property indicator_label1  "MACD"
+#property indicator_type1   DRAW_LINE
+#property indicator_color1  clrPurple
+#property indicator_width1  1
+
+#property indicator_label2  "Signal"
+#property indicator_type2   DRAW_LINE
+#property indicator_color2  clrRed
+#property indicator_width2  1
+ 
+#property indicator_label3  "OsMA"
+#property indicator_type3   DRAW_COLOR_HISTOGRAM
+#property indicator_color3  clrGreen, clrDarkOrange
+#property indicator_style3  STYLE_SOLID
+#property indicator_width3  5
+
+input int fastEMA_period              = 96;
+input int slowEMA_period              = 208; 
+input int signalSMA_period            = 72; 
+input ENUM_APPLIED_PRICE appliedPrice = PRICE_TYPICAL; 
+
+//--- indicator buffers
+double MACD_buffer[];
+double Signal_buffer[];
+double FastMA_buffer[];
+double SlowMA_buffer[];
+
+double OsMA_buffer[];
+double OsMAcolor_buffer[];
+
+int fastMA_handle;
+int slowMA_handle;
+
 //+------------------------------------------------------------------+
 void OnInit()
-  {
-//--- indicator buffers mapping
-   SetIndexBuffer(0,ExtMacdBuffer,INDICATOR_DATA);
-   SetIndexBuffer(1,ExtSignalBuffer,INDICATOR_DATA);
-   SetIndexBuffer(2,ExtFastMaBuffer,INDICATOR_CALCULATIONS);
-   SetIndexBuffer(3,ExtSlowMaBuffer,INDICATOR_CALCULATIONS);
-//--- sets first bar from what index will be drawn
-   PlotIndexSetInteger(1,PLOT_DRAW_BEGIN,InpSignalSMA-1);
-//--- name for indicator subwindow label
-   string short_name=StringFormat("MACD(%d,%d,%d)",InpFastEMA,InpSlowEMA,InpSignalSMA);
-   IndicatorSetString(INDICATOR_SHORTNAME,short_name);
-//--- get MA handles
-   ExtFastMaHandle=iMA(NULL,0,InpFastEMA,0,MODE_EMA,InpAppliedPrice);
-   ExtSlowMaHandle=iMA(NULL,0,InpSlowEMA,0,MODE_EMA,InpAppliedPrice);
-  }
+{
+    //--- indicator buffers mapping
+    SetIndexBuffer(0, MACD_buffer,      INDICATOR_DATA);
+    SetIndexBuffer(1, Signal_buffer,    INDICATOR_DATA);
+    SetIndexBuffer(2, OsMA_buffer,      INDICATOR_DATA);
+    SetIndexBuffer(3, OsMAcolor_buffer, INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(4, FastMA_buffer,    INDICATOR_CALCULATIONS);
+    SetIndexBuffer(5, SlowMA_buffer,    INDICATOR_CALCULATIONS);
+
+    PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, signalSMA_period - 1);
+    PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, signalSMA_period - 1);
+
+    string short_name = StringFormat("myMACD2(%d,%d,%d)", fastEMA_period, slowEMA_period, signalSMA_period);
+    IndicatorSetString(INDICATOR_SHORTNAME, short_name);
+
+    fastMA_handle = iMA(NULL, 0, fastEMA_period, 0, MODE_EMA, appliedPrice);
+    slowMA_handle = iMA(NULL, 0, slowEMA_period, 0, MODE_EMA, appliedPrice);
+}
 //+------------------------------------------------------------------+
-//| Moving Averages Convergence/Divergence                           |
-//+------------------------------------------------------------------+
-int OnCalculate(const int rates_total,
-                const int prev_calculated,
+int OnCalculate(const int       rates_total,
+                const int       prev_calculated,
                 const datetime &time[],
-                const double &open[],
-                const double &high[],
-                const double &low[],
-                const double &close[],
-                const long &tick_volume[],
-                const long &volume[],
-                const int &spread[])
-  {
-   if(rates_total<InpSignalSMA)
-      return(0);
-//--- not all data may be calculated
-   int calculated=BarsCalculated(ExtFastMaHandle);
-   if(calculated<rates_total)
-     {
-      Print("Not all data of ExtFastMaHandle is calculated (",calculated," bars). Error ",GetLastError());
-      return(0);
-     }
-   calculated=BarsCalculated(ExtSlowMaHandle);
-   if(calculated<rates_total)
-     {
-      Print("Not all data of ExtSlowMaHandle is calculated (",calculated," bars). Error ",GetLastError());
-      return(0);
-     }
-//--- we can copy not all data
-   int to_copy;
-   if(prev_calculated>rates_total || prev_calculated<0)
-      to_copy=rates_total;
-   else
-     {
-      to_copy=rates_total-prev_calculated;
-      if(prev_calculated>0)
-         to_copy++;
-     }
-//--- get Fast EMA buffer
-   if(IsStopped()) // checking for stop flag
-      return(0);
-   if(CopyBuffer(ExtFastMaHandle,0,0,to_copy,ExtFastMaBuffer)<=0)
-     {
-      Print("Getting fast EMA is failed! Error ",GetLastError());
-      return(0);
-     }
-//--- get SlowSMA buffer
-   if(IsStopped()) // checking for stop flag
-      return(0);
-   if(CopyBuffer(ExtSlowMaHandle,0,0,to_copy,ExtSlowMaBuffer)<=0)
-     {
-      Print("Getting slow SMA is failed! Error ",GetLastError());
-      return(0);
-     }
-//---
-   int start;
-   if(prev_calculated==0)
-      start=0;
-   else
-      start=prev_calculated-1;
-//--- calculate MACD
-   for(int i=start; i<rates_total && !IsStopped(); i++)
-      ExtMacdBuffer[i]=ExtFastMaBuffer[i]-ExtSlowMaBuffer[i];
-//--- calculate Signal
-   SimpleMAOnBuffer(rates_total,prev_calculated,0,InpSignalSMA,ExtMacdBuffer,ExtSignalBuffer);
-//--- OnCalculate done. Return new prev_calculated.
-   return(rates_total);
-  }
+                const double   &open[],
+                const double   &high[],
+                const double   &low[],
+                const double   &close[],
+                const long     &tick_volume[],
+                const long     &volume[],
+                const int      &spread[])
+{
+    if (rates_total < signalSMA_period) {
+        return (0);
+    }
+    //--- not all data may be calculated
+    int calculated = BarsCalculated(fastMA_handle);
+    if (calculated < rates_total) {
+        Print("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
+        return (0);
+    }
+    calculated = BarsCalculated(slowMA_handle);
+    if (calculated < rates_total) {
+        Print("Not all data of slowMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
+        return (0);
+    }
+
+    int to_copy;
+    if (prev_calculated > rates_total || prev_calculated < 0){
+        to_copy = rates_total;
+    }
+    else {
+        to_copy = rates_total - prev_calculated;
+        if (prev_calculated > 0)
+            to_copy++;
+    }
+    if (IsStopped()) {
+        return (0);
+    }
+    if (CopyBuffer(fastMA_handle, 0, 0, to_copy, FastMA_buffer) <= 0) {
+        Print("Getting fast EMA is failed! Error ", GetLastError());
+        return (0);
+    }
+    //--- get SlowSMA buffer
+    if (IsStopped()) {
+        return (0);
+    }
+    if (CopyBuffer(slowMA_handle, 0, 0, to_copy, SlowMA_buffer) <= 0) {
+        Print("Getting slow SMA is failed! Error ", GetLastError());
+        return (0);
+    }
+    //---
+    int start;
+    if (prev_calculated == 0) {
+            start = 0;
+    }
+    else {
+        start = prev_calculated - 1;
+    }
+
+    for (int i = start; i < rates_total && !IsStopped(); i++) {
+        MACD_buffer[i] = FastMA_buffer[i] - SlowMA_buffer[i];
+    }
+    //--- calculate Signal
+    SimpleMAOnBuffer(rates_total, prev_calculated);
+
+    return (rates_total);
+}
 //+------------------------------------------------------------------+
+void SimpleMAOnBuffer(const int rates_total, const int prev_calculated)
+{
+    //--- check period
+    if (signalSMA_period <= 1 || signalSMA_period > rates_total) {
+        return;
+    }
+
+    bool as_series_price  = ArrayGetAsSeries(MACD_buffer); 
+    bool as_series_buffer = ArrayGetAsSeries(Signal_buffer);
+
+    ArraySetAsSeries(MACD_buffer,   false);
+    ArraySetAsSeries(Signal_buffer, false);
+
+    int start_position;
+
+    if (prev_calculated == 0) {
+        start_position = signalSMA_period;
+        for (int i = 0; i < start_position; i++) {
+            Signal_buffer[i] = 0.0;
+            OsMA_buffer[i] = OsMAcolor_buffer[i] = 0;
+        }
+        double first_value = 0;
+        for (int i = 0; i < start_position; i++) {
+            first_value += MACD_buffer[i];
+        }
+        Signal_buffer[start_position - 1] = first_value / signalSMA_period;
+    }
+    else {
+        start_position = prev_calculated - 1;
+    }
+    
+    for (int i = start_position; i < rates_total; i++) {
+        Signal_buffer[i] = Signal_buffer[i - 1] + (MACD_buffer[i] - MACD_buffer[i - signalSMA_period]) / signalSMA_period;
+
+        OsMA_buffer[i] = MACD_buffer[i] - Signal_buffer[i];
+        OsMAcolor_buffer[i] = 0;
+        if (i > 0) {
+            if (OsMA_buffer[i] < OsMA_buffer[i - 1]) {
+                OsMAcolor_buffer[i] = 1; 
+            }
+        }
+    }
+
+    ArraySetAsSeries(MACD_buffer,   as_series_price);
+    ArraySetAsSeries(Signal_buffer, as_series_buffer);
+}
