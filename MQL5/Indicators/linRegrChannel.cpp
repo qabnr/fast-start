@@ -58,7 +58,6 @@ public:
 };
 //+------------------------------------------------------------------+
 int OnInit()
-//+------------------------------------------------------------------+
 {
     SetIndexBuffer(0, zeroBuffer,  INDICATOR_DATA);
     SetIndexBuffer(1, widthBuffer, INDICATOR_DATA);
@@ -71,7 +70,6 @@ int OnInit()
 }
 //+------------------------------------------------------------------+
 int OnCalculate(const int       rates_total,
-//+------------------------------------------------------------------+
                 const int       prev_calculated,
                 const datetime &time[],
                 const double   &open[],
@@ -111,7 +109,8 @@ int OnCalculate(const int       rates_total,
     return rates_total;
 }
 //+------------------------------------------------------------------+
-double getSpread(const int startIndex, const int endIndex, const double& price[]) {
+double getSpread(const int startIndex, const int endIndex, const double& price[])
+{
     double maxUpDiff   = 0;
     double maxDownDiff = 0;
 
@@ -134,7 +133,6 @@ double getSpread(const int startIndex, const int endIndex, const double& price[]
 }
 //+------------------------------------------------------------------+
 pair<double> simpleLinRegr(const int startIdx, const int endIdx, const double& y[])
-//+------------------------------------------------------------------+
 {
     static double sumX  = 0;
     static double sumX2 = 0;
@@ -173,7 +171,6 @@ pair<double> simpleLinRegr(const int startIdx, const int endIdx, const double& y
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
-//+------------------------------------------------------------------+
 {
 }
 //+------------------------------------------------------------------+

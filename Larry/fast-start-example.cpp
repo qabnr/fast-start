@@ -33,8 +33,8 @@ input double maxRelDrawDownLimit      = 0.7;
 #define SF StringFormat
 //+------------------------------------------------------------------+
 bool isLOG() {
-    // if (TimeCurrent() > D'2022.06.13')
-    // if (TimeCurrent() < D'2022.12.01')
+// if (TimeCurrent() > D'2022.06.13')
+// if (TimeCurrent() < D'2022.12.01')
         return true;
     return false;
 }
@@ -285,7 +285,7 @@ public:
         return OsMA_Buffer.get(0) < OsMA_Buffer.get(1)
             && OsMA_Buffer.get(1) > OsMA_Buffer.get(2);
     }
-    //+-----------
+
     bool justChangedToUpTrend() {
         return OsMA_Buffer.get(0) > OsMA_Buffer.get(1)
             && OsMA_Buffer.get(1) < OsMA_Buffer.get(2);
@@ -839,7 +839,7 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     bool is2ndPeak() {
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndPeakAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndPeakAlreadyFound) return false;
-//        if (numOfMaxs == 2 && numOfmins == 1) {
+        // if (numOfMaxs == 2 && numOfmins == 1) {
         // if (numOfMaxs == 2 && numOfmins <= 1) {
         if (sign > 0 && numOfMaxs == 2 && numOfmins <= 1) {
             is2ndPeakAlreadyFound = true;
@@ -910,7 +910,7 @@ void OnTick()
 if (isNewMinute()) {
     logCnt++;
     if (logCnt % 20 == 1) {
-        LOG("-- Pro     PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri     Eq     Eq/EqMx    Bal   RlDrDn");
+        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri     Eq     Eq/EqMx    Bal   RlDrDn");
     }
     LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
         d2str(profit),
