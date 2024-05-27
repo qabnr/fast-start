@@ -237,48 +237,47 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class MACD
+class MACD_base
 {
 private:
+public:
     int handle;
 
-public:
     Buffer MACD_Buffer;
     Buffer Signal_Buffer;
     Buffer OsMA_Buffer;
     Buffer osMA_Color_Buffer;
-    Buffer decPeriod_Buffer;
-    Buffer incPeriod_Buffer;
-    Buffer decPeriod_OsMA_Buffer;
-    Buffer incPeriod_OsMA_Buffer;
 
-    MACD(string name, int fast_MA_period, int slow_MA_period, int avg_diff_period)
-        : handle(iCustom(NULL, PERIOD_CURRENT, "myMACD", fast_MA_period, slow_MA_period, avg_diff_period)),
-        MACD_Buffer          (5, name, handle),
-        Signal_Buffer        (4, name, handle),
-        OsMA_Buffer          (2, name, handle),
-        osMA_Color_Buffer    (3, name, handle),
-        decPeriod_Buffer     (0, name, handle),
-        incPeriod_Buffer     (1, name, handle),
-        decPeriod_OsMA_Buffer(6, name, handle),
-        incPeriod_OsMA_Buffer(7, name, handle)
+    MACD_base(const string customIndicatorName,
+              const string name,
+              const int fast_MA_period,
+              const int slow_MA_period,
+              const int avg_diff_period,
+              const int MACD_Buffer_buffNum,
+              const int Signal_Buffer_buffNum,
+              const int OsMA_Buffer_buffNum,
+              const int osMA_Color_Buffer_buffNum)
+      : handle(iCustom(NULL, PERIOD_CURRENT, customIndicatorName, fast_MA_period, slow_MA_period, avg_diff_period)),
+        MACD_Buffer      (MACD_Buffer_buffNum,       name, handle),
+        Signal_Buffer    (Signal_Buffer_buffNum,     name, handle),
+        OsMA_Buffer      (OsMA_Buffer_buffNum,       name, handle),
+        osMA_Color_Buffer(osMA_Color_Buffer_buffNum, name, handle)
     {
-        if(handle  == INVALID_HANDLE)
-        {   Print("Failed to get indicator handle"); }
+        if (handle == INVALID_HANDLE)
+        {
+            Print("Failed to get indicator handle");
+        }
     }
-    ~MACD() {}
 
-    bool copyBuffers(int count)
+    virtual ~MACD_base() {};
+
+    bool copyBuffers(const int count) 
     {
         return
             MACD_Buffer          .copy(count) &&
             Signal_Buffer        .copy(count) &&
             OsMA_Buffer          .copy(count) &&
-            osMA_Color_Buffer    .copy(count) &&
-            decPeriod_Buffer     .copy(count) &&
-            incPeriod_Buffer     .copy(count) &&
-            decPeriod_OsMA_Buffer.copy(count) &&
-            incPeriod_OsMA_Buffer.copy(count);
+            osMA_Color_Buffer    .copy(count);
     }
 
     bool justChangedToDownTrend() {
@@ -302,6 +301,46 @@ public:
             && OsMA_Buffer.get(1) >= 0
             && MACD_Buffer.get(0) > 0;
     }
+};
+//+------------------------------------------------------------------+
+class MACD : public MACD_base
+{
+public:
+    Buffer decPeriod_Buffer;
+    Buffer incPeriod_Buffer;
+    Buffer decPeriod_OsMA_Buffer;
+    Buffer incPeriod_OsMA_Buffer;
+
+    MACD(const string name, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+        : MACD_base("myMACD", name, fast_MA_period, slow_MA_period, avg_diff_period,
+        5, 4 , 2, 3), 
+        decPeriod_Buffer     (0, name, handle),
+        incPeriod_Buffer     (1, name, handle),
+        decPeriod_OsMA_Buffer(6, name, handle),
+        incPeriod_OsMA_Buffer(7, name, handle)
+    { }
+    ~MACD() {}
+
+    bool copyBuffers(const int count)
+    {
+        return
+            MACD_base::copyBuffers(count)     &&
+            decPeriod_Buffer     .copy(count) &&
+            incPeriod_Buffer     .copy(count) &&
+            decPeriod_OsMA_Buffer.copy(count) &&
+            incPeriod_OsMA_Buffer.copy(count);
+    }
+};
+//+------------------------------------------------------------------+
+class myMACD2 : public MACD_base
+{
+public:
+    myMACD2(const string name, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+        : MACD_base("myMACD2", name, fast_MA_period, slow_MA_period, avg_diff_period,
+        0, 1, 2, 3)
+    { }
+
+    ~myMACD2() {}
 };
 //+------------------------------------------------------------------+
 class LinRegrChannel
@@ -613,7 +652,8 @@ LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice())
 namespace g
 {
     ATR_TR_STOP_List ATR_list;
-    MACD            *MACD1, *MACD2;
+    myMACD2         *MACD1;
+    MACD            *MACD2;
     TradePosition   *pPos;
     LinRegrChannel  *linRegrChannel;
     SellOrBuy        sellOrBuy;
@@ -623,8 +663,8 @@ namespace g
 int OnInit()
 {
 
-    g::MACD1 = new MACD("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
-    g::MACD2 = new MACD("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
+    g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
+    g::MACD2 = new MACD   ("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
@@ -739,26 +779,6 @@ else {
     return;
 }
 
-if(0)
-{
-double decMACD0 = g::MACD1.decPeriod_Buffer.get(0);
-double decMACD1 = g::MACD1.decPeriod_Buffer.get(1);
-double decMACD2 = g::MACD1.decPeriod_Buffer.get(2);
-
-if (decMACD0 >= 0 && decMACD1 < 0) {
-    LOG(SF("dcMCD: Min (%.2f)", decMACD1));
-}
-if (decMACD1 >= 0 && decMACD2 < 0) {
-    LOG(SF("dcMCD: Min2 (%.2f)", decMACD2));
-}
-
-if (decMACD0 <= 0 && decMACD1 > 0) {
-    LOG(SF("dcMCD: MAX (%.2f)", decMACD1));
-}
-if (decMACD1 <= 0 && decMACD2 > 0) {
-    LOG(SF("dcMCD: MAX2 (%.2f)", decMACD2));
-}
-}
         double macd0 = g::MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
