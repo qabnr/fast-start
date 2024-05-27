@@ -249,7 +249,7 @@ public:
     Buffer osMA_Color_Buffer;
 
     MACD_base(const string customIndicatorName,
-              const string name,
+              const string bufferName,
               const int fast_MA_period,
               const int slow_MA_period,
               const int avg_diff_period,
@@ -258,10 +258,10 @@ public:
               const int OsMA_Buffer_buffNum,
               const int osMA_Color_Buffer_buffNum)
       : handle(iCustom(NULL, PERIOD_CURRENT, customIndicatorName, fast_MA_period, slow_MA_period, avg_diff_period)),
-        MACD_Buffer      (MACD_Buffer_buffNum,       name, handle),
-        Signal_Buffer    (Signal_Buffer_buffNum,     name, handle),
-        OsMA_Buffer      (OsMA_Buffer_buffNum,       name, handle),
-        osMA_Color_Buffer(osMA_Color_Buffer_buffNum, name, handle)
+        MACD_Buffer      (MACD_Buffer_buffNum,       bufferName, handle),
+        Signal_Buffer    (Signal_Buffer_buffNum,     bufferName, handle),
+        OsMA_Buffer      (OsMA_Buffer_buffNum,       bufferName, handle),
+        osMA_Color_Buffer(osMA_Color_Buffer_buffNum, bufferName, handle)
     {
         if (handle == INVALID_HANDLE)
         {
@@ -311,13 +311,13 @@ public:
     Buffer decPeriod_OsMA_Buffer;
     Buffer incPeriod_OsMA_Buffer;
 
-    MACD(const string name, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
-        : MACD_base("myMACD", name, fast_MA_period, slow_MA_period, avg_diff_period,
+    MACD(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+        : MACD_base("myMACD", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
         5, 4 , 2, 3), 
-        decPeriod_Buffer     (0, name, handle),
-        incPeriod_Buffer     (1, name, handle),
-        decPeriod_OsMA_Buffer(6, name, handle),
-        incPeriod_OsMA_Buffer(7, name, handle)
+        decPeriod_Buffer     (0, bufferName, handle),
+        incPeriod_Buffer     (1, bufferName, handle),
+        decPeriod_OsMA_Buffer(6, bufferName, handle),
+        incPeriod_OsMA_Buffer(7, bufferName, handle)
     { }
     ~MACD() {}
 
@@ -335,8 +335,8 @@ public:
 class myMACD2 : public MACD_base
 {
 public:
-    myMACD2(const string name, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
-        : MACD_base("myMACD2", name, fast_MA_period, slow_MA_period, avg_diff_period,
+    myMACD2(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+        : MACD_base("myMACD2", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
         0, 1, 2, 3)
     { }
 
@@ -351,8 +351,8 @@ private:
 public:
     Buffer buffer;
 
-    LinRegrChannel(string name): handle(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
-        buffer(0, name, handle)
+    LinRegrChannel(string bufferName): handle(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
+        buffer(0, bufferName, handle)
     {
         if(handle  == INVALID_HANDLE)
         {   Print("Failed to get indicator handle"); }
