@@ -274,10 +274,10 @@ public:
     bool copyBuffers(const int count) 
     {
         return
-            MACD_Buffer          .copy(count) &&
-            Signal_Buffer        .copy(count) &&
-            OsMA_Buffer          .copy(count) &&
-            osMA_Color_Buffer    .copy(count);
+            MACD_Buffer      .copy(count) &&
+            Signal_Buffer    .copy(count) &&
+            OsMA_Buffer      .copy(count) &&
+            osMA_Color_Buffer.copy(count);
     }
 
     bool justChangedToDownTrend() {
@@ -324,7 +324,7 @@ public:
     bool copyBuffers(const int count)
     {
         return
-            MACD_base::copyBuffers(count)     &&
+            MACD_base::copyBuffers    (count) &&
             decPeriod_Buffer     .copy(count) &&
             incPeriod_Buffer     .copy(count) &&
             decPeriod_OsMA_Buffer.copy(count) &&
@@ -337,7 +337,7 @@ class myMACD2 : public MACD_base
 public:
     myMACD2(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
         : MACD_base("myMACD2", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
-        0, 1, 2, 3)
+                    0, 1, 2, 3)
     { }
 
     ~myMACD2() {}
