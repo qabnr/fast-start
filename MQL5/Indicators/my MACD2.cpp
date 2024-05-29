@@ -107,7 +107,7 @@ int OnCalculate(const int       rates_total,
         Print("Getting fast EMA is failed! Error ", GetLastError());
         return (0);
     }
-    //--- get SlowSMA buffer
+
     if (IsStopped()) {
         return (0);
     }
@@ -115,14 +115,8 @@ int OnCalculate(const int       rates_total,
         Print("Getting slow SMA is failed! Error ", GetLastError());
         return (0);
     }
-    //---
-    int start;
-    if (prev_calculated == 0) {
-            start = 0;
-    }
-    else {
-        start = prev_calculated - 1;
-    }
+
+    int start = (prev_calculated == 0) ? 0 : prev_calculated - 1;
 
     for (int i = start; i < rates_total && !IsStopped(); i++) {
         MACD_buffer[i] = FastMA_buffer[i] - SlowMA_buffer[i];
@@ -139,12 +133,6 @@ void SimpleMAOnBuffer(const int rates_total, const int prev_calculated)
     if (signalSMA_period <= 1 || signalSMA_period > rates_total) {
         return;
     }
-
-    bool as_series_price  = ArrayGetAsSeries(MACD_buffer); 
-    bool as_series_buffer = ArrayGetAsSeries(Signal_buffer);
-
-    ArraySetAsSeries(MACD_buffer,   false);
-    ArraySetAsSeries(Signal_buffer, false);
 
     int start_position;
 
@@ -175,7 +163,4 @@ void SimpleMAOnBuffer(const int rates_total, const int prev_calculated)
             }
         }
     }
-
-    ArraySetAsSeries(MACD_buffer,   as_series_price);
-    ArraySetAsSeries(Signal_buffer, as_series_buffer);
 }

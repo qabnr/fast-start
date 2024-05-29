@@ -653,7 +653,7 @@ namespace g
 {
     ATR_TR_STOP_List ATR_list;
     myMACD2         *MACD1;
-    MACD            *MACD2;
+    myMACD2         *MACD2;
     TradePosition   *pPos;
     LinRegrChannel  *linRegrChannel;
     SellOrBuy        sellOrBuy;
@@ -664,7 +664,7 @@ int OnInit()
 {
 
     g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
-    g::MACD2 = new MACD   ("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
+    g::MACD2 = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
@@ -990,22 +990,6 @@ if (profitPerBalance > 0.5) {
         }
         else if (MACD1peaksAndValleys.is2ndValley()) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
-        }
-        else if (g::MACD2.justChangedToDownTrend()) {
-//PrintDecOsMa("v ");
-            if (g::MACD2.decPeriod_OsMA_Buffer.get(1) > decP_OsMa_limit) {
-                if (g::MACD2.OsMA_Buffer.get(0)       > OsMA_limit) {
-                    g::sellOrBuy.set(SellOrBuy::State::GetReadyToSell, Reason::decOSMA_gt_limit,__LINE__);
-                }
-            }
-        }
-        else if (g::MACD2.justChangedToUpTrend()) {
-//PrintDecOsMa("^ ");
-            if (g::MACD2.decPeriod_OsMA_Buffer.get(1) < -decP_OsMa_limit) {
-                if (g::MACD2.OsMA_Buffer.get(0)       < -OsMA_limit) {
-                    g::sellOrBuy.set(SellOrBuy::State::GetReadyToBuy, Reason::decOSMA_lt_limit, __LINE__);
-                }
-            }
         }
     }
 
