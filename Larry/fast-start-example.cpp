@@ -14,21 +14,44 @@ input int    MACD1_avg_diff_period    = 9;
 input int    MACD2_fast_MA_period     = 96;
 input int    MACD2_slow_MA_period     = 208;
 input int    MACD2_avg_diff_period    = 72;
-input double OsMA_limit               = 0.40;
-input double decP_OsMa_limit          = 1.40;
+input double OsMA_limit               = 0.28;
+input double decP_OsMa_limit          = 2.13;
 input int    minMaxBAckTrack          = 5;
-input double profitPerBalanceLimit    = 4.92;
-input double profitLossPerBalLimit    = 2.41;
+input double profitPerBalanceLimit    = 1.04;
+input double profitLossPerBalLimit    = 0.38;
 input int    maxTransactions          = 1000;
-input double equityTradeLimit         = 0.60;
+input double equityTradeLimit         = 0.80;
 input double tradeSizeFraction        = 1.00;
-input int    LastChangeOfSignMinLimit = 79660;
-input int    LastChangeOfSignMaxLimit = 431660;
-input double profitPerPriceLimit      = 0.68;
-input double profitLossPerPriceLimit  = 1.84;
+input int    LastChangeOfSignMinLimit = 98810;
+input int    LastChangeOfSignMaxLimit = 250950;
+input double profitPerPriceLimit      = 0.60;
+input double cummPrLossPerPriceLimit  = 4.28;
+input double profitLossPerPriceLimit  = 1.17;
+input double maxRelDrawDownLimit      = 0.70;
 
-input double maxRelDrawDownLimit      = 0.7;
-
+//+------------------------------------------------------------------+
+void printInputParams() {
+    PrintFormat("input int    MACD1_fast_MA_period     = %d;", MACD1_fast_MA_period);
+    PrintFormat("input int    MACD1_slow_MA_period     = %d;", MACD1_slow_MA_period);
+    PrintFormat("input int    MACD1_avg_diff_period    = %d;", MACD1_avg_diff_period);
+    PrintFormat("input int    MACD2_fast_MA_period     = %d;", MACD2_fast_MA_period);
+    PrintFormat("input int    MACD2_slow_MA_period     = %d;", MACD2_slow_MA_period);
+    PrintFormat("input int    MACD2_avg_diff_period    = %d;", MACD2_avg_diff_period);
+    PrintFormat("input double OsMA_limit               = %.2f;", OsMA_limit);
+    PrintFormat("input double decP_OsMa_limit          = %.2f;", decP_OsMa_limit);
+    PrintFormat("input int    minMaxBAckTrack          = %d;", minMaxBAckTrack);
+    PrintFormat("input double profitPerBalanceLimit    = %.2f;", profitPerBalanceLimit);
+    PrintFormat("input double profitLossPerBalLimit    = %.2f;", profitLossPerBalLimit);
+    PrintFormat("input int    maxTransactions          = %d;", maxTransactions);
+    PrintFormat("input double equityTradeLimit         = %.2f;", equityTradeLimit);
+    PrintFormat("input double tradeSizeFraction        = %.2f;", tradeSizeFraction);
+    PrintFormat("input int    LastChangeOfSignMinLimit = %d;", LastChangeOfSignMinLimit);
+    PrintFormat("input int    LastChangeOfSignMaxLimit = %d;", LastChangeOfSignMaxLimit);
+    PrintFormat("input double profitPerPriceLimit      = %.2f;", profitPerPriceLimit);
+    PrintFormat("input double cummPrLossPerPriceLimit  = %.2f;", cummPrLossPerPriceLimit);
+    PrintFormat("input double profitLossPerPriceLimit  = %.2f;", profitLossPerPriceLimit);
+    PrintFormat("input double maxRelDrawDownLimit      = %.2f;", maxRelDrawDownLimit);
+}
 //+------------------------------------------------------------------+
 #define SF StringFormat
 //+------------------------------------------------------------------+
@@ -168,7 +191,7 @@ private:
 public:
     ATR_TR_STOP() : handle(INVALID_HANDLE) {}
     ~ATR_TR_STOP() {}
-    
+  
     void init(int ATRperiod, double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE) {
@@ -271,7 +294,7 @@ public:
 
     virtual ~MACD_base() {};
 
-    bool copyBuffers(const int count) 
+    bool copyBuffers(const int count)
     {
         return
             MACD_Buffer      .copy(count) &&
@@ -311,9 +334,9 @@ public:
     Buffer decPeriod_OsMA_Buffer;
     Buffer incPeriod_OsMA_Buffer;
 
-    MACD(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+    MACD(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period)
         : MACD_base("myMACD", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
-        5, 4 , 2, 3), 
+        5, 4 , 2, 3),
         decPeriod_Buffer     (0, bufferName, handle),
         incPeriod_Buffer     (1, bufferName, handle),
         decPeriod_OsMA_Buffer(6, bufferName, handle),
@@ -335,7 +358,7 @@ public:
 class myMACD2 : public MACD_base
 {
 public:
-    myMACD2(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period) 
+    myMACD2(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period)
         : MACD_base("myMACD2", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
                     0, 1, 2, 3)
     { }
@@ -386,6 +409,7 @@ namespace Reason
         chDir_profitLossPerBalLimit,
         chDir_profitPerPriceLimit,
         chDir_profitLossPerPriceLimit,
+        chDir_cummPrLossPerPriceLimit,
         changeOfSign_neg,
         changeOfSign_pos,
         OsMA_pos,
@@ -405,10 +429,11 @@ namespace Reason
             case decOSMA_lt_limit:  return "decOsMA < -limit";
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
-            case chDir_profitLossLimit:          return SF("chDir: profitPerBalanceLimit (-%.1f%%)",   profitPerBalanceLimit  *100);
-            case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (-%.1f%%)",   profitLossPerBalLimit  *100);
-            case chDir_profitPerPriceLimit:      return SF("chDir: profitPerPriceLimit (-%.1f%%)",     profitPerPriceLimit    *100);
-            case chDir_profitLossPerPriceLimit:  return SF("chDir: profitLossPerPriceLimit (-%.1f%%)", profitLossPerPriceLimit*100);
+            case chDir_profitLossLimit:          return SF("chDir: profitPerBalanceLimit (-%.0f%%)",   profitPerBalanceLimit  *100);
+            case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (-%.0f%%)",   profitLossPerBalLimit  *100);
+            case chDir_profitPerPriceLimit:      return SF("chDir: profitPerPriceLimit (-%.0f%%)",     profitPerPriceLimit    *100);
+            case chDir_profitLossPerPriceLimit:  return SF("chDir: profitLossPerPriceLimit (-%.0f%%)", profitLossPerPriceLimit*100);
+            case chDir_cummPrLossPerPriceLimit:  return SF("chDir: cummPrLossPerPriceLimit (-%.0f%%)", cummPrLossPerPriceLimit*100);
             case changeOfSign_neg:  return "Change of sign: (-)";
             case changeOfSign_pos:  return "Change of sign: (+)";
             case OsMA_pos:          return "OsMA (+)";
@@ -484,11 +509,11 @@ public:
     void addOpReason(Operation op, Reason::ReasonCode r) {
         cntOp[op, r]++;
     }
-    
+  
     void addProfit(double profit, Reason::ReasonCode reason) {
         profitList[reason].push(profit);
     }
-    
+  
     void print() {
         string line = SF("%41s", "");
         for (int op = 0; op < Operation::size; op++) {
@@ -638,7 +663,7 @@ LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()))
         for (int i = maxTransactions; i > 0; i--) {
             bool res = m_Trade.Sell(volume, my_symbol, executionPrice, stopLoss, takeProfit);
             if (!res) break;
-// LOG(SF("Sell:  Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));            
+// LOG(SF("Sell:  Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));          
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
@@ -662,7 +687,8 @@ namespace g
 //+------------------------------------------------------------------+
 int OnInit()
 {
-
+    printInputParams();
+    
     g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
     g::MACD2 = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
 
@@ -782,7 +808,7 @@ else {
         double macd0 = g::MACD1.MACD_Buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit) 
+if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
 if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
     g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
                 initValues(-1);
@@ -897,7 +923,7 @@ void OnTick()
     static int logCnt = 0;
 
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
-    
+  
     double totalPricePaid = g::pPos.getTotalPricePaid();
 
     if (totalPricePaid == 0) return;
@@ -922,6 +948,16 @@ void OnTick()
     double profitPerBalance       = profit / balance;
     double profitLossPerBal       = (profit-maxProfit) / balance;
     double profitPerPrice         = profit / totalPricePaid;
+
+static double cummPrLossPerPrice = 0;
+
+if (profitPerPrice < 0) {
+    cummPrLossPerPrice += profitPerPrice;
+}
+else {
+    cummPrLossPerPrice = 0;
+}
+
     double profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
 
     double relDrawDown = 1 - balance / maxBalance;
@@ -930,14 +966,15 @@ void OnTick()
 if (isNewMinute()) {
     logCnt++;
     if (logCnt % 20 == 1) {
-        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri     Eq     Eq/EqMx    Bal   RlDrDn");
+        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
     }
-    LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
+    LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
         d2str(profit),
         profitLossPerBal * 100,
         profitLossPerPrice * 100,
         profitPerBalance * 100.0,
         profitPerPrice * 100.0,
+        cummPrLossPerPrice * 100,
         d2str(equity),
         (equity-maxEquity) / maxEquity * 100,
         d2str(balance),
@@ -955,6 +992,9 @@ if (isNewMinute()) {
     }
     else if (profitLossPerPrice < -profitLossPerPriceLimit) {
         changeDirection(Reason::chDir_profitLossPerPriceLimit, __LINE__);
+    }
+    else if (cummPrLossPerPrice < -cummPrLossPerPriceLimit) {
+        changeDirection(Reason::chDir_cummPrLossPerPriceLimit, __LINE__);
     }
 
 
@@ -1004,7 +1044,7 @@ if (profitPerBalance > 0.5) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }
- 
+
     if (g::sellOrBuy.isBuyNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
         g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
@@ -1019,6 +1059,7 @@ LOG(" Already bought");
             }
         }
         g::pPos.buy(reason);
+        cummPrLossPerPrice = 0;
         maxProfit = 0;
         logCnt = 0;
     }
@@ -1036,6 +1077,7 @@ LOG(" Already sold");
             }
         }
         g::pPos.sell(reason);
+        cummPrLossPerPrice = 0;
         maxProfit = 0;
         logCnt = 0;
     }
@@ -1069,7 +1111,7 @@ double OnTester()
 {
     if (g::maxRelDrawDown > maxRelDrawDownLimit) return 0;
     if (g::maxRelDrawDown < 0.01) return 0;
-    if (AccountInfoDouble(ACCOUNT_BALANCE) < 10) return 0; 
+    if (AccountInfoDouble(ACCOUNT_BALANCE) < 10) return 0;
     // return AccountInfoDouble(ACCOUNT_BALANCE);
     return AccountInfoDouble(ACCOUNT_BALANCE) / g::maxRelDrawDown;
 }
