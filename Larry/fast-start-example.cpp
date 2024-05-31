@@ -406,7 +406,7 @@ namespace Reason
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
             case chDir_profitLossLimit:          return SF("chDir: profitPerBalanceLimit (-%.1f%%)",   profitPerBalanceLimit  *100);
-            case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (*%.1f%%)",   profitLossPerBalLimit  *100);
+            case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (-%.1f%%)",   profitLossPerBalLimit  *100);
             case chDir_profitPerPriceLimit:      return SF("chDir: profitPerPriceLimit (-%.1f%%)",     profitPerPriceLimit    *100);
             case chDir_profitLossPerPriceLimit:  return SF("chDir: profitLossPerPriceLimit (-%.1f%%)", profitLossPerPriceLimit*100);
             case changeOfSign_neg:  return "Change of sign: (-)";

@@ -82,12 +82,12 @@ int OnCalculate(const int       rates_total,
     //--- not all data may be calculated
     int calculated = BarsCalculated(fastMA_handle);
     if (calculated < rates_total) {
-        Print("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
+        // Print("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
         return (0);
     }
     calculated = BarsCalculated(slowMA_handle);
     if (calculated < rates_total) {
-        Print("Not all data of slowMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
+        // Print("Not all data of slowMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
         return (0);
     }
 
