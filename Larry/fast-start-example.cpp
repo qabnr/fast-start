@@ -17,16 +17,16 @@ input int    MACD2_avg_diff_period    = 72;
 input double OsMA_limit               = 0.28;
 input double decP_OsMa_limit          = 2.13;
 input int    minMaxBAckTrack          = 5;
-input double profitPerBalanceLimit    = 1.04;
-input double profitLossPerBalLimit    = 0.38;
+input double profitPerBalanceLimit    = 10.19;
+input double profitLossPerBalLimit    = 0.46;
 input int    maxTransactions          = 1000;
-input double equityTradeLimit         = 0.80;
+input double equityTradeLimit         = 1.00;
 input double tradeSizeFraction        = 1.00;
 input int    LastChangeOfSignMinLimit = 98810;
 input int    LastChangeOfSignMaxLimit = 250950;
-input double profitPerPriceLimit      = 0.62;
-input double cummPrLossPerPriceLimit  = 4.24;
-input double profitLossPerPriceLimit  = 1.05;
+input double profitPerPriceLimit      = 2.98;
+input double cummPrLossPerPriceLimit  = 29.68;
+input double profitLossPerPriceLimit  = 7.98;
 input double maxRelDrawDownLimit      = 0.70;
 
 //+------------------------------------------------------------------+
@@ -405,7 +405,7 @@ namespace Reason
         decOSMA_lt_limit,
         ATR_high,
         ATR_low,
-        chDir_profitLossLimit,
+        chDir_profitPerBalanceLimit,
         chDir_profitLossPerBalLimit,
         chDir_profitPerPriceLimit,
         chDir_profitLossPerPriceLimit,
@@ -429,7 +429,7 @@ namespace Reason
             case decOSMA_lt_limit:  return "decOsMA < -limit";
             case ATR_high:          return "ATR high";
             case ATR_low:           return "ATR low";
-            case chDir_profitLossLimit:          return SF("chDir: profitPerBalanceLimit (-%.0f%%)",   profitPerBalanceLimit  *100);
+            case chDir_profitPerBalanceLimit:    return SF("chDir: profitPerBalanceLimit (-%.0f%%)",   profitPerBalanceLimit  *100);
             case chDir_profitLossPerBalLimit:    return SF("chDir: profitLossPerBalLimit (-%.0f%%)",   profitLossPerBalLimit  *100);
             case chDir_profitPerPriceLimit:      return SF("chDir: profitPerPriceLimit (-%.0f%%)",     profitPerPriceLimit    *100);
             case chDir_profitLossPerPriceLimit:  return SF("chDir: profitLossPerPriceLimit (-%.0f%%)", profitLossPerPriceLimit*100);
@@ -982,7 +982,7 @@ if (isNewMinute()) {
 }
 
     if (profitPerBalance < -profitPerBalanceLimit) {
-        changeDirection(Reason::chDir_profitLossLimit, __LINE__);
+        changeDirection(Reason::chDir_profitPerBalanceLimit, __LINE__);
     }
     else if (maxProfit > 0 && profitLossPerBal < -profitLossPerBalLimit) {
         changeDirection(Reason::chDir_profitLossPerBalLimit, __LINE__);
@@ -1004,28 +1004,26 @@ if (isNewMinute()) {
 
         if (g::MACD1.OsMA_justChangedPositive()) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
-} else
-if (g::MACD1.OsMA_justChangedNegative()) {
-            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
-} else
-
+        } else
+        if (g::MACD1.OsMA_justChangedNegative()) {
+                    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+        } else
         if (MACD1peaksAndValleys.is1stPeak()) {
             // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
             if (profitPerBalance > 0.5) {
                 //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
             }
-        }
-        else if (MACD1peaksAndValleys.is2ndPeak()) {
+        } else 
+        if (MACD1peaksAndValleys.is2ndPeak()) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
-        }
-        else if (MACD1peaksAndValleys.is1stValley()) {
-// LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance*100));
-if (profitPerBalance > 0.5) {
-//    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
-}
-
-        }
-        else if (MACD1peaksAndValleys.is2ndValley()) {
+        } else 
+        if (MACD1peaksAndValleys.is1stValley()) {
+            // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance*100));
+            if (profitPerBalance > 0.5) {
+            //    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
+            }
+        } else 
+        if (MACD1peaksAndValleys.is2ndValley()) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
         }
     }
