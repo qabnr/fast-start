@@ -24,9 +24,9 @@ input double equityTradeLimit         = 0.80;
 input double tradeSizeFraction        = 1.00;
 input int    LastChangeOfSignMinLimit = 98810;
 input int    LastChangeOfSignMaxLimit = 250950;
-input double profitPerPriceLimit      = 0.60;
-input double cummPrLossPerPriceLimit  = 4.28;
-input double profitLossPerPriceLimit  = 1.17;
+input double profitPerPriceLimit      = 0.62;
+input double cummPrLossPerPriceLimit  = 4.24;
+input double profitLossPerPriceLimit  = 1.05;
 input double maxRelDrawDownLimit      = 0.70;
 
 //+------------------------------------------------------------------+
@@ -996,27 +996,24 @@ if (isNewMinute()) {
     else if (cummPrLossPerPrice < -cummPrLossPerPriceLimit) {
         changeDirection(Reason::chDir_cummPrLossPerPriceLimit, __LINE__);
     }
-
-
-    //if (TimeCurrent() > D'2023.08.05')
-    // if (TimeCurrent() > D'2022.05.23')
+    else
     {
         static MACD1_PeaksAndValleys MACD1peaksAndValleys;
 
         MACD1peaksAndValleys.process();
 
-if (g::MACD1.OsMA_justChangedPositive()) {
-    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
+        if (g::MACD1.OsMA_justChangedPositive()) {
+            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
 } else
 if (g::MACD1.OsMA_justChangedNegative()) {
-    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
 } else
 
         if (MACD1peaksAndValleys.is1stPeak()) {
-// LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
-if (profitPerBalance > 0.5) {
-//    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
-}
+            // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
+            if (profitPerBalance > 0.5) {
+                //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
+            }
         }
         else if (MACD1peaksAndValleys.is2ndPeak()) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
