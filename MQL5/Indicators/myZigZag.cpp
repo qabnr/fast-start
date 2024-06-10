@@ -26,22 +26,21 @@
 #property indicator_color3  clrGreen
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  1
-
+//+------------------------------------------------------------------+
 //--- input parameters
 input int InpDepth     = 12;  // Depth
 input int InpDeviation = 5;   // Deviation
 input int InpBackstep  = 3;   // Back Step
 
+//+------------------------------------------------------------------+
 double   ZigZagBuffer[];      // main buffer
 double   HighMapBuffer[];     // ZigZag high extremes (peaks)
 double   LowMapBuffer[];      // ZigZag low extremes (bottoms)
-
-int       ExtRecalc = 3;         // number of last extremes for recalculation
-
-enum EnSearchMode {
-   Any_Extremum = 0, // searching for the first extremum
-   Peak = 1,         // searching for the next ZigZag peak
-   Bottom = -1       // searching for the next ZigZag bottom
+int      ExtRecalc = 3;       // number of last extremes for recalculation
+enum     SearchMode {
+   Any_Extremum = 0, // search for the first extremum
+   Peak         = 1, // search for the next ZigZag peak
+   Bottom       = -1 // search for the next ZigZag bottom
 };
 //+------------------------------------------------------------------+
 void OnInit() {
@@ -78,9 +77,10 @@ int OnCalculate(const int        rates_total,
    if (rates_total < 100)
       return 0;
 
-   int    start = 0, extreme_counter = 0, extreme_search = Any_Extremum;
-   int    shift = 0, back = 0, last_high_pos = 0, last_low_pos = 0;
+   int    start = 0;
+   int    back = 0, last_high_pos = 0, last_low_pos = 0;
    double curlow = 0, curhigh = 0, last_high = 0, last_low = 0;
+   SearchMode extreme_search = Any_Extremum;
 
    if (prev_calculated == 0) {
       ArrayInitialize(ZigZagBuffer,  0.0);
@@ -89,80 +89,78 @@ int OnCalculate(const int        rates_total,
       start = InpDepth;
    }
    else {
-      int i;
-      //--- searching for the third extremum from the last uncompleted bar
-      for(i = rates_total - 1;
-          (extreme_counter < ExtRecalc) && (i > rates_total - 100);
-          i--)
+      start = rates_total - 1;
+      //--- search for the third extremum from the last uncompleted bar
+      for(int extreme_counter = 0;
+          (extreme_counter < ExtRecalc) && (start > rates_total - 100);
+          start--)
       {
-         if (ZigZagBuffer[i] != 0.0)
+         if (ZigZagBuffer[start] != 0.0)
             extreme_counter++;
-         i--;
       }
-      i++;
-      start = i;
+      start++;
 
       //--- what type of exremum we search for
-      if (LowMapBuffer[i] != 0.0) {
-         curlow = LowMapBuffer[i];
+      if (LowMapBuffer[start] != 0.0) {
+         curlow = LowMapBuffer[start];
          extreme_search = Peak;
       }
       else {
-         curhigh = HighMapBuffer[i];
+         curhigh = HighMapBuffer[start];
          extreme_search = Bottom;
       }
       //--- clear indicator values
-      for(i = start + 1; i < rates_total && !IsStopped(); i++) {
-         ZigZagBuffer[i]  = 0.0;
-         LowMapBuffer[i]  = 0.0;
+      for(int i = start + 1; i < rates_total && !IsStopped(); i++) {
+         ZigZagBuffer [i] = 0.0;
+         LowMapBuffer [i] = 0.0;
          HighMapBuffer[i] = 0.0;
       }
    }
 
-//--- searching for high and low extremes
-   for(shift = start; shift < rates_total && !IsStopped(); shift++) {
+//--- search for high and low extremes
+   for(int i = start; i < rates_total && !IsStopped(); i++) {
       { //--- low
-         double low_val = low[Lowest(low, InpDepth, shift)];
+         double low_val = low[Lowest(low, InpDepth, i)];
          if (low_val == last_low)
             low_val = 0.0;
          else {
             last_low = low_val;
-            if ((low[shift] - low_val) > InpDeviation * _Point) {
+            if ((low[i] - low_val) > InpDeviation * _Point) {
                low_val = 0.0;
             }
             else {
-               for(back = 1; back <= InpBackstep && shift >= back; back++) {
-                  double res = LowMapBuffer[shift - back];
+               for(back = 1; back <= InpBackstep && i >= back; back++) {
+                  double res = LowMapBuffer[i - back];
                   if ((res != 0) && (res > low_val))
-                     LowMapBuffer[shift - back] = 0.0;
+                     LowMapBuffer[i - back] = 0.0;
                }
             }
          }
-         if (low[shift] == low_val)
-            LowMapBuffer[shift] = low_val;
+         if (low[i] == low_val)
+            LowMapBuffer[i] = low_val;
          else
-            LowMapBuffer[shift] = 0.0;
+            LowMapBuffer[i] = 0.0;
       }
       { //--- high
-         double hi_val = high[Highest(high, InpDepth, shift)];
+         double hi_val = high[Highest(high, InpDepth, i)];
          if (hi_val == last_high)
             hi_val = 0.0;
          else {
             last_high = hi_val;
-            if ((hi_val - high[shift]) > InpDeviation * _Point)
+            if ((hi_val - high[i]) > InpDeviation * _Point)
                hi_val = 0.0;
             else {
-               for(back = 1; back <= InpBackstep && shift >= back; back++) {
-                  double res = HighMapBuffer[shift - back];
+               for(back = 1; back <= InpBackstep && i >= back; back++) {
+                  double res = HighMapBuffer[i - back];
                   if ((res != 0) && (res < hi_val))
-                     HighMapBuffer[shift - back] = 0.0;
+                     HighMapBuffer[i - back] = 0.0;
                }
             }
          }
-         if (high[shift] == hi_val)
-            HighMapBuffer[shift] = hi_val;
+         if (high[i] == hi_val)
+            HighMapBuffer[i] = hi_val;
          else
-            HighMapBuffer[shift] = 0.0;
+            HighMapBuffer[i] = 0.0;
       }
    }
 
@@ -176,99 +174,95 @@ int OnCalculate(const int        rates_total,
    }
 
 //--- final selection of extreme points for ZigZag
-   for(shift = start; shift < rates_total && !IsStopped(); shift++) {
+   for(int i = start; i < rates_total && !IsStopped(); i++) {
       switch(extreme_search) {
          case Any_Extremum: {
             if (last_low == 0.0 && last_high == 0.0) {
-               if (HighMapBuffer[shift] != 0) {
-                  last_high = high[shift];
-                  last_high_pos = shift;
+               if (HighMapBuffer[i] != 0) {
+                  last_high = high[i];
+                  last_high_pos = i;
                   extreme_search = Bottom;
-                  ZigZagBuffer[shift] = last_high;
+                  ZigZagBuffer[i] = last_high;
                }
-               if (LowMapBuffer[shift] != 0.0) {
-                  last_low = low[shift];
-                  last_low_pos = shift;
+               if (LowMapBuffer[i] != 0.0) {
+                  last_low = low[i];
+                  last_low_pos = i;
                   extreme_search = Peak;
-                  ZigZagBuffer[shift] = last_low;
+                  ZigZagBuffer[i] = last_low;
                }
             }
             break;
          }
          case Peak: {
-            if (LowMapBuffer[shift] != 0.0 && LowMapBuffer[shift] < last_low && HighMapBuffer[shift] == 0.0) {
+            if (LowMapBuffer[i] != 0.0 && LowMapBuffer[i] < last_low && HighMapBuffer[i] == 0.0) {
                ZigZagBuffer[last_low_pos] = 0.0;
-               last_low_pos = shift;
-               last_low = LowMapBuffer[shift];
-               ZigZagBuffer[shift] = last_low;
+               last_low_pos = i;
+               last_low = LowMapBuffer[i];
+               ZigZagBuffer[i] = last_low;
             }
-            if (HighMapBuffer[shift] != 0.0 && LowMapBuffer[shift] == 0.0) {
-               last_high = HighMapBuffer[shift];
-               last_high_pos = shift;
-               ZigZagBuffer[shift] = last_high;
+            if (HighMapBuffer[i] != 0.0 && LowMapBuffer[i] == 0.0) {
+               last_high = HighMapBuffer[i];
+               last_high_pos = i;
+               ZigZagBuffer[i] = last_high;
                extreme_search = Bottom;
             }
             break;
          }
          case Bottom: {
-            if (HighMapBuffer[shift] != 0.0 && HighMapBuffer[shift] > last_high && LowMapBuffer[shift] == 0.0) {
+            if (HighMapBuffer[i] != 0.0 && HighMapBuffer[i] > last_high && LowMapBuffer[i] == 0.0) {
                ZigZagBuffer[last_high_pos] = 0.0;
-               last_high_pos = shift;
-               last_high = HighMapBuffer[shift];
-               ZigZagBuffer[shift] = last_high;
+               last_high_pos = i;
+               last_high = HighMapBuffer[i];
+               ZigZagBuffer[i] = last_high;
             }
-            if (LowMapBuffer[shift] != 0.0 && HighMapBuffer[shift] == 0.0) {
-               last_low = LowMapBuffer[shift];
-               last_low_pos = shift;
-               ZigZagBuffer[shift] = last_low;
+            if (LowMapBuffer[i] != 0.0 && HighMapBuffer[i] == 0.0) {
+               last_low = LowMapBuffer[i];
+               last_low_pos = i;
+               ZigZagBuffer[i] = last_low;
                extreme_search = Peak;
             }
             break;
          }
          default:
-            return(rates_total);
+            return rates_total;
       }
    }
-
-//--- return value of prev_calculated for next call
-   return(rates_total);
+   return rates_total;
 }
 //+------------------------------------------------------------------+
 //|  Search for the index of the highest bar                         |
 //+------------------------------------------------------------------+
 int Highest(const double &array[], const int depth, const int start) {
    if (start < 0)
-      return(0);
+      return 0;
 
    double max = array[start];
    int    index = start;
-//--- start searching
+
    for(int i = start - 1; i > start - depth && i >= 0; i--) {
       if (array[i] > max) {
          index = i;
          max = array[i];
       }
    }
-//--- return index of the highest bar
-   return(index);
+   return index;
 }
 //+------------------------------------------------------------------+
 //|  Search for the index of the lowest bar                          |
 //+------------------------------------------------------------------+
 int Lowest(const double &array[], const int depth, const int start) {
    if (start < 0)
-      return(0);
+      return 0;
 
    double min = array[start];
    int    index = start;
-//--- start searching
+
    for(int i = start - 1; i > start - depth && i >= 0; i--) {
       if (array[i] < min) {
          index = i;
          min = array[i];
       }
    }
-//--- return index of the lowest bar
-   return(index);
+   return index;
 }
 //+------------------------------------------------------------------+
