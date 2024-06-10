@@ -74,11 +74,11 @@ int OnCalculate(const int        rates_total,
                 const long       &volume[],
                 const int        &spread[])
 {
-   if (rates_total < 100)
+   if (rates_total < 100) {
       return 0;
-
+   }
    int    start = 0;
-   int    back = 0, last_high_pos = 0, last_low_pos = 0;
+   int    last_high_pos = 0, last_low_pos = 0;
    double curlow = 0, curhigh = 0, last_high = 0, last_low = 0;
    SearchMode extreme_search = Any_Extremum;
 
@@ -95,8 +95,9 @@ int OnCalculate(const int        rates_total,
           (extreme_counter < ExtRecalc) && (start > rates_total - 100);
           start--)
       {
-         if (ZigZagBuffer[start] != 0.0)
+         if (ZigZagBuffer[start] != 0.0) {
             extreme_counter++;
+         }
       }
       start++;
 
@@ -121,44 +122,53 @@ int OnCalculate(const int        rates_total,
    for(int i = start; i < rates_total && !IsStopped(); i++) {
       { //--- low
          double low_val = low[Lowest(low, InpDepth, i)];
-         if (low_val == last_low)
+         if (low_val == last_low) {
             low_val = 0.0;
+         } 
          else {
             last_low = low_val;
             if ((low[i] - low_val) > InpDeviation * _Point) {
                low_val = 0.0;
             }
             else {
-               for(back = 1; back <= InpBackstep && i >= back; back++) {
-                  if (LowMapBuffer[i - back] > low_val)
+               for(int back = 1; back <= InpBackstep && i >= back; back++) {
+                  if (LowMapBuffer[i - back] > low_val) {
                      LowMapBuffer[i - back] = 0.0;
+                  }
                }
             }
          }
-         if (low[i] == low_val)
+         if (low[i] == low_val) {
             LowMapBuffer[i] = low_val;
-         else
+         }
+         else {
             LowMapBuffer[i] = 0.0;
+         }
       }
       { //--- high
          double hi_val = high[Highest(high, InpDepth, i)];
-         if (hi_val == last_high)
+         if (hi_val == last_high) {
             hi_val = 0.0;
+         }
          else {
             last_high = hi_val;
-            if ((hi_val - high[i]) > InpDeviation * _Point)
+            if ((hi_val - high[i]) > InpDeviation * _Point) {
                hi_val = 0.0;
+            }
             else {
-               for(back = 1; back <= InpBackstep && i >= back; back++) {
-                  if (HighMapBuffer[i - back] < hi_val)
+               for(int back = 1; back <= InpBackstep && i >= back; back++) {
+                  if (HighMapBuffer[i - back] < hi_val) {
                      HighMapBuffer[i - back] = 0.0;
+                  }
                }
             }
          }
-         if (high[i] == hi_val)
+         if (high[i] == hi_val) {
             HighMapBuffer[i] = hi_val;
-         else
+         }
+         else {
             HighMapBuffer[i] = 0.0;
+         }
       }
    }
 
@@ -231,9 +241,9 @@ int OnCalculate(const int        rates_total,
 //|  Search for the index of the highest bar                         |
 //+------------------------------------------------------------------+
 int Highest(const double &array[], const int depth, const int start) {
-   if (start < 0)
+   if (start < 0) {
       return 0;
-
+   }
    double max = array[start];
    int    index = start;
 
@@ -249,9 +259,9 @@ int Highest(const double &array[], const int depth, const int start) {
 //|  Search for the index of the lowest bar                          |
 //+------------------------------------------------------------------+
 int Lowest(const double &array[], const int depth, const int start) {
-   if (start < 0)
+   if (start < 0) {
       return 0;
-
+   }
    double min = array[start];
    int    index = start;
 
