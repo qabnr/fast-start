@@ -130,8 +130,7 @@ int OnCalculate(const int        rates_total,
             }
             else {
                for(back = 1; back <= InpBackstep && i >= back; back++) {
-                  double res = LowMapBuffer[i - back];
-                  if ((res != 0) && (res > low_val))
+                  if (LowMapBuffer[i - back] > low_val)
                      LowMapBuffer[i - back] = 0.0;
                }
             }
@@ -151,8 +150,7 @@ int OnCalculate(const int        rates_total,
                hi_val = 0.0;
             else {
                for(back = 1; back <= InpBackstep && i >= back; back++) {
-                  double res = HighMapBuffer[i - back];
-                  if ((res != 0) && (res < hi_val))
+                  if (HighMapBuffer[i - back] < hi_val)
                      HighMapBuffer[i - back] = 0.0;
                }
             }
