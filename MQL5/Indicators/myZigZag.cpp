@@ -207,11 +207,13 @@ int OnCalculate(const int        rates_total,
                last_low_pos = i;
                last_low = LowMapBuffer[i];
                ZigZagBuffer[i] = last_low;
+               zeroOut(i);
             }
             if (HighMapBuffer[i] != 0.0 && LowMapBuffer[i] == 0.0) {
                last_high = HighMapBuffer[i];
                last_high_pos = i;
                ZigZagBuffer[i] = last_high;
+               zeroOut(i);
                extreme_search = Bottom;
             }
             break;
@@ -222,11 +224,13 @@ int OnCalculate(const int        rates_total,
                last_high_pos = i;
                last_high = HighMapBuffer[i];
                ZigZagBuffer[i] = last_high;
+               zeroOut(i);
             }
             if (LowMapBuffer[i] != 0.0 && HighMapBuffer[i] == 0.0) {
                last_low = LowMapBuffer[i];
                last_low_pos = i;
                ZigZagBuffer[i] = last_low;
+               zeroOut(i);
                extreme_search = Peak;
             }
             break;
@@ -236,6 +240,16 @@ int OnCalculate(const int        rates_total,
       }
    }
    return rates_total;
+}
+//+------------------------------------------------------------------+
+void zeroOut(const int i)
+{
+   for (int back = i-1; back >= 0; back--) {
+      if (ZigZagBuffer[back] == 0) {
+         LowMapBuffer [back] = 0;
+         HighMapBuffer[back] = 0;
+      }
+   }
 }
 //+------------------------------------------------------------------+
 //|  Search for the index of the highest bar                         |
