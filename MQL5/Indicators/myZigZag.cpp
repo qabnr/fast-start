@@ -148,7 +148,7 @@ int OnCalculate(const int        rates_total,
             LowMapBuffer[i] = low_val;
             LowColBuffer[i] = 0;
             for (int j = i-1; j >= 0; j--) {
-               if (LowMapBuffer[j] != 0 && ZigZagBuffer[j] > != 0) {
+               if (LowMapBuffer[j] != 0) {
                   LowColBuffer[i] = low_val < LowMapBuffer[j] ? 1 : 0;
                   break;
                }
