@@ -144,25 +144,30 @@ private:
     double  buff[];
     int     nrCopied;
 
-public:
-    Buffer()
-        : indicatorName("<NO NAME>"), handle(INVALID_HANDLE), buffNum(0), nrCopied(0)
-    {
+    void init() {
         ArraySetAsSeries(buff, true);
+        LOG(SF("New buffer: %d, handle: %d, indicator: %s", buffNum, handle, indicatorName));
+        if (handle == INVALID_HANDLE) {
+            Print("Failed to get handle for buffer: ", buffNum, ", indicator: ", indicatorName);
+        }
     }
-    Buffer(int _buffNumber, string _indicatorName, int _handle)
+
+public:
+    Buffer(const int _buffNumber, const Buffer &otherBuffer)
+        : indicatorName(otherBuffer.indicatorName), handle(otherBuffer.handle), buffNum(_buffNumber), nrCopied(0)
+    {
+        init();
+    }
+    Buffer(const int _buffNumber, const string _indicatorName, const int _handle)
         : indicatorName(_indicatorName), handle(_handle), buffNum(_buffNumber), nrCopied(0)
     {
-        ArraySetAsSeries(buff, true);
-        LOG(SF("New buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")"));
-    }
-    void addHandleAndBuffNum(string _indicatorName, int _handle, int _buffNumber) {
-        indicatorName = _indicatorName;
-        handle  = _handle;
-        buffNum = _buffNumber;
-        LOG(SF("New buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")"));
+        init();
     }
     ~Buffer() {};
+
+    int getHandle() {
+        return handle;
+    }
 
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
@@ -184,7 +189,6 @@ public:
     int    handle;
     Buffer buffer;
 
-    Indicator(): handle(INVALID_HANDLE) {}
     Indicator(int _buffNumber, string _indicatorName, const int _handle)
         : handle(_handle),
           buffer(_buffNumber, _indicatorName, _handle)
@@ -222,7 +226,7 @@ public:
 class ATR_TR_STOP : public Indicator
 {
 private:
-    Buffer stopBuffer;
+    Buffer* stopBuffer;
     Buffer stopColorBuffer;
 
     Buffer buyBuffer;
@@ -231,42 +235,22 @@ private:
     Buffer sellBuffer;
     Buffer sellColorBuffer;
 
+    string indName;
+
 public:
-    ATR_TR_STOP() : Indicator() {}
     ~ATR_TR_STOP() {}
   
-    // void ATR_TR_STOP(const int ATRperiod, const double mult) :
-    //     Indicator(iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult))
-    // {
-    //     if (handle == INVALID_HANDLE) {
-    //         Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
-    //         return;
-    //     }
-
-    //     string short_name = SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
-    //     stopBuffer     .addHandleAndBuffNum(short_name, handle, 0);
-    //     stopColorBuffer.addHandleAndBuffNum(short_name, handle, 1);
-    //     buyBuffer      .addHandleAndBuffNum(short_name, handle, 2);
-    //     buyColorBuffer. addHandleAndBuffNum(short_name, handle, 3);
-    //     sellBuffer     .addHandleAndBuffNum(short_name, handle, 4);
-    //     sellColorBuffer.addHandleAndBuffNum(short_name, handle, 5);
-    // }
-
-    void init(const int ATRperiod, const double mult) {
-        handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
-        if (handle == INVALID_HANDLE) {
-            Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
-            return;
-        }
-
-        string short_name = SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
-        stopBuffer     .addHandleAndBuffNum(short_name, handle, 0);
-        stopColorBuffer.addHandleAndBuffNum(short_name, handle, 1);
-        buyBuffer      .addHandleAndBuffNum(short_name, handle, 2);
-        buyColorBuffer. addHandleAndBuffNum(short_name, handle, 3);
-        sellBuffer     .addHandleAndBuffNum(short_name, handle, 4);
-        sellColorBuffer.addHandleAndBuffNum(short_name, handle, 5);
-    }
+    ATR_TR_STOP(const int ATRperiod, const double mult)
+        : indName(SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult)),
+          Indicator(0, SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult),
+                    iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult)),
+          stopBuffer     (&buffer),
+          stopColorBuffer(1, stopBuffer),
+          buyBuffer      (2, stopBuffer),
+          buyColorBuffer (3, stopBuffer),
+          sellBuffer     (4, stopBuffer),
+          sellColorBuffer(5, stopBuffer)
+    {}
 
     bool copyBuffers(const int count) {
         return
@@ -289,8 +273,7 @@ public:
 class ATR_TR_STOP_List
 {
 private:
-    ATR_TR_STOP atrTrStList[];
-    // ATR_TR_STOP* atrTrSt_P_List[];
+    ATR_TR_STOP* atrTrStList[];
 
 public:
     ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
@@ -298,11 +281,7 @@ public:
 
     void add(int ATRper, double mult) {
         ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);
-        atrTrStList[ArraySize(atrTrStList)-1].init(ATRper, mult);
-
-        // atrTrSt_P_List[ArraySize(atrTrStList)-1] = new ATR_TR_STOP(ATRper, mult);
-
-        
+        atrTrStList[ArraySize(atrTrStList)-1] = new ATR_TR_STOP(ATRper, mult);
     }
 
     bool copyBuffers(int count) {
