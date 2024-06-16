@@ -164,7 +164,8 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, " (", handle, ")");  }
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, " (", handle, ")");
+        }
         return nrCopied > 0;
     }
     double get(int index) {
@@ -175,10 +176,43 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     }
 };
 //+------------------------------------------------------------------+
-class ATR_TR_STOP
+class Indicator {
+public:
+    int    handle;
+
+    Indicator(): handle(INVALID_HANDLE) {}
+    Indicator(const int handle_): handle(handle_) {}
+    virtual ~Indicator() {};
+    virtual bool copyBuffers(const int count) = 0;
+};
+//+------------------------------------------------------------------+
+class IndicatorList {
+private:
+    Indicator* list[];
+
+public:
+    IndicatorList() {}
+    ~IndicatorList() {}
+
+    void add(Indicator* ind) {
+        ArrayResize(list, ArraySize(list) + 1, 100);
+        list[ArraySize(list)-1] = ind;
+    }
+
+    bool copyBuffers(const int count) {
+        int len = ArraySize(list);
+        for (int i = 0; i < len; i++) {
+            if (!list[i].copyBuffers(count)) {
+                return false;
+            }
+        }
+        return true;
+    } 
+};
+//+------------------------------------------------------------------+
+class ATR_TR_STOP : public Indicator
 {
 private:
-    int    handle;
     Buffer stopBuffer;
     Buffer stopColorBuffer;
 
@@ -189,10 +223,27 @@ private:
     Buffer sellColorBuffer;
 
 public:
-    ATR_TR_STOP() : handle(INVALID_HANDLE) {}
+    ATR_TR_STOP() : Indicator() {}
     ~ATR_TR_STOP() {}
   
-    void init(int ATRperiod, double mult) {
+    // void ATR_TR_STOP(const int ATRperiod, const double mult) :
+    //     Indicator(iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult))
+    // {
+    //     if (handle == INVALID_HANDLE) {
+    //         Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
+    //         return;
+    //     }
+
+    //     string short_name = SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult);
+    //     stopBuffer     .addHandleAndBuffNum(short_name, handle, 0);
+    //     stopColorBuffer.addHandleAndBuffNum(short_name, handle, 1);
+    //     buyBuffer      .addHandleAndBuffNum(short_name, handle, 2);
+    //     buyColorBuffer. addHandleAndBuffNum(short_name, handle, 3);
+    //     sellBuffer     .addHandleAndBuffNum(short_name, handle, 4);
+    //     sellColorBuffer.addHandleAndBuffNum(short_name, handle, 5);
+    // }
+
+    void init(const int ATRperiod, const double mult) {
         handle  = iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult);
         if (handle == INVALID_HANDLE) {
             Print("Failed to get the the ATR indicator(", ATRperiod, ", ", mult, ") handle");
@@ -208,7 +259,7 @@ public:
         sellColorBuffer.addHandleAndBuffNum(short_name, handle, 5);
     }
 
-    bool copyBuffers(int count) {
+    bool copyBuffers(const int count) {
         return
            stopBuffer.copy(count) && stopColorBuffer.copy(count)
         && buyBuffer .copy(count) && buyColorBuffer .copy(count)
@@ -230,6 +281,7 @@ class ATR_TR_STOP_List
 {
 private:
     ATR_TR_STOP atrTrStList[];
+    // ATR_TR_STOP* atrTrSt_P_List[];
 
 public:
     ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
@@ -238,6 +290,10 @@ public:
     void add(int ATRper, double mult) {
         ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);
         atrTrStList[ArraySize(atrTrStList)-1].init(ATRper, mult);
+
+        // atrTrSt_P_List[ArraySize(atrTrStList)-1] = new ATR_TR_STOP(ATRper, mult);
+
+        
     }
 
     bool copyBuffers(int count) {
@@ -260,12 +316,10 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class MACD_base
+class MACD_base : public Indicator
 {
 private:
 public:
-    int handle;
-
     Buffer MACD_Buffer;
     Buffer Signal_Buffer;
     Buffer OsMA_Buffer;
@@ -280,7 +334,7 @@ public:
               const int Signal_Buffer_buffNum,
               const int OsMA_Buffer_buffNum,
               const int osMA_Color_Buffer_buffNum)
-      : handle(iCustom(NULL, PERIOD_CURRENT, customIndicatorName, fast_MA_period, slow_MA_period, avg_diff_period)),
+      : Indicator(iCustom(NULL, PERIOD_CURRENT, customIndicatorName, fast_MA_period, slow_MA_period, avg_diff_period)),
         MACD_Buffer      (MACD_Buffer_buffNum,       bufferName, handle),
         Signal_Buffer    (Signal_Buffer_buffNum,     bufferName, handle),
         OsMA_Buffer      (OsMA_Buffer_buffNum,       bufferName, handle),
@@ -294,7 +348,7 @@ public:
 
     virtual ~MACD_base() {};
 
-    bool copyBuffers(const int count)
+    virtual bool copyBuffers(const int count)
     {
         return
             MACD_Buffer      .copy(count) &&
@@ -366,15 +420,12 @@ public:
     ~myMACD2() {}
 };
 //+------------------------------------------------------------------+
-class LinRegrChannel
+class LinRegrChannel : public Indicator
 {
-private:
-    int handle;
-
 public:
     Buffer buffer;
 
-    LinRegrChannel(string bufferName): handle(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
+    LinRegrChannel(string bufferName): Indicator(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
         buffer(0, bufferName, handle)
     {
         if(handle  == INVALID_HANDLE)
@@ -382,10 +433,23 @@ public:
     }
     ~LinRegrChannel() {}
 
-    bool copyBuffers(int count)
-    {
+    bool copyBuffers(const int count) {
         return buffer.copy(count);
     }
+};
+//+------------------------------------------------------------------+
+class ZigZag : public Indicator
+{
+public:
+    Buffer buffer;
+
+    ZigZag() : Indicator(iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)) {}
+    ~ZigZag() {}
+
+    bool copyBuffers(const int count) {
+        return buffer.copy(count);
+    }
+
 };
 //+------------------------------------------------------------------+
 #define enum2str_CASE(c) case  c: return #c
@@ -683,18 +747,27 @@ namespace g
     LinRegrChannel  *linRegrChannel;
     SellOrBuy        sellOrBuy;
     double           maxRelDrawDown = 0;
+
+    IndicatorList   *indicatorList;
 };
 //+------------------------------------------------------------------+
 int OnInit()
 {
     printInputParams();
     
+    g::indicatorList = new IndicatorList();
+
     g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
     g::MACD2 = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
+
+    g::indicatorList.add(g::MACD1);
+    g::indicatorList.add(g::MACD2);
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
     g::pPos  = new TradePosition(Symbol());
+
+    ZigZag* pZigZag = new ZigZag();
 
 /*/
     g::ATR_list.add(10, 1.0);
@@ -920,6 +993,10 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
 //+------------------------------------------------------------------+
 void OnTick()
 {
+    static bool stopToReponse = false;
+
+    if (stopToReponse) return;
+
     static int logCnt = 0;
 
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
@@ -929,7 +1006,10 @@ void OnTick()
     if (totalPricePaid == 0) return;
 
     if (copyBuffers() == false)
-    {   Print("Failed to copy data from buffer"); return; }
+    {   LOG("Failed to copy data from buffer");
+        stopToReponse = true;
+        return;
+    }
 
     static double maxProfit  = 0;
     static double maxEquity  = 0;
@@ -1090,8 +1170,7 @@ bool copyBuffers()
 {
     const int buffSize = 300;
 
-    if (   !g::MACD1.         copyBuffers(buffSize)
-        || !g::MACD2.         copyBuffers(buffSize)
+    if (   !g::indicatorList. copyBuffers(buffSize)
         || !g::ATR_list.      copyBuffers(buffSize)
         // || !g::linRegrChannel.copyBuffers(buffSize)
         )
