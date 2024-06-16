@@ -65,6 +65,7 @@ void LOG_Naked(const string s) {
     if (isLOG()) Print(s);
 }
 #define LOG(s) if (isLOG()) Print(SF("%d: %s", __LINE__, s))
+#define LOGF(s) if (isLOG()) Print(SF("%d: %s: %s", __LINE__, __FUNCTION__, s))
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60
@@ -163,7 +164,7 @@ public:
     {
         init();
     }
-    ~Buffer() {};
+    ~Buffer() { LOGF(SF("buffer: %d, handle: %d, indicator: %s", buffNum, handle, indicatorName)); };
 
     int getHandle() {
         return handle;
@@ -185,15 +186,16 @@ public:
 };
 //+------------------------------------------------------------------+
 class Indicator {
-public:
+protected:
     int    handle;
+public:
     Buffer buffer;
 
     Indicator(int _buffNumber, string _indicatorName, const int _handle)
         : handle(_handle),
           buffer(_buffNumber, _indicatorName, _handle)
     {}
-    virtual ~Indicator() {};
+    virtual ~Indicator() { LOGF(""); };
     virtual bool copyBuffers(const int count) {
         return buffer.copy(count);
     }
@@ -205,7 +207,11 @@ private:
 
 public:
     IndicatorList() {}
-    ~IndicatorList() {}
+    ~IndicatorList() {
+        for (int i = 0; i < ArraySize(list); i++) {
+            delete list[i];
+        }
+    }
 
     void add(Indicator* ind) {
         ArrayResize(list, ArraySize(list) + 1, 100);
@@ -238,7 +244,7 @@ private:
     string indName;
 
 public:
-    ~ATR_TR_STOP() {}
+    ~ATR_TR_STOP() { LOGF(indName); }
   
     ATR_TR_STOP(const int ATRperiod, const double mult)
         : indName(SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult)),
@@ -260,12 +266,10 @@ public:
     }
 
     bool isBuyNow(double price) {
-//Print(__FUNCTION__, ": ", buyBuffer.get(1), ", ", price);
         return buyBuffer.get(1) < price;
     }
 
     bool isSellNow(double price) {
-//Print(__FUNCTION__, ": ", sellBuffer.get(1), ", ", price);
         return sellBuffer.get(1) > price;
     }
 };
@@ -277,7 +281,11 @@ private:
 
 public:
     ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
-    ~ATR_TR_STOP_List() {};
+    ~ATR_TR_STOP_List() {
+        for (int i = 0; i < ArraySize(atrTrStList); i++) {
+            delete atrTrStList[i];
+        }
+    };
 
     void add(int ATRper, double mult) {
         ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);
@@ -306,12 +314,12 @@ public:
 //+------------------------------------------------------------------+
 class MACD_base : public Indicator
 {
-private:
-public:
+protected:
     Buffer signal_Buffer;
     Buffer osMA_Buffer;
     Buffer osMA_Color_Buffer;
 
+public:
     MACD_base(const string customIndicatorName, 
               const string bufferName,
               const int fast_MA_period,
@@ -334,7 +342,7 @@ public:
         }
     }
 
-    virtual ~MACD_base() {};
+    virtual ~MACD_base() { LOGF(""); };
 
     virtual bool copyBuffers(const int count)
     {
@@ -370,12 +378,13 @@ public:
 //+------------------------------------------------------------------+
 class MACD : public MACD_base
 {
-public:
+protected:
     Buffer decPeriod_Buffer;
     Buffer incPeriod_Buffer;
     Buffer decPeriod_OsMA_Buffer;
     Buffer incPeriod_OsMA_Buffer;
 
+public:
     MACD(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period)
         : MACD_base("myMACD", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
         5, 4 , 2, 3),
@@ -384,7 +393,7 @@ public:
         decPeriod_OsMA_Buffer(6, bufferName, handle),
         incPeriod_OsMA_Buffer(7, bufferName, handle)
     { }
-    ~MACD() {}
+    ~MACD() { LOGF(""); }
 
     bool copyBuffers(const int count)
     {
@@ -403,9 +412,9 @@ public:
     myMACD2(const string bufferName, const int fast_MA_period, const int slow_MA_period, const int avg_diff_period)
         : MACD_base("myMACD2", bufferName, fast_MA_period, slow_MA_period, avg_diff_period,
                     0, 1, 2, 3)
-    { }
+    {}
 
-    ~myMACD2() {}
+    ~myMACD2() { LOGF(""); }
 };
 //+------------------------------------------------------------------+
 class LinRegrChannel : public Indicator
@@ -414,7 +423,7 @@ public:
     LinRegrChannel(string bufferName)
         : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"))
     {}
-    ~LinRegrChannel() {}
+    ~LinRegrChannel() { LOGF(""); }
 };
 //+------------------------------------------------------------------+
 class ZigZag : public Indicator
@@ -423,7 +432,7 @@ public:
     ZigZag(const string bufferName)
         : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3))
     {}
-    ~ZigZag() {}
+    ~ZigZag() { LOGF(""); }
 };
 //+------------------------------------------------------------------+
 #define enum2str_CASE(c) case  c: return #c
@@ -644,8 +653,8 @@ private:
     Stats         stats;
 
 public:
-    TradePosition(string symbol): my_symbol(symbol),
-        volume(MathFloor(SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
+    TradePosition(): my_symbol(Symbol()),
+        volume(MathFloor(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
         posType(-1), totalPricePaid(0.01)
     {}
     ~TradePosition() { stats.print(); }
@@ -717,27 +726,22 @@ namespace g
     ATR_TR_STOP_List ATR_list;
     myMACD2         *MACD1;
     myMACD2         *MACD2;
-    TradePosition   *pPos;
+    ZigZag          *zigZag;
+    TradePosition    pPos;
     LinRegrChannel  *linRegrChannel;
     SellOrBuy        sellOrBuy;
     double           maxRelDrawDown = 0;
 
-    IndicatorList   *indicatorList;
+    IndicatorList   indicatorList;
 };
 //+------------------------------------------------------------------+
 int OnInit()
 {
     printInputParams();
     
-    g::pPos  = new TradePosition(Symbol());
-    g::indicatorList = new IndicatorList();
-
-    g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
-    g::MACD2 = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period);
-
-    g::indicatorList.add(g::MACD1);
-    g::indicatorList.add(g::MACD2);
-    g::indicatorList.add(new ZigZag("ZZ"));
+    g::indicatorList.add(g::MACD1  = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period));
+    g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
@@ -754,12 +758,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    // delete g::linRegrChannel;
-    delete g::pPos;
-    delete g::MACD1;
-    delete g::MACD2;
 }
-
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
     if (g::pPos.isTypeBUY()) {
