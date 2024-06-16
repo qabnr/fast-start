@@ -281,23 +281,15 @@ private:
 
 public:
     ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
-    ~ATR_TR_STOP_List() {
-        for (int i = 0; i < ArraySize(atrTrStList); i++) {
-            delete atrTrStList[i];
-        }
-    };
+    ~ATR_TR_STOP_List() { LOGF(""); }
 
     void add(int ATRper, double mult) {
         ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);
-        atrTrStList[ArraySize(atrTrStList)-1] = new ATR_TR_STOP(ATRper, mult);
+        ATR_TR_STOP *new_stop = new ATR_TR_STOP(ATRper, mult);
+        atrTrStList[ArraySize(atrTrStList)-1] = new_stop;
+        g::indicatorList.add(new_stop);
     }
 
-    bool copyBuffers(int count) {
-        for (int i = 0; i < ArraySize(atrTrStList); i++)
-        {   if (!atrTrStList[i].copyBuffers(count)) return false;
-        }
-        return true;
-    }
     bool isBuyNow(double price) {
         for (int i = 0; i < ArraySize(atrTrStList); i++)
         {   if (atrTrStList[i].isBuyNow(price)) return true;
@@ -976,8 +968,8 @@ void OnTick()
 
     if (totalPricePaid == 0) return;
 
-    if (copyBuffers() == false)
-    {   LOG("Failed to copy data from buffer");
+    if (g::indicatorList.copyBuffers(300) == false) {
+        LOG("Failed to copy data from buffer");
         stopToReponse = true;
         return;
     }
@@ -1135,21 +1127,6 @@ MqlRates getPrice()
     if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
     }
     return bar[1];
-}
-//+------------------------------------------------------------------+
-bool copyBuffers()
-{
-    const int buffSize = 300;
-
-    if (   !g::indicatorList. copyBuffers(buffSize)
-        || !g::ATR_list.      copyBuffers(buffSize)
-        // || !g::linRegrChannel.copyBuffers(buffSize)
-        )
-    {
-        Print("Failed to copy data from buffer");
-        return false;
-    }
-    return true;
 }
 //+------------------------------------------------------------------+
 double OnTester()
