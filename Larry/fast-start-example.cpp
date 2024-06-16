@@ -138,33 +138,36 @@ string timeDiffToStr(datetime &then) {
 class Buffer
 {
 private:
-    string  name;
+    string  indicatorName;
     int     handle;
     int     buffNum;
     double  buff[];
     int     nrCopied;
 
 public:
-    Buffer(): name("<NO NAME>"), handle(INVALID_HANDLE), buffNum(0), nrCopied(0) {
-        ArraySetAsSeries(buff, true);
-    }
-    Buffer(int _buffNum, string _name, int _handle): name(_name), handle(_handle), buffNum(_buffNum), nrCopied(0)
+    Buffer()
+        : indicatorName("<NO NAME>"), handle(INVALID_HANDLE), buffNum(0), nrCopied(0)
     {
         ArraySetAsSeries(buff, true);
-Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
     }
-    void addHandleAndBuffNum(string _name, int _handle, int _buffNum) {
-         name    =  _name;
-         handle  = _handle;
-         buffNum = _buffNum;
-Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
+    Buffer(int _buffNumber, string _indicatorName, int _handle)
+        : indicatorName(_indicatorName), handle(_handle), buffNum(_buffNumber), nrCopied(0)
+    {
+        ArraySetAsSeries(buff, true);
+        LOG(SF("New buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")"));
+    }
+    void addHandleAndBuffNum(string _indicatorName, int _handle, int _buffNumber) {
+        indicatorName = _indicatorName;
+        handle  = _handle;
+        buffNum = _buffNumber;
+        LOG(SF("New buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")"));
     }
     ~Buffer() {};
 
     bool copy(int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", name, " (", handle, ")");
+        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")");
         }
         return nrCopied > 0;
     }
@@ -179,11 +182,17 @@ Print("New buffer: ", buffNum, " handle: ", name, " (", handle, ")");
 class Indicator {
 public:
     int    handle;
+    Buffer buffer;
 
     Indicator(): handle(INVALID_HANDLE) {}
-    Indicator(const int handle_): handle(handle_) {}
+    Indicator(int _buffNumber, string _indicatorName, const int _handle)
+        : handle(_handle),
+          buffer(_buffNumber, _indicatorName, _handle)
+    {}
     virtual ~Indicator() {};
-    virtual bool copyBuffers(const int count) = 0;
+    virtual bool copyBuffers(const int count) {
+        return buffer.copy(count);
+    }
 };
 //+------------------------------------------------------------------+
 class IndicatorList {
@@ -320,12 +329,11 @@ class MACD_base : public Indicator
 {
 private:
 public:
-    Buffer MACD_Buffer;
-    Buffer Signal_Buffer;
-    Buffer OsMA_Buffer;
+    Buffer signal_Buffer;
+    Buffer osMA_Buffer;
     Buffer osMA_Color_Buffer;
 
-    MACD_base(const string customIndicatorName,
+    MACD_base(const string customIndicatorName, 
               const string bufferName,
               const int fast_MA_period,
               const int slow_MA_period,
@@ -334,10 +342,11 @@ public:
               const int Signal_Buffer_buffNum,
               const int OsMA_Buffer_buffNum,
               const int osMA_Color_Buffer_buffNum)
-      : Indicator(iCustom(NULL, PERIOD_CURRENT, customIndicatorName, fast_MA_period, slow_MA_period, avg_diff_period)),
-        MACD_Buffer      (MACD_Buffer_buffNum,       bufferName, handle),
-        Signal_Buffer    (Signal_Buffer_buffNum,     bufferName, handle),
-        OsMA_Buffer      (OsMA_Buffer_buffNum,       bufferName, handle),
+      : Indicator        (MACD_Buffer_buffNum,       bufferName,
+                          iCustom(NULL, PERIOD_CURRENT, customIndicatorName, 
+                                  fast_MA_period, slow_MA_period, avg_diff_period)),
+        signal_Buffer    (Signal_Buffer_buffNum,     bufferName, handle),
+        osMA_Buffer      (OsMA_Buffer_buffNum,       bufferName, handle),
         osMA_Color_Buffer(osMA_Color_Buffer_buffNum, bufferName, handle)
     {
         if (handle == INVALID_HANDLE)
@@ -351,32 +360,32 @@ public:
     virtual bool copyBuffers(const int count)
     {
         return
-            MACD_Buffer      .copy(count) &&
-            Signal_Buffer    .copy(count) &&
-            OsMA_Buffer      .copy(count) &&
+            buffer           .copy(count) &&
+            signal_Buffer    .copy(count) &&
+            osMA_Buffer      .copy(count) &&
             osMA_Color_Buffer.copy(count);
     }
 
     bool justChangedToDownTrend() {
-        return OsMA_Buffer.get(0) < OsMA_Buffer.get(1)
-            && OsMA_Buffer.get(1) > OsMA_Buffer.get(2);
+        return osMA_Buffer.get(0) < osMA_Buffer.get(1)
+            && osMA_Buffer.get(1) > osMA_Buffer.get(2);
     }
 
     bool justChangedToUpTrend() {
-        return OsMA_Buffer.get(0) > OsMA_Buffer.get(1)
-            && OsMA_Buffer.get(1) < OsMA_Buffer.get(2);
+        return osMA_Buffer.get(0) > osMA_Buffer.get(1)
+            && osMA_Buffer.get(1) < osMA_Buffer.get(2);
     }
 
     bool OsMA_justChangedPositive() {
-        return OsMA_Buffer.get(0) >  0
-            && OsMA_Buffer.get(1) <= 0
-            && MACD_Buffer.get(0) < 0;
+        return osMA_Buffer.get(0) >  0
+            && osMA_Buffer.get(1) <= 0
+            && buffer.get(0) < 0;
     }
 
     bool OsMA_justChangedNegative() {
-        return OsMA_Buffer.get(0) <  0
-            && OsMA_Buffer.get(1) >= 0
-            && MACD_Buffer.get(0) > 0;
+        return osMA_Buffer.get(0) <  0
+            && osMA_Buffer.get(1) >= 0
+            && buffer.get(0) > 0;
     }
 };
 //+------------------------------------------------------------------+
@@ -423,33 +432,19 @@ public:
 class LinRegrChannel : public Indicator
 {
 public:
-    Buffer buffer;
-
-    LinRegrChannel(string bufferName): Indicator(iCustom(NULL, PERIOD_CURRENT, "linRegrChannel")),
-        buffer(0, bufferName, handle)
-    {
-        if(handle  == INVALID_HANDLE)
-        {   Print("Failed to get indicator handle"); }
-    }
+    LinRegrChannel(string bufferName)
+        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"))
+    {}
     ~LinRegrChannel() {}
-
-    bool copyBuffers(const int count) {
-        return buffer.copy(count);
-    }
 };
 //+------------------------------------------------------------------+
 class ZigZag : public Indicator
 {
 public:
-    Buffer buffer;
-
-    ZigZag() : Indicator(iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)) {}
+    ZigZag(const string bufferName)
+        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3))
+    {}
     ~ZigZag() {}
-
-    bool copyBuffers(const int count) {
-        return buffer.copy(count);
-    }
-
 };
 //+------------------------------------------------------------------+
 #define enum2str_CASE(c) case  c: return #c
@@ -755,6 +750,7 @@ int OnInit()
 {
     printInputParams();
     
+    g::pPos  = new TradePosition(Symbol());
     g::indicatorList = new IndicatorList();
 
     g::MACD1 = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period);
@@ -762,12 +758,9 @@ int OnInit()
 
     g::indicatorList.add(g::MACD1);
     g::indicatorList.add(g::MACD2);
+    g::indicatorList.add(new ZigZag("ZZ"));
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
-
-    g::pPos  = new TradePosition(Symbol());
-
-    ZigZag* pZigZag = new ZigZag();
 
 /*/
     g::ATR_list.add(10, 1.0);
@@ -810,22 +803,22 @@ private:
     bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.MACD_Buffer.get(1), g::MACD1.MACD_Buffer.get(2)));
-        if (g::MACD1.MACD_Buffer.get(1) < g::MACD1.MACD_Buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.buffer.get(1), g::MACD1.buffer.get(2)));
+        if (g::MACD1.buffer.get(1) < g::MACD1.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.MACD_Buffer.get(i), g::MACD1.MACD_Buffer.get(i+1)));
-            if (g::MACD1.MACD_Buffer.get(i) > g::MACD1.MACD_Buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.buffer.get(i), g::MACD1.buffer.get(i+1)));
+            if (g::MACD1.buffer.get(i) > g::MACD1.buffer.get(i+1)) return false;
         }
 // LOG("MIN found");
         return true;
     };
 
     bool isMax() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.MACD_Buffer.get(1), g::MACD1.MACD_Buffer.get(2)));
-        if (g::MACD1.MACD_Buffer.get(1) > g::MACD1.MACD_Buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.buffer.get(1), g::MACD1.buffer.get(2)));
+        if (g::MACD1.buffer.get(1) > g::MACD1.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.MACD_Buffer.get(i), g::MACD1.MACD_Buffer.get(i+1)));
-            if (g::MACD1.MACD_Buffer.get(i) < g::MACD1.MACD_Buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.buffer.get(i), g::MACD1.buffer.get(i+1)));
+            if (g::MACD1.buffer.get(i) < g::MACD1.buffer.get(i+1)) return false;
         }
 // LOG("MAX found");
         return true;
@@ -860,7 +853,7 @@ public:
         if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
-            s += SF("%.2f ", g::MACD1.MACD_Buffer.get(i));
+            s += SF("%.2f ", g::MACD1.buffer.get(i));
         }
         Print(s);
     }
@@ -878,7 +871,7 @@ else {
     return;
 }
 
-        double macd0 = g::MACD1.MACD_Buffer.get(1);
+        double macd0 = g::MACD1.buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
