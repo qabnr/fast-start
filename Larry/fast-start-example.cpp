@@ -232,7 +232,7 @@ public:
 class ATR_TR_STOP : public Indicator
 {
 private:
-    Buffer* stopBuffer;
+    Buffer *stopBuffer;
     Buffer stopColorBuffer;
 
     Buffer buyBuffer;
@@ -250,12 +250,12 @@ public:
         : indName(SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult)),
           Indicator(0, SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult),
                     iCustom(NULL, PERIOD_CURRENT, "myATR_TR_STOP", ATRperiod, mult)),
-          stopBuffer     (&buffer),
-          stopColorBuffer(1, stopBuffer),
-          buyBuffer      (2, stopBuffer),
-          buyColorBuffer (3, stopBuffer),
-          sellBuffer     (4, stopBuffer),
-          sellColorBuffer(5, stopBuffer)
+          stopBuffer     (  &buffer),
+          stopColorBuffer(1, buffer),
+          buyBuffer      (2, buffer),
+          buyColorBuffer (3, buffer),
+          sellBuffer     (4, buffer),
+          sellColorBuffer(5, buffer)
     {}
 
     bool copyBuffers(const int count) {
@@ -421,8 +421,16 @@ public:
 class ZigZag : public Indicator
 {
 public:
+
+    Buffer *ZigZagBuffer;
+    Buffer HighMapBuffer;
+    Buffer LowMapBuffer;
+
     ZigZag(const string bufferName)
-        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3))
+        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)),
+          ZigZagBuffer (  &buffer),
+          HighMapBuffer(1, buffer),
+          LowMapBuffer (2, buffer)
     {}
     ~ZigZag() { LOGF(""); }
 };
@@ -1024,6 +1032,10 @@ void OnTick()
             (equity-maxEquity) / maxEquity * 100,
             d2str(balance),
             g::maxRelDrawDown * 100));
+
+        if (g::zigZag.buffer.get(1)) {
+            ;
+        }
     }
 
     if (profitPerBalance < -profitPerBalanceLimit) {
