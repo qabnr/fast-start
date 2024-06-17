@@ -956,9 +956,9 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
 //+------------------------------------------------------------------+
 void OnTick()
 {
-    static bool stopToReponse = false;
+    static bool stopToRespond = false;
 
-    if (stopToReponse) return;
+    if (stopToRespond) return;
 
     static int logCnt = 0;
 
@@ -970,7 +970,7 @@ void OnTick()
 
     if (g::indicatorList.copyBuffers(300) == false) {
         LOG("Failed to copy data from buffer");
-        stopToReponse = true;
+        stopToRespond = true;
         return;
     }
 
@@ -988,41 +988,41 @@ void OnTick()
     if (equity  > maxEquity)  { maxEquity = equity; }
     if (balance > maxBalance) { maxBalance = balance; }
 
-    double profitPerBalance       = profit / balance;
-    double profitLossPerBal       = (profit-maxProfit) / balance;
-    double profitPerPrice         = profit / totalPricePaid;
+    double profitPerBalance = profit / balance;
+    double profitLossPerBal = (profit-maxProfit) / balance;
+    double profitPerPrice   = profit / totalPricePaid;
 
-static double cummPrLossPerPrice = 0;
+    static double cummPrLossPerPrice = 0;
 
-if (profitPerPrice < 0) {
-    cummPrLossPerPrice += profitPerPrice;
-}
-else {
-    cummPrLossPerPrice = 0;
-}
+    if (profitPerPrice < 0) {
+        cummPrLossPerPrice += profitPerPrice;
+    }
+    else {
+        cummPrLossPerPrice = 0;
+    }
 
     double profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
 
     double relDrawDown = 1 - balance / maxBalance;
     if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
 
-if (isNewMinute()) {
-    logCnt++;
-    if (logCnt % 20 == 1) {
-        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
+    if (isNewMinute()) {
+        logCnt++;
+        if (logCnt % 20 == 1) {
+            LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
+        }
+        LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
+            d2str(profit),
+            profitLossPerBal * 100,
+            profitLossPerPrice * 100,
+            profitPerBalance * 100.0,
+            profitPerPrice * 100.0,
+            cummPrLossPerPrice * 100,
+            d2str(equity),
+            (equity-maxEquity) / maxEquity * 100,
+            d2str(balance),
+            g::maxRelDrawDown * 100));
     }
-    LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
-        d2str(profit),
-        profitLossPerBal * 100,
-        profitLossPerPrice * 100,
-        profitPerBalance * 100.0,
-        profitPerPrice * 100.0,
-        cummPrLossPerPrice * 100,
-        d2str(equity),
-        (equity-maxEquity) / maxEquity * 100,
-        d2str(balance),
-        g::maxRelDrawDown * 100));
-}
 
     if (profitPerBalance < -profitPerBalanceLimit) {
         changeDirection(Reason::chDir_profitPerBalanceLimit, __LINE__);
