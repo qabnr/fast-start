@@ -178,6 +178,9 @@ public:
         return nrCopied > 0;
     }
     double get(const int index) const {
+        if (ArraySize(buff) <= index) {
+            return 0.0;
+        }
         return buff[index];
     }
     int getNrCopied() const {
@@ -1033,8 +1036,16 @@ void OnTick()
             g::maxRelDrawDown * 100));
 
         {   double v = g::zigZag.HighMapBuffer.get(1);
-            if (v > 0) {
-                LOG(SF("ZZ:H: %.2f", v));;
+            if (v > 0) {    // NOT WORKING ???
+                LOG(SF("ZZ:H: %.2f", v));
+        }   }
+        {   double v = g::zigZag.ZigZagBuffer.get(1);
+            if (v > 0) {    // OK, WORKING
+                LOG(SF("ZZ:Z: %.2f", v));
+        }   }
+        {   double v = g::zigZag.LowMapBuffer.get(1);
+            if (v > 0) {    // NOT WORKING ???
+                LOG(SF("ZZ:L: %.2f", v));
         }   }
     }
 
