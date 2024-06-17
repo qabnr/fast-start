@@ -761,7 +761,7 @@ void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
     }
 }
 //+------------------------------------------------------------------+
-class PeaksAndValleys
+class MACD_PeaksAndValleys
 {
 private:
     myMACD2  *macd;
@@ -812,14 +812,14 @@ private:
     };
 
 public:
-    PeaksAndValleys(myMACD2 *macd_) :
+    MACD_PeaksAndValleys(myMACD2 *macd_) :
         macd(macd_),
         sign(-2),
         TimeOfLastChangeOfSign(TimeCurrent()),
         TimeOfLastMin(0),
         TimeOfLastMax(0)
     {   initValues(0); }
-    ~PeaksAndValleys() {};
+    ~MACD_PeaksAndValleys() {};
 
     void LogMACD_Last(int cnt) {
         if (!isLOG()) return;
@@ -1043,7 +1043,7 @@ void OnTick()
     }
     else
     {
-        static PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
+        static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
 
         MACD1peaksAndValleys.process();
 
