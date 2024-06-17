@@ -166,21 +166,21 @@ public:
     }
     ~Buffer() { LOGF(SF("buffer: %d, handle: %d, indicator: %s", buffNum, handle, indicatorName)); };
 
-    int getHandle() {
+    int getHandle() const {
         return handle;
     }
 
-    bool copy(int count) {
+    bool copy(const int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
         {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")");
         }
         return nrCopied > 0;
     }
-    double get(int index) {
+    double get(const int index) const {
         return buff[index];
     }
-    int getNrCopied() {
+    int getNrCopied() const {
         return nrCopied;
     }
 };
@@ -265,11 +265,11 @@ public:
         && sellBuffer.copy(count) && sellColorBuffer.copy(count);
     }
 
-    bool isBuyNow(double price) {
+    bool isBuyNow(const double price) const {
         return buyBuffer.get(1) < price;
     }
 
-    bool isSellNow(double price) {
+    bool isSellNow(const double price) const {
         return sellBuffer.get(1) > price;
     }
 };
@@ -290,13 +290,13 @@ public:
         g::indicatorList.add(new_stop);
     }
 
-    bool isBuyNow(double price) {
+    bool isBuyNow(const double price) const {
         for (int i = 0; i < ArraySize(atrTrStList); i++)
         {   if (atrTrStList[i].isBuyNow(price)) return true;
         }
         return false;
     }
-    bool isSellNow(double price) {
+    bool isSellNow(const double price) const {
         for (int i = 0; i < ArraySize(atrTrStList); i++)
         {   if (atrTrStList[i].isSellNow(price)) return true;
         }
@@ -345,23 +345,23 @@ public:
             osMA_Color_Buffer.copy(count);
     }
 
-    bool justChangedToDownTrend() {
+    bool justChangedToDownTrend() const {
         return osMA_Buffer.get(0) < osMA_Buffer.get(1)
             && osMA_Buffer.get(1) > osMA_Buffer.get(2);
     }
 
-    bool justChangedToUpTrend() {
+    bool justChangedToUpTrend() const {
         return osMA_Buffer.get(0) > osMA_Buffer.get(1)
             && osMA_Buffer.get(1) < osMA_Buffer.get(2);
     }
 
-    bool OsMA_justChangedPositive() {
+    bool OsMA_justChangedPositive() const {
         return osMA_Buffer.get(0) >  0
             && osMA_Buffer.get(1) <= 0
             && buffer.get(0) < 0;
     }
 
-    bool OsMA_justChangedNegative() {
+    bool OsMA_justChangedNegative() const {
         return osMA_Buffer.get(0) <  0
             && osMA_Buffer.get(1) >= 0
             && buffer.get(0) > 0;
@@ -421,10 +421,9 @@ public:
 class ZigZag : public Indicator
 {
 public:
-
-    Buffer *ZigZagBuffer;
-    Buffer HighMapBuffer;
-    Buffer LowMapBuffer;
+    const Buffer *ZigZagBuffer;
+    const Buffer HighMapBuffer;
+    const Buffer LowMapBuffer;
 
     ZigZag(const string bufferName)
         : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)),
@@ -508,10 +507,10 @@ public:
         arr_[last_] = val;
     }
 
-    double sum() { return sum_; }
-    double avg() { return last_ <= 0 ? 0: sum_/last_; }
+    double sum() const { return sum_; }
+    double avg() const { return last_ <= 0 ? 0: sum_/last_; }
 
-    double variance() {
+    double variance() const {
         int size = ArraySize(arr_);
         if (size == 0) return 0;
 
@@ -526,7 +525,7 @@ public:
         return diffSqSum / size;
     }
 
-    double stdDev() { return MathSqrt(variance()); }
+    double stdDev() const { return MathSqrt(variance()); }
 };
 //+------------------------------------------------------------------+
 class Stats {
@@ -543,7 +542,7 @@ private:
     List profitList[Reason::ReasonCode::size];
 
 public:
-    string op2str(int op) {
+    string op2str(int op) const {
         switch (op)
         {
             case Operation::buy:     return "Buy";
@@ -625,11 +624,11 @@ public:
     DEF_IS_METHOD(GetReadyToSell)
     DEF_IS_METHOD(SellNow)
 
-    string Reason2str() { return Reason::toStr(reason); }
+    string Reason2str() const { return Reason::toStr(reason); }
 
-    string State2str() { return State2str(state); }
+    string State2str() const { return State2str(state); }
 
-    string State2str(State s) {
+    string State2str(State s) const {
         switch (s) {
             enum2str_CASE(None);
             enum2str_CASE(GetReadyToBuy);
@@ -643,7 +642,7 @@ public:
 //+------------------------------------------------------------------+
 class TradePosition {
 private:
-    string        my_symbol;
+    const string        my_symbol;
     CTrade        m_Trade;
     CPositionInfo m_Position;
 
@@ -659,10 +658,10 @@ public:
     {}
     ~TradePosition() { stats.print(); }
 
-    bool select()     { return m_Position.Select(my_symbol); }
-    bool isTypeSELL() { return posType == POSITION_TYPE_SELL; }
-    bool isTypeBUY()  { return posType == POSITION_TYPE_BUY; }
-    double getTotalPricePaid() { return totalPricePaid; }
+    bool select()                    { return m_Position.Select(my_symbol); }
+    bool isTypeSELL()          const { return posType == POSITION_TYPE_SELL; }
+    bool isTypeBUY()           const { return posType == POSITION_TYPE_BUY; }
+    double getTotalPricePaid() const { return totalPricePaid; }
 
     void close(Reason::ReasonCode reason, double profit) {
 LOG(SF("Close, profit: %+.1f%%", (profit)));
@@ -781,7 +780,7 @@ private:
     bool     is1stPeakAlreadyFound,   is2ndPeakAlreadyFound;
     bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
-    bool isMin() {
+    bool isMin() const {
 //LOG(SF("(%d) %.3f  %.3f", 1, macd.buffer.get(1), macd.buffer.get(2)));
         if (macd.buffer.get(1) < macd.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
@@ -792,7 +791,7 @@ private:
         return true;
     };
 
-    bool isMax() {
+    bool isMax() const {
 //LOG(SF("(%d) %.3f  %.3f", 1, macd.buffer.get(1), macd.buffer.get(2)));
         if (macd.buffer.get(1) > macd.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
@@ -829,7 +828,7 @@ public:
     {   initValues(0); }
     ~MACD_PeaksAndValleys() {};
 
-    void LogMACD_Last(int cnt) {
+    void LogMACD_Last(const int cnt) const {
         if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
@@ -1033,9 +1032,10 @@ void OnTick()
             d2str(balance),
             g::maxRelDrawDown * 100));
 
-        if (g::zigZag.buffer.get(1)) {
-            ;
-        }
+        {   double v = g::zigZag.HighMapBuffer.get(1);
+            if (v > 0) {
+                LOG(SF("ZZ:H: %.2f", v));;
+        }   }
     }
 
     if (profitPerBalance < -profitPerBalanceLimit) {
