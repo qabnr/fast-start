@@ -761,9 +761,10 @@ void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
     }
 }
 //+------------------------------------------------------------------+
-class MACD1_PeaksAndValleys
+class PeaksAndValleys
 {
 private:
+    myMACD2  *macd;
     int      sign;
     datetime TimeOfLastChangeOfSign;
     int      numOfmins, numOfMaxs;
@@ -773,22 +774,22 @@ private:
     bool     is1stValleyAlreadyFound, is2ndValleyAlreadyFound;
 
     bool isMin() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.buffer.get(1), g::MACD1.buffer.get(2)));
-        if (g::MACD1.buffer.get(1) < g::MACD1.buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, macd.buffer.get(1), macd.buffer.get(2)));
+        if (macd.buffer.get(1) < macd.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.buffer.get(i), g::MACD1.buffer.get(i+1)));
-            if (g::MACD1.buffer.get(i) > g::MACD1.buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, macd.buffer.get(i), macd.buffer.get(i+1)));
+            if (macd.buffer.get(i) > macd.buffer.get(i+1)) return false;
         }
 // LOG("MIN found");
         return true;
     };
 
     bool isMax() {
-//LOG(SF("(%d) %.3f  %.3f", 1, g::MACD1.buffer.get(1), g::MACD1.buffer.get(2)));
-        if (g::MACD1.buffer.get(1) > g::MACD1.buffer.get(2)) return false;
+//LOG(SF("(%d) %.3f  %.3f", 1, macd.buffer.get(1), macd.buffer.get(2)));
+        if (macd.buffer.get(1) > macd.buffer.get(2)) return false;
         for (int i = 2; i < minMaxBAckTrack; i++) {
-//LOG(SF("(%d) %.3f  %.3f", i, g::MACD1.buffer.get(i), g::MACD1.buffer.get(i+1)));
-            if (g::MACD1.buffer.get(i) < g::MACD1.buffer.get(i+1)) return false;
+//LOG(SF("(%d) %.3f  %.3f", i, macd.buffer.get(i), macd.buffer.get(i+1)));
+            if (macd.buffer.get(i) < macd.buffer.get(i+1)) return false;
         }
 // LOG("MAX found");
         return true;
@@ -811,19 +812,20 @@ private:
     };
 
 public:
-    MACD1_PeaksAndValleys() :
+    PeaksAndValleys(myMACD2 *macd_) :
+        macd(macd_),
         sign(-2),
         TimeOfLastChangeOfSign(TimeCurrent()),
         TimeOfLastMin(0),
         TimeOfLastMax(0)
     {   initValues(0); }
-    ~MACD1_PeaksAndValleys() {};
+    ~PeaksAndValleys() {};
 
     void LogMACD_Last(int cnt) {
         if (!isLOG()) return;
         string s;
         for (int i = 0; i < cnt; i++) {
-            s += SF("%.2f ", g::MACD1.buffer.get(i));
+            s += SF("%.2f ", macd.buffer.get(i));
         }
         Print(s);
     }
@@ -841,7 +843,7 @@ else {
     return;
 }
 
-        double macd0 = g::MACD1.buffer.get(1);
+        double macd0 = macd.buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
@@ -1041,7 +1043,7 @@ void OnTick()
     }
     else
     {
-        static MACD1_PeaksAndValleys MACD1peaksAndValleys;
+        static PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
 
         MACD1peaksAndValleys.process();
 
