@@ -170,6 +170,10 @@ public:
         return handle;
     }
 
+    string getName() const {
+        return indicatorName;
+    }
+
     bool copy(const int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
         if (nrCopied <= 0)
@@ -178,9 +182,6 @@ public:
         return nrCopied > 0;
     }
     double get(const int index) const {
-        if (ArraySize(buff) <= index) {
-            return 0.0;
-        }
         return buff[index];
     }
     int getNrCopied() const {
@@ -199,6 +200,11 @@ public:
           buffer(_buffNumber, _indicatorName, _handle)
     {}
     virtual ~Indicator() { LOGF(""); };
+
+    string getName() const {
+        return buffer.getName();
+    }
+
     virtual bool copyBuffers(const int count) {
         return buffer.copy(count);
     }
@@ -216,9 +222,10 @@ public:
         }
     }
 
-    void add(Indicator* ind) {
+    void add(Indicator* indicator) {
+        LOG(SF("IndLst: adding %s", indicator.getName()));
         ArrayResize(list, ArraySize(list) + 1, 100);
-        list[ArraySize(list)-1] = ind;
+        list[ArraySize(list)-1] = indicator;
     }
 
     bool copyBuffers(const int count) {
@@ -424,9 +431,9 @@ public:
 class ZigZag : public Indicator
 {
 public:
-    const Buffer *ZigZagBuffer;
-    const Buffer HighMapBuffer;
-    const Buffer LowMapBuffer;
+    Buffer *ZigZagBuffer;
+    Buffer HighMapBuffer;
+    Buffer LowMapBuffer;
 
     ZigZag(const string bufferName)
         : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)),
@@ -435,6 +442,13 @@ public:
           LowMapBuffer (2, buffer)
     {}
     ~ZigZag() { LOGF(""); }
+
+    bool copyBuffers(const int count) {
+        return
+            ZigZagBuffer .copy(count) &&
+            HighMapBuffer.copy(count) &&
+            LowMapBuffer .copy(count);
+    }
 };
 //+------------------------------------------------------------------+
 #define enum2str_CASE(c) case  c: return #c
@@ -1035,17 +1049,18 @@ void OnTick()
             d2str(balance),
             g::maxRelDrawDown * 100));
 
-        {   double v = g::zigZag.HighMapBuffer.get(1);
-            if (v > 0) {    // NOT WORKING ???
-                LOG(SF("ZZ:H: %.2f", v));
-        }   }
-        {   double v = g::zigZag.ZigZagBuffer.get(1);
-            if (v > 0) {    // OK, WORKING
-                LOG(SF("ZZ:Z: %.2f", v));
-        }   }
-        {   double v = g::zigZag.LowMapBuffer.get(1);
-            if (v > 0) {    // NOT WORKING ???
-                LOG(SF("ZZ:L: %.2f", v));
+        {   double H = g::zigZag.HighMapBuffer.get(1);
+            static double prevH = 99999;
+            if (H > 0) {
+                LOG(SF("ZZ:H: %.2f: %s", H, H > prevH ? "HH" : "LH"));
+                prevH = H;
+            }
+        }
+        {   double L = g::zigZag.LowMapBuffer.get(1);
+            static double prevL = 0;
+            if (L > 0) {
+                LOG(SF("ZZ:L: %.2f: %s", L, L > prevL ? "HL" : "LL"));
+                prevL = L;
         }   }
     }
 
