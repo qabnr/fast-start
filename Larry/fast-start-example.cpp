@@ -1065,12 +1065,11 @@ public:
         profitPerPrice     = profit / totalPricePaid;
         profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
 
-        if (profitPerPrice < 0) {
-            cummPrLossPerPrice += profitPerPrice;
-        }
-        else {
-            cummPrLossPerPrice = 0;
-        }
+        if (profitPerPrice < 0) { cummPrLossPerPrice += profitPerPrice; }
+        else { cummPrLossPerPrice = 0; }
+
+        double relDrawDown = 1 - balance / maxBalance;
+        if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
     }
 
     void logHeader() {
@@ -1114,9 +1113,6 @@ void OnTick()
         stopToRespond = true;
         return;
     }
-
-    double relDrawDown = 1 - p.balance / p.maxBalance;
-    if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
 
     if (isNewMinute()) {
         p.log();
@@ -1191,7 +1187,7 @@ void OnTick()
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeBUY()) {
-LOG(" Already bought");
+                LOG(" Already bought");
                 return;
             }
         }
@@ -1209,7 +1205,7 @@ LOG(" Already bought");
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeSELL()) {
-LOG(" Already sold");
+                LOG(" Already sold");
                 return;
             }
         }
