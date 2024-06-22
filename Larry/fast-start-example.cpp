@@ -980,7 +980,7 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     }
 };
 //+------------------------------------------------------------------+
-void printHHLL() {
+void logHHLL() {
     static string HHLL = "";
     {   double H = g::zigZag.HighMapBuffer.get(1);
         static double prevH = 99999;
@@ -1027,65 +1027,59 @@ void printHHLL() {
         }
     }
 }
-
 //+------------------------------------------------------------------+
-void OnTick()
+class ProfitEtc
 {
-    static bool stopToRespond = false;
+private:
+    int    logCnt;
 
-    if (stopToRespond) return;
+public:
+    double totalPricePaid;
+    double maxProfit;
+    double maxEquity;
+    double maxBalance;
+    double cummPrLossPerPrice;
 
-    static int logCnt = 0;
+    double profit;
+    double balance;
+    double equity;
+    double profitPerBalance;
+    double profitLossPerBal;
+    double profitPerPrice;
+    double profitLossPerPrice;
 
-    //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
-  
-    double totalPricePaid = g::pPos.getTotalPricePaid();
+    void newLogHeader() { logCnt = 0; }
 
-    if (totalPricePaid == 0) return;
+    void setValues() {
+        totalPricePaid = g::pPos.getTotalPricePaid();
+        balance = AccountInfoDouble(ACCOUNT_BALANCE);
+        equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+        profit  = equity - balance;
 
-    if (g::indicatorList.copyBuffers(300) == false) {
-        LOG("Failed to copy data from buffer");
-        stopToRespond = true;
-        return;
-    }
+        if (profit  > maxProfit)  { maxProfit = profit; }
+        if (equity  > maxEquity)  { maxEquity = equity; }
+        if (balance > maxBalance) { maxBalance = balance; }
 
-    static double maxProfit  = 0;
-    static double maxEquity  = 0;
-    static double maxBalance = 0;
+        profitPerBalance   = profit / balance;
+        profitLossPerBal   = (profit-maxProfit) / balance;
+        profitPerPrice     = profit / totalPricePaid;
+        profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
 
-    double profit, balance, equity;
-
-    balance = AccountInfoDouble(ACCOUNT_BALANCE);
-    equity  = AccountInfoDouble(ACCOUNT_EQUITY);
-    profit  = equity - balance;
-
-    if (profit  > maxProfit)  { maxProfit = profit; }
-    if (equity  > maxEquity)  { maxEquity = equity; }
-    if (balance > maxBalance) { maxBalance = balance; }
-
-    double profitPerBalance = profit / balance;
-    double profitLossPerBal = (profit-maxProfit) / balance;
-    double profitPerPrice   = profit / totalPricePaid;
-
-    static double cummPrLossPerPrice = 0;
-
-    if (profitPerPrice < 0) {
-        cummPrLossPerPrice += profitPerPrice;
-    }
-    else {
-        cummPrLossPerPrice = 0;
-    }
-
-    double profitLossPerPrice = (profit-maxProfit) / totalPricePaid;
-
-    double relDrawDown = 1 - balance / maxBalance;
-    if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
-
-    if (isNewMinute()) {
-        logCnt++;
-        if (logCnt % 20 == 1) {
-            LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
+        if (profitPerPrice < 0) {
+            cummPrLossPerPrice += profitPerPrice;
         }
+        else {
+            cummPrLossPerPrice = 0;
+        }
+    }
+
+    void logHeader() {
+        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
+    }
+    void log() {
+        logCnt++;
+        if (logCnt % 20 == 1) { logHeader(); }
+
         LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
             d2str(profit),
             profitLossPerBal * 100,
@@ -1096,24 +1090,52 @@ void OnTick()
             d2str(equity),
             (equity-maxEquity) / maxEquity * 100,
             d2str(balance),
-            g::maxRelDrawDown * 100));
+            g::maxRelDrawDown * 100)
+        );
+    }
+};
+//+------------------------------------------------------------------+
+void OnTick()
+{
+    static bool stopToRespond = false;
 
-printHHLL();
+    if (stopToRespond) return;
+
+    //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
+
+    static ProfitEtc p;
+
+    p.setValues();
+  
+    if (p.totalPricePaid == 0) return;
+
+    if (g::indicatorList.copyBuffers(300) == false) {
+        LOG("Failed to copy data from buffer");
+        stopToRespond = true;
+        return;
     }
 
-    if (profitPerBalance < -profitPerBalanceLimit) {
+    double relDrawDown = 1 - p.balance / p.maxBalance;
+    if (relDrawDown > g::maxRelDrawDown) { g::maxRelDrawDown = relDrawDown; }
+
+    if (isNewMinute()) {
+        p.log();
+        logHHLL();
+    }
+
+    if (p.profitPerBalance < -profitPerBalanceLimit) {
         changeDirection(Reason::chDir_profitPerBalanceLimit, __LINE__);
     }
-    else if (maxProfit > 0 && profitLossPerBal < -profitLossPerBalLimit) {
+    else if (p.maxProfit > 0 && p.profitLossPerBal < -profitLossPerBalLimit) {
         changeDirection(Reason::chDir_profitLossPerBalLimit, __LINE__);
     }
-    else if (profitPerPrice < -profitPerPriceLimit) {
+    else if (p.profitPerPrice < -profitPerPriceLimit) {
         changeDirection(Reason::chDir_profitPerPriceLimit, __LINE__);
     }
-    else if (profitLossPerPrice < -profitLossPerPriceLimit) {
+    else if (p.profitLossPerPrice < -profitLossPerPriceLimit) {
         changeDirection(Reason::chDir_profitLossPerPriceLimit, __LINE__);
     }
-    else if (cummPrLossPerPrice < -cummPrLossPerPriceLimit) {
+    else if (p.cummPrLossPerPrice < -cummPrLossPerPriceLimit) {
         changeDirection(Reason::chDir_cummPrLossPerPriceLimit, __LINE__);
     }
     else
@@ -1129,8 +1151,8 @@ printHHLL();
                     g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
         } else
         if (MACD1peaksAndValleys.is1stPeak()) {
-            // LOG(SF("1st Peak: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance * 100));
-            if (profitPerBalance > 0.5) {
+            // LOG(SF("1st Peak: p.profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", p.profit, p.equity, p.balance, p.profitPerBalance * 100));
+            if (p.profitPerBalance > 0.5) {
                 //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
             }
         } else 
@@ -1138,8 +1160,8 @@ printHHLL();
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
         } else 
         if (MACD1peaksAndValleys.is1stValley()) {
-            // LOG(SF("1st Valley: profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", profit, equity, balance, profitPerBalance*100));
-            if (profitPerBalance > 0.5) {
+            // LOG(SF("1st Valley: p.profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", p.profit, p.equity, p.balance, p.profitPerBalance*100));
+            if (p.profitPerBalance > 0.5) {
             //    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
             }
         } else 
@@ -1166,7 +1188,7 @@ printHHLL();
         if (g::pPos.select())
         {
             if (g::pPos.isTypeSELL()) {
-                g::pPos.close(reason, profitPerBalance*100);
+                g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeBUY()) {
 LOG(" Already bought");
@@ -1174,9 +1196,9 @@ LOG(" Already bought");
             }
         }
         g::pPos.buy(reason);
-        cummPrLossPerPrice = 0;
-        maxProfit = 0;
-        logCnt = 0;
+        p.cummPrLossPerPrice = 0;
+        p.maxProfit = 0;
+        p.newLogHeader();
     }
     else if (g::sellOrBuy.isSellNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
@@ -1184,7 +1206,7 @@ LOG(" Already bought");
         if (g::pPos.select())
         {
             if (g::pPos.isTypeBUY()) {
-                g::pPos.close(reason, profitPerBalance*100);
+                g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeSELL()) {
 LOG(" Already sold");
@@ -1192,9 +1214,9 @@ LOG(" Already sold");
             }
         }
         g::pPos.sell(reason);
-        cummPrLossPerPrice = 0;
-        maxProfit = 0;
-        logCnt = 0;
+        p.cummPrLossPerPrice = 0;
+        p.maxProfit = 0;
+        p.newLogHeader();
     }
 }
 //+------------------------------------------------------------------+
