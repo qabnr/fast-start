@@ -980,6 +980,55 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     }
 };
 //+------------------------------------------------------------------+
+void printHHLL() {
+    static string HHLL = "";
+    {   double H = g::zigZag.HighMapBuffer.get(1);
+        static double prevH = 99999;
+        if (H > 0) {
+            for (int i = 2; i < 50; i++) {
+                double H = g::zigZag.HighMapBuffer.get(i);
+                if (H > 0) {
+                    LOG(SF("Prev H[%d]: %.2f", i, H));
+                    prevH = H;
+                    break;
+                }
+            }
+            string hhlh = H > prevH ? "HH" : "LH";
+            if (H > prevH && StringSubstr(HHLL, 0, 2) == "LH") {
+                StringSetCharacter(HHLL, 0, 'H');
+            }
+            else if (StringSubstr(HHLL, 0, 2) != hhlh) {
+                HHLL = hhlh + "-" + HHLL;
+            }
+            LOG(SF("ZZ:H: %.2f: %s (%s)", H, hhlh, HHLL));
+            prevH = H;
+        }
+    }
+    {   double L = g::zigZag.LowMapBuffer.get(1);
+        static double prevL = 0;
+        if (L > 0) {
+            for (int i = 2; i < 50; i++) {
+                double L = g::zigZag.LowMapBuffer.get(i);
+                if (L > 0) {
+                    LOG(SF("Prev L[%d]: %.2f", i, L));
+                    prevL = L;
+                    break;
+                }
+            }
+            string llhl = L > prevL ? "HL" : "LL";
+            if (L < prevL && StringSubstr(HHLL, 0, 2) == "HL") {
+                StringSetCharacter(HHLL, 0, 'L');
+            }
+            else if (StringSubstr(HHLL, 0, 2) != llhl) {
+                HHLL = llhl + "-" + HHLL;
+            }
+            LOG(SF("ZZ:L: %.2f: %s (%s)", L, llhl, HHLL));
+            prevL = L;
+        }
+    }
+}
+
+//+------------------------------------------------------------------+
 void OnTick()
 {
     static bool stopToRespond = false;
@@ -1049,50 +1098,7 @@ void OnTick()
             d2str(balance),
             g::maxRelDrawDown * 100));
 
-        static string HHLL = "";
-        {   double H = g::zigZag.HighMapBuffer.get(1);
-            static double prevH = 99999;
-            if (H > 0) {
-for (int i = 2; i < 50; i++) {
-    double H = g::zigZag.HighMapBuffer.get(i);
-    if (H > 0) {
-        LOG(SF("Prev H[%d]: %.2f", i, H));
-        prevH = H;
-        break;
-    }
-}
-                string hhlh = H > prevH ? "HH" : "LH";
-                if (H > prevH && StringSubstr(HHLL, 0, 2) == "LH") {
-                    StringSetCharacter(HHLL, 0, 'H');
-                }
-                else if (StringSubstr(HHLL, 0, 2) != hhlh) {
-                    HHLL = hhlh + "-" + HHLL;
-                }
-                LOG(SF("ZZ:H: %.2f: %s (%s)", H, hhlh, HHLL));
-                prevH = H;
-            }
-        }
-        {   double L = g::zigZag.LowMapBuffer.get(1);
-            static double prevL = 0;
-            if (L > 0) {
-for (int i = 2; i < 50; i++) {
-    double L = g::zigZag.LowMapBuffer.get(i);
-    if (L > 0) {
-        LOG(SF("Prev L[%d]: %.2f", i, L));
-        prevL = L;
-        break;
-    }
-}
-                string llhl = L > prevL ? "HL" : "LL";
-                if (L < prevL && StringSubstr(HHLL, 0, 2) == "HL") {
-                    StringSetCharacter(HHLL, 0, 'L');
-                }
-                else if (StringSubstr(HHLL, 0, 2) != llhl) {
-                    HHLL = llhl + "-" + HHLL;
-                }
-                LOG(SF("ZZ:L: %.2f: %s (%s)", L, llhl, HHLL));
-                prevL = L;
-        }   }
+printHHLL();
     }
 
     if (profitPerBalance < -profitPerBalanceLimit) {
