@@ -686,10 +686,17 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         stats.addOpReason(stats.close,  reason);
         stats.addProfit(profit, reason);
 
+        uint cnt = 0;
         while(m_Trade.PositionClose(my_symbol)) {
+            cnt++;
 // LOG(SF("Close: Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
+            if (cnt == 1) {
+                LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
+            }
         }
-        // LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
+        if (cnt == 0) {
+            LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
+        }
     }
 
     void buy(Reason::ReasonCode reason) {
@@ -1012,6 +1019,9 @@ void logHHLL() {
             }
             else if (StringSubstr(HHLL, 0, 2) != hhlh) {
                 HHLL = hhlh + "-" + HHLL;
+                if (StringLen(HHLL) > 75) {
+                    HHLL = HHLL.Substr(0, 50) + "...";
+                }
             }
             LOG(SF("ZZ:H: %.2f: %s (%s)", H, hhlh, HHLL));
             prevH = H;
