@@ -689,6 +689,7 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         while(m_Trade.PositionClose(my_symbol)) {
 // LOG(SF("Close: Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
         }
+        // LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
     }
 
     void buy(Reason::ReasonCode reason) {
@@ -703,15 +704,21 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         for (int i = maxTransactions; i > 0; i--)
         {
             bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
-            if (!res) break;
+            if (!res) {
+                LOG(m_Trade.ResultRetcodeDescription());
+                break;
+            }
 // LOG(SF("Buy:   Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
             posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
+        if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
+            totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+            LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        }
     }
 
     void sell(Reason::ReasonCode reason) {
@@ -725,16 +732,22 @@ LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()))
 
         for (int i = maxTransactions; i > 0; i--) {
             bool res = m_Trade.Sell(volume, my_symbol, executionPrice, stopLoss, takeProfit);
-            if (!res) break;
+            if (!res) {
+                LOG(m_Trade.ResultRetcodeDescription());
+                break;
+            }
 // LOG(SF("Sell:  Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));          
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
-        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
-    }
+        LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
+        if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
+            totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+            LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        }    
+}
 };
 //+------------------------------------------------------------------+
 namespace g
