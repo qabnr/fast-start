@@ -699,7 +699,7 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         }
     }
 
-    void buy(Reason::ReasonCode reason) {
+    bool buy(Reason::ReasonCode reason) {
         stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
@@ -725,10 +725,12 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
             totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
             LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+            return true;
         }
+        return false;
     }
 
-    void sell(Reason::ReasonCode reason) {
+    bool sell(Reason::ReasonCode reason) {
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
@@ -753,7 +755,9 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
             totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
             LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
-        }    
+            return true;
+        }
+        return false;
 }
 };
 //+------------------------------------------------------------------+
@@ -1203,39 +1207,43 @@ void OnTick()
 
     if (g::sellOrBuy.isBuyNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
         if (g::pPos.select())
         {
             if (g::pPos.isTypeSELL()) {
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeBUY()) {
+                g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
                 LOG(" Already bought");
                 return;
             }
         }
-        g::pPos.buy(reason);
-        p.cummPrLossPerPrice = 0;
-        p.maxProfit = 0;
-        p.newLogHeader();
+        if (g::pPos.buy(reason)) {
+            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
+            p.cummPrLossPerPrice = 0;
+            p.maxProfit = 0;
+            p.newLogHeader();
+        }
     }
     else if (g::sellOrBuy.isSellNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
         if (g::pPos.select())
         {
             if (g::pPos.isTypeBUY()) {
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
             else if (g::pPos.isTypeSELL()) {
+                g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
                 LOG(" Already sold");
                 return;
             }
         }
-        g::pPos.sell(reason);
-        p.cummPrLossPerPrice = 0;
-        p.maxProfit = 0;
-        p.newLogHeader();
+        if (g::pPos.sell(reason)) {
+            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
+            p.cummPrLossPerPrice = 0;
+            p.maxProfit = 0;
+            p.newLogHeader();
+        }
     }
 }
 //+------------------------------------------------------------------+
