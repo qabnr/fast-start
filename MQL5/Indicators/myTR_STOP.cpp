@@ -102,11 +102,11 @@ int OnCalculate(const int rates_total,
         double maxLdiff = 0.0;
         
         for (int back = MathMin(i, lookBackPeriod); back > 0; back--) {
+            maxHdiff = MathMax(highMax - low[i-back], maxHdiff);
             highMax  = MathMax(highMax, high[i-back]);
-            maxHdiff = MathMax(highMax - open[i-back], maxHdiff);
 
+            maxLdiff = MathMax(high[i-back] - lowMin, maxLdiff);
             lowMin   = MathMin(lowMin, low[i-back]);
-            maxLdiff = MathMax(lowMin - open[i-back], maxLdiff);
         }
         double newSellStop = highMax - maxHdiff;
         double newBuyStop  = lowMin  + maxLdiff;
