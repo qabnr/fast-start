@@ -1,5 +1,5 @@
 #property copyright "GM"
-#property description "ATR Trailing Stop"
+#property description "Trailing Stop"
 
 #property version "1.00"
 
@@ -26,10 +26,9 @@
 #property indicator_width3 1
 #property indicator_label3 "Sell ST"
 
-input int    ATRper = 10;        // ATR Period
-input double Mult   = 1;         // Multiplier
+#include "adapt.h"
 
-/* input */ENUM_TIMEFRAMES ATRtimeframe = PERIOD_CURRENT; // Timeframe
+input int    lookBackPeriod = 10;        // Look Back Period
 
 double stopBuffer[];
 double stopColorBuffer[];
@@ -39,9 +38,6 @@ double buyColorBuffer[];
 
 double sellBuffer[];
 double sellColorBuffer[];
-
-int hATR;
-double atr[];
 
 const double maxResetValue = 0.0;
 const double minResetValue = DBL_MAX;
@@ -60,9 +56,7 @@ void OnInit()
     SetIndexBuffer(4, sellBuffer,      INDICATOR_DATA);
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
-    hATR = iATR(NULL, ATRtimeframe, ATRper);
-
-    short_name = StringFormat("ATR_TRST (%d, %.1f)", ATRper, Mult);
+    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 }
 
@@ -86,27 +80,36 @@ int OnCalculate(const int rates_total,
 
     int i, day_n = 0, day_t = 0;
 
-    CopyBuffer(hATR, 0, 0, rates_total - prev_calculated, atr);
-
     for (i = prev_calculated; i < rates_total; i++)
     {
-        if (i == 0) {
+        if (i < lookBackPeriod) {
             sellBuffer[i] = low[i];
-            buyBuffer[i]  = high[i];
+            buyBuffer [i] = high[i];
             stopBuffer[i] = low[i];
 
             sellColorBuffer[i] = 2;
-            buyColorBuffer[i]  = 2;
+            buyColorBuffer [i] = 2;
             stopColorBuffer[i] = 2;
 
             continue;
         }
-        const int holdingPeriod = int(Mult * 2);
-
-        double atrI = (i > ATRper) ? atr[i - prev_calculated] : 0;
+        const int holdingPeriod = 6;
         
-        double newSellStop = low[i-1]  - atrI * Mult;
-        double newBuyStop  = high[i-1] + atrI * Mult;
+        double highMax  = 0.0;
+        double maxHdiff = 0.0;
+        
+        double lowMin   = DBL_MAX;
+        double maxLdiff = 0.0;
+        
+        for (int back = MathMin(i, lookBackPeriod); back > 0; back--) {
+            highMax  = MathMax(highMax, high[i-back]);
+            maxHdiff = MathMax(highMax - open[i-back], maxHdiff);
+
+            lowMin   = MathMin(lowMin, low[i-back]);
+            maxLdiff = MathMax(lowMin - open[i-back], maxLdiff);
+        }
+        double newSellStop = highMax - maxHdiff;
+        double newBuyStop  = lowMin  + maxLdiff;
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 
@@ -184,20 +187,16 @@ int OnCalculate(const int rates_total,
                 }
             }
         }
-//PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);    
-
-//if (TimeCurrent() > D'2024.01.15')
-//if (TimeCurrent() < D'2024.01.18')
-//PrintFormat("%s: %s: %s H: %.2f L: %.2f ST: %.2f", TimeToString(time[i]),
-//short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);    
+        //PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);    
+        //if (TimeCurrent() > D'2024.01.15')
+        //if (TimeCurrent() < D'2024.01.18')
+        //PrintFormat("%s: %s: %s H: %.2f L: %.2f ST: %.2f", TimeToString(time[i]),
+        //short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);    
     }
-    
-    
     return (rates_total);
 }
 
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-    IndicatorRelease(hATR);
 }
