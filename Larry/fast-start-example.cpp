@@ -1008,8 +1008,9 @@ void logHHLL() {
     static string HHLL = "";
     {   double H = g::zigZag.HighMapBuffer.get(1);
         static double prevH = 99999;
+        const int prevLookBack = 100;
         if (H > 0) {
-            for (int i = 2; i < 50; i++) {
+            for (int i = 2; i < prevLookBack; i++) {
                 double H = g::zigZag.HighMapBuffer.get(i);
                 if (H > 0) {
                     LOG(SF("Prev H[%d]: %.2f", i, H));
@@ -1034,7 +1035,7 @@ void logHHLL() {
     {   double L = g::zigZag.LowMapBuffer.get(1);
         static double prevL = 0;
         if (L > 0) {
-            for (int i = 2; i < 50; i++) {
+            for (int i = 2; i < prevLookBack; i++) {
                 double L = g::zigZag.LowMapBuffer.get(i);
                 if (L > 0) {
                     LOG(SF("Prev L[%d]: %.2f", i, L));

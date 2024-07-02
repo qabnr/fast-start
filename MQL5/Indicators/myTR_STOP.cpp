@@ -28,7 +28,8 @@
 
 #include "adapt.h"
 
-input int    lookBackPeriod = 10;        // Look Back Period
+input int     lookBackPeriod = 20;  // Look Back Period
+input double  offset = 0.20;        // Offset
 
 double stopBuffer[];
 double stopColorBuffer[];
@@ -56,7 +57,7 @@ void OnInit()
     SetIndexBuffer(4, sellBuffer,      INDICATOR_DATA);
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
-    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod);
+    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, offset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 }
 
@@ -108,8 +109,8 @@ int OnCalculate(const int rates_total,
             maxLdiff = MathMax(high[i-back] - lowMin, maxLdiff);
             lowMin   = MathMin(lowMin, low[i-back]);
         }
-        double newSellStop = highMax - maxHdiff;
-        double newBuyStop  = lowMin  + maxLdiff;
+        double newSellStop = highMax - maxHdiff - offset;
+        double newBuyStop  = lowMin  + maxLdiff + offset;
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 
