@@ -10,6 +10,8 @@
 #include "utils.h"
 #include "atr_tr_stop.h"
 #include "macd.h"
+#include "linRegrChannel.h"
+#include "zigZag.h"
 
 input int    MACD1_fast_MA_period     = 12;
 input int    MACD1_slow_MA_period     = 26;
@@ -56,38 +58,8 @@ void printInputParams() {
     PrintFormat("input double maxRelDrawDownLimit      = %.2f;", maxRelDrawDownLimit);
 }
 //+------------------------------------------------------------------+
-class LinRegrChannel : public Indicator
-{
-public:
-    LinRegrChannel(string bufferName)
-        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"))
-    {}
-    ~LinRegrChannel() { LOGF(""); }
-};
-//+------------------------------------------------------------------+
-class ZigZag : public Indicator
-{
-public:
-    Buffer *ZigZagBuffer;
-    Buffer HighMapBuffer;
-    Buffer LowMapBuffer;
 
-    ZigZag(const string bufferName)
-        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)),
-          ZigZagBuffer (  &buffer),
-          HighMapBuffer(1, buffer),
-          LowMapBuffer (2, buffer)
-    {}
-    ~ZigZag() { LOGF(""); }
 
-    bool copyBuffers(const int count) {
-        return
-            ZigZagBuffer .copy(count) &&
-            HighMapBuffer.copy(count) &&
-            LowMapBuffer .copy(count);
-    }
-};
-//+------------------------------------------------------------------+
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 #define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
