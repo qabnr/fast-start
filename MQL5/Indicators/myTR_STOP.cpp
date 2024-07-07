@@ -26,7 +26,7 @@
 #property indicator_width3 1
 #property indicator_label3 "Sell ST"
 
-#include "adapt.h"
+#include <adapt.h>
 
 input int     lookBackPeriod = 20;  // Look Back Period
 input double  offset = 0.20;        // Offset
