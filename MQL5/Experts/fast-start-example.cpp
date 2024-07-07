@@ -5,13 +5,16 @@
 #property link      "http://www.mogyo.com"
 #property version   "3.4"
 
-#include <Trade\Trade.mqh>
-#include <Trade\PositionInfo.mqh>
+#include <Trade/Trade.mqh>
+#include <Trade/PositionInfo.mqh>
+
+#include <adapt.h>
 #include "utils.h"
 #include "atr_tr_stop.h"
 #include "macd.h"
 #include "linRegrChannel.h"
 #include "zigZag.h"
+#include "tr_stop.h"
 
 input int    MACD1_fast_MA_period     = 12;
 input int    MACD1_slow_MA_period     = 26;
@@ -58,8 +61,6 @@ void printInputParams() {
     PrintFormat("input double maxRelDrawDownLimit      = %.2f;", maxRelDrawDownLimit);
 }
 //+------------------------------------------------------------------+
-
-
 #define enum2str_CASE(c) case  c: return #c
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 #define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
@@ -191,7 +192,7 @@ public:
     }
 
     void addOpReason(Operation op, Reason::ReasonCode r) {
-        cntOp[op, r]++;
+        cntOp[op][r]++;
     }
   
     void addProfit(double profit, Reason::ReasonCode reason) {
@@ -384,6 +385,7 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
 namespace g
 {
     ATR_TR_STOP_List ATR_list;
+    TR_STOP_List     TR_ST_list;
     myMACD2         *MACD1;
     myMACD2         *MACD2;
     ZigZag          *zigZag;
@@ -403,6 +405,9 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
+    g::TR_ST_list.add(10, 0.2);
+    g::TR_ST_list.add(10, 2);
+
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
 /*/
@@ -410,7 +415,7 @@ int OnInit()
     g::ATR_list.add(10, 2.0);
     g::ATR_list.add(10, 3.0);
 /*/
-    g::ATR_list.add(10, 4.0);
+    // g::ATR_list.add(10, 4.0);
  //   g::ATR_list.add(10, 6.0);
 
     return (0);
