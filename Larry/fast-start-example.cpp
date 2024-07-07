@@ -145,20 +145,33 @@ namespace Reason
 };
 //+------------------------------------------------------------------+
 class List {
-private:
+protected:
     double arr_[];
     int    last_;
-    double sum_;
 
 public:
-    List(): last_(-1), sum_(0) { ArrayResize(arr_, 0, 1000); }
+    List(): last_(-1) { ArrayResize(arr_, 0, 1000); }
     ~List() {}
 
     void push(double val) {
-        sum_ += val;
         last_++;
         ArrayResize(arr_, last_+1, 1000);
         arr_[last_] = val;
+    }
+};
+
+class StatList : List
+{
+private:
+    double sum_;
+
+public:
+    StatList(): sum_(0) {}
+    ~StatList() {}
+
+    void push(double val) {
+        List::push(val);
+        sum_ += val;
     }
 
     double sum() const { return sum_; }
@@ -192,8 +205,8 @@ public:
     };
 
 private:
-    int  cntOp[Operation::size][Reason::ReasonCode::size];
-    List profitList[Reason::ReasonCode::size];
+    int      cntOp[Operation::size][Reason::ReasonCode::size];
+    StatList profitList[Reason::ReasonCode::size];
 
 public:
     string op2str(int op) const {
