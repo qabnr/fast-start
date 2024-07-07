@@ -1,5 +1,6 @@
 #define input
-typedef int string;
+
+typedef char* string;
 typedef int datetime;
 
 const double DBL_MAX = 9999999.999;
@@ -8,12 +9,24 @@ string StringFormat    (...);
 void SetIndexBuffer    (...);
 void IndicatorSetString(...);
 void IndicatorRelease  (...);
-bool CopyBuffer        (...);
+void Print             (...);
+void Print             (...);
+bool PrintFormat       (...);
+
+int iCustom        (...);
+int ArrayResize    (...);
+int ArraySize      (...);
+char*  Symbol(...);
+
 double MathMax(...);
 double MathMin(...);
+double MathSqrt(double);
 
 enum mql5_consts {
+    NULL,
     INDICATOR_DATA,
     INDICATOR_COLOR_INDEX,
     INDICATOR_SHORTNAME,
+
+    PERIOD_CURRENT,
 };
