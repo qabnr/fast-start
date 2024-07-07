@@ -31,6 +31,10 @@
 input int     lookBackPeriod = 20;  // Look Back Period
 input double  offset = 0.20;        // Offset
 
+//+------------------------------------------------------------------+
+#define SF StringFormat
+#define LOG(s) Print(SF("%d: %s", __LINE__, s))
+//+------------------------------------------------------------------+
 double stopBuffer[];
 double stopColorBuffer[];
 
@@ -44,7 +48,6 @@ const double maxResetValue = 0.0;
 const double minResetValue = DBL_MAX;
 
 string short_name;
-    
 //+------------------------------------------------------------------+
 void OnInit()
 {
@@ -95,13 +98,13 @@ int OnCalculate(const int rates_total,
             continue;
         }
         const int holdingPeriod = 6;
-        
+
         double highMax  = 0.0;
         double maxHdiff = 0.0;
-        
+
         double lowMin   = DBL_MAX;
         double maxLdiff = 0.0;
-        
+
         for (int back = MathMin(i, lookBackPeriod); back > 0; back--) {
             maxHdiff = MathMax(highMax - low[i-back], maxHdiff);
             highMax  = MathMax(highMax, high[i-back]);
@@ -121,6 +124,7 @@ int OnCalculate(const int rates_total,
             is_newSellStop = true;
             sellBuffer[i] = newSellStop;
             maxSellStop = newSellStop;
+            LOG(SF("new Sell Stop: %.2f", newSellStop));
         }
         else {
             sellBuffer[i] = sellBuffer[i-1];
@@ -139,6 +143,7 @@ int OnCalculate(const int rates_total,
             is_newBuyStop = true;
             buyBuffer[i] = newBuyStop;
             minBuyStop = newBuyStop;
+            LOG(SF("new Buy Stop: %.2f", newBuyStop));
         }
         else {
             buyBuffer[i] = buyBuffer[i-1];
@@ -188,11 +193,11 @@ int OnCalculate(const int rates_total,
                 }
             }
         }
-        //PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);    
+        //PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);
         //if (TimeCurrent() > D'2024.01.15')
         //if (TimeCurrent() < D'2024.01.18')
         //PrintFormat("%s: %s: %s H: %.2f L: %.2f ST: %.2f", TimeToString(time[i]),
-        //short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);    
+        //short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);
     }
     return (rates_total);
 }

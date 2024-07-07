@@ -176,8 +176,8 @@ public:
 
     bool copy(const int count) {
         nrCopied = CopyBuffer(handle, buffNum, 0, count, buff);
-        if (nrCopied <= 0)
-        {   Print("Failed to copy data from buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")");
+        if (nrCopied <= 0) {
+            Print("Failed to copy data from buffer: ", buffNum, " handle: ", indicatorName, " (", handle, ")");
         }
         return nrCopied > 0;
     }
@@ -301,14 +301,14 @@ public:
     }
 
     bool isBuyNow(const double price) const {
-        for (int i = 0; i < ArraySize(atrTrStList); i++)
-        {   if (atrTrStList[i].isBuyNow(price)) return true;
+        for (int i = 0; i < ArraySize(atrTrStList); i++) {
+            if (atrTrStList[i].isBuyNow(price)) return true;
         }
         return false;
     }
     bool isSellNow(const double price) const {
-        for (int i = 0; i < ArraySize(atrTrStList); i++)
-        {   if (atrTrStList[i].isSellNow(price)) return true;
+        for (int i = 0; i < ArraySize(atrTrStList); i++) {
+            if (atrTrStList[i].isSellNow(price)) return true;
         }
         return false;
     }
@@ -338,16 +338,14 @@ public:
         osMA_Buffer      (OsMA_Buffer_buffNum,       bufferName, handle),
         osMA_Color_Buffer(osMA_Color_Buffer_buffNum, bufferName, handle)
     {
-        if (handle == INVALID_HANDLE)
-        {
+        if (handle == INVALID_HANDLE) {
             Print("Failed to get indicator handle");
         }
     }
 
     virtual ~MACD_base() { LOGF(""); };
 
-    virtual bool copyBuffers(const int count)
-    {
+    virtual bool copyBuffers(const int count) {
         return
             buffer           .copy(count) &&
             signal_Buffer    .copy(count) &&
@@ -394,11 +392,10 @@ public:
         incPeriod_Buffer     (1, bufferName, handle),
         decPeriod_OsMA_Buffer(6, bufferName, handle),
         incPeriod_OsMA_Buffer(7, bufferName, handle)
-    { }
+    {}
     ~MACD() { LOGF(""); }
 
-    bool copyBuffers(const int count)
-    {
+    bool copyBuffers(const int count) {
         return
             MACD_base::copyBuffers    (count) &&
             decPeriod_Buffer     .copy(count) &&
@@ -560,8 +557,7 @@ private:
 
 public:
     string op2str(int op) const {
-        switch (op)
-        {
+        switch (op) {
             case Operation::buy:     return "Buy";
             case Operation::sell:    return "Sell";
             case Operation::close:   return "Clse";
@@ -708,8 +704,7 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         double stopLoss         = 0.0;
         double takeProfit       = 0.0;
 
-        for (int i = maxTransactions; i > 0; i--)
-        {
+        for (int i = maxTransactions; i > 0; i--) {
             bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
             if (!res) {
                 LOG(m_Trade.ResultRetcodeDescription());
@@ -1162,8 +1157,7 @@ void OnTick()
     else if (p.cummPrLossPerPrice < -cummPrLossPerPriceLimit) {
         changeDirection(Reason::chDir_cummPrLossPerPriceLimit, __LINE__);
     }
-    else
-    {
+    else {
         static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
 
         MACD1peaksAndValleys.process();
@@ -1208,8 +1202,7 @@ void OnTick()
 
     if (g::sellOrBuy.isBuyNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        if (g::pPos.select())
-        {
+        if (g::pPos.select()) {
             if (g::pPos.isTypeSELL()) {
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
@@ -1228,8 +1221,7 @@ void OnTick()
     }
     else if (g::sellOrBuy.isSellNow()) {
         Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        if (g::pPos.select())
-        {
+        if (g::pPos.select()) {
             if (g::pPos.isTypeBUY()) {
                 g::pPos.close(reason, p.profitPerBalance*100);
             }
