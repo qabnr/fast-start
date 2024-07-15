@@ -9,7 +9,8 @@
 #include <Trade/PositionInfo.mqh>
 
 #include <adapt.h>
-#include "utils.h"
+#include <utils.h>
+
 #include "atr_tr_stop.h"
 #include "macd.h"
 #include "linRegrChannel.h"
@@ -637,15 +638,16 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
 //+------------------------------------------------------------------+
 void logHHLL() {
     static string HHLL_fullStr = "";
+    static double prevL = 0.0001;
+    static double prevH = 99999;
     const int prevLookBack = 100;
     {   double HiVal = g::zigZag.HighMapBuffer.get(1);
-        static double prevH = 99999;
         if (HiVal > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double HiVal = g::zigZag.HighMapBuffer.get(i);
-                if (HiVal > 0) {
-                    LOG(SF("Prev H[%d]: %.2f", i, HiVal));
-                    prevH = HiVal;
+                double backHiVal = g::zigZag.HighMapBuffer.get(i);
+                if (backHiVal > 0) {
+                    LOG(SF("Prev H[%d]: %.2f", i, backHiVal));
+                    prevH = backHiVal;
                     break;
                 }
             }
@@ -659,18 +661,17 @@ void logHHLL() {
                     HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
                 }
             }
-            LOG(SF("ZZ:H: %.2f: %s (%s)", HiVal, hhlh_curr, HHLL_fullStr));
+            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", HiVal, (HiVal/prevL-1)*100, hhlh_curr, HHLL_fullStr));
             prevH = HiVal;
         }
     }
     {   double LoVal = g::zigZag.LowMapBuffer.get(1);
-        static double prevL = 0;
         if (LoVal > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double LoVal = g::zigZag.LowMapBuffer.get(i);
-                if (LoVal > 0) {
-                    LOG(SF("Prev L[%d]: %.2f", i, LoVal));
-                    prevL = LoVal;
+                double backLoVal = g::zigZag.LowMapBuffer.get(i);
+                if (backLoVal > 0) {
+                    LOG(SF("Prev L[%d]: %.2f", i, backLoVal));
+                    prevL = backLoVal;
                     break;
                 }
             }
@@ -681,7 +682,7 @@ void logHHLL() {
             else if (StringSubstr(HHLL_fullStr, 0, 2) != llhl_curr) {
                 HHLL_fullStr = llhl_curr + "-" + HHLL_fullStr;
             }
-            LOG(SF("ZZ:L: %.2f: %s (%s)", LoVal, llhl_curr, HHLL_fullStr));
+            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", LoVal, (LoVal/prevH-1)*100, llhl_curr, HHLL_fullStr));
             prevL = LoVal;
         }
     }
