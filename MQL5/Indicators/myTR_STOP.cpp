@@ -63,7 +63,10 @@ void OnInit()
     short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, offset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 }
-
+//+------------------------------------------------------------------+
+#define LOW_PRICE(i)  (low[i] + close[i]) / 2 
+#define HIGH_PRICE(i) (high[i] + close[i]) / 2  
+//+------------------------------------------------------------------+
 //+------------------------------------------------------------------+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
@@ -87,9 +90,9 @@ int OnCalculate(const int rates_total,
     for (i = prev_calculated; i < rates_total; i++)
     {
         if (i < lookBackPeriod) {
-            sellBuffer[i] = low[i];
-            buyBuffer [i] = high[i];
-            stopBuffer[i] = low[i];
+            sellBuffer[i] = LOW_PRICE(i);
+            buyBuffer [i] = HIGH_PRICE(i);
+            stopBuffer[i] = LOW_PRICE(i);
 
             sellColorBuffer[i] = 2;
             buyColorBuffer [i] = 2;
@@ -106,11 +109,11 @@ int OnCalculate(const int rates_total,
         double maxLdiff = 0.0;
 
         for (int back = MathMin(i, lookBackPeriod); back > 0; back--) {
-            maxHdiff = MathMax(highMax - low[i-back], maxHdiff);
-            highMax  = MathMax(highMax, high[i-back]);
+            maxHdiff = MathMax(highMax - LOW_PRICE(i-back), maxHdiff);
+            highMax  = MathMax(highMax, HIGH_PRICE(i-back));
 
-            maxLdiff = MathMax(high[i-back] - lowMin, maxLdiff);
-            lowMin   = MathMin(lowMin, low[i-back]);
+            maxLdiff = MathMax(HIGH_PRICE(i-back) - lowMin, maxLdiff);
+            lowMin   = MathMin(lowMin, LOW_PRICE(i-back));
         }
         double newSellStop = highMax - maxHdiff - offset;
         double newBuyStop  = lowMin  + maxLdiff + offset;
@@ -124,14 +127,13 @@ int OnCalculate(const int rates_total,
             is_newSellStop = true;
             sellBuffer[i] = newSellStop;
             maxSellStop = newSellStop;
-            LOG(SF("new Sell Stop: %.2f", newSellStop));
         }
         else {
             sellBuffer[i] = sellBuffer[i-1];
 
             int cnt = 0;
             for (int j = 0; j < holdingPeriod && j <= i; j++) {
-                if (sellBuffer[i-j] > low[i-j])
+                if (sellBuffer[i-j] > LOW_PRICE(i-j))
                 {   cnt++; }
             }
             if (cnt == holdingPeriod) {
@@ -143,14 +145,13 @@ int OnCalculate(const int rates_total,
             is_newBuyStop = true;
             buyBuffer[i] = newBuyStop;
             minBuyStop = newBuyStop;
-            LOG(SF("new Buy Stop: %.2f", newBuyStop));
         }
         else {
             buyBuffer[i] = buyBuffer[i-1];
 
             int cnt = 0;
             for (int j = 0; j < holdingPeriod && j <= i; j++) {
-                if (buyBuffer[i-j] < high[i-j])
+                if (buyBuffer[i-j] < HIGH_PRICE(i-j))
                 {   cnt++; }
             }
             if (cnt == holdingPeriod)  {
@@ -166,10 +167,11 @@ int OnCalculate(const int rates_total,
 
             if (is_newSellStop) {
                 stopBuffer[i] = newSellStop;
+                LOG(SF("new Sell Stop: %.2f", newSellStop));
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];
-                if (stopBuffer[i] > low[i-1]) {
+                if (stopBuffer[i] > LOW_PRICE(i-1)) {
                     trend = -1;
                     stopBuffer[i] = buyBuffer[i];
                     stopColorBuffer[i] = 2;
@@ -183,21 +185,22 @@ int OnCalculate(const int rates_total,
 
             if (is_newBuyStop) {
                 stopBuffer[i] = newBuyStop;
+                LOG(SF("new Buy Stop: %.2f", newBuyStop));
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];
-                if (stopBuffer[i] < high[i-1]) {
+                if (stopBuffer[i] < HIGH_PRICE(i-1)) {
                     trend = 1;
                     stopBuffer[i] = sellBuffer[i];
                     stopColorBuffer[i] = 2;
                 }
             }
         }
-        //PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", high[i], low[i], stopBuffer[i]);
+        //PrintFormat("%s: %s H: %.2f L: %.2f ST: %.2f", short_name,trend > 0 ? "up" : "down", HIGH_PRICE(i), LOW_PRICE(i), stopBuffer[i]);
         //if (TimeCurrent() > D'2024.01.15')
         //if (TimeCurrent() < D'2024.01.18')
         //PrintFormat("%s: %s: %s H: %.2f L: %.2f ST: %.2f", TimeToString(time[i]),
-        //short_name,trend > 0 ? " up " : "down", high[i-1], low[i-1], stopBuffer[i]);
+        //short_name,trend > 0 ? " up " : "down", HIGH_PRICE(i-1), LOW_PRICE(i-1), stopBuffer[i]);
     }
     return (rates_total);
 }

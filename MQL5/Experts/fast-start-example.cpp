@@ -405,8 +405,14 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
+    g::TR_ST_list.add(15, 0.2);
+    g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.2);
-    g::TR_ST_list.add(10, 2);
+    g::TR_ST_list.add(10, 0.4);
+    g::TR_ST_list.add(10, 0.6);
+    g::TR_ST_list.add(10, 0.8);
+    g::TR_ST_list.add(10, 1.0);
+    g::TR_ST_list.add(10, 1.2);
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
 
@@ -630,53 +636,53 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
 };
 //+------------------------------------------------------------------+
 void logHHLL() {
-    static string HHLL = "";
+    static string HHLL_fullStr = "";
     const int prevLookBack = 100;
-    {   double H = g::zigZag.HighMapBuffer.get(1);
+    {   double HiVal = g::zigZag.HighMapBuffer.get(1);
         static double prevH = 99999;
-        if (H > 0) {
+        if (HiVal > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double H = g::zigZag.HighMapBuffer.get(i);
-                if (H > 0) {
-                    LOG(SF("Prev H[%d]: %.2f", i, H));
-                    prevH = H;
+                double HiVal = g::zigZag.HighMapBuffer.get(i);
+                if (HiVal > 0) {
+                    LOG(SF("Prev H[%d]: %.2f", i, HiVal));
+                    prevH = HiVal;
                     break;
                 }
             }
-            string hhlh = H > prevH ? "HH" : "LH";
-            if (H > prevH && StringSubstr(HHLL, 0, 2) == "LH") {
-                StringSetCharacter(HHLL, 0, 'H');
+            string hhlh_curr = HiVal > prevH ? "HH" : "LH";
+            if (HiVal > prevH && StringSubstr(HHLL_fullStr, 0, 2) == "LH") {
+                StringSetCharacter(HHLL_fullStr, 0, 'H');
             }
-            else if (StringSubstr(HHLL, 0, 2) != hhlh) {
-                HHLL = hhlh + "-" + HHLL;
-                if (StringLen(HHLL) > 75) {
-                    HHLL = HHLL.Substr(0, 50) + "...";
+            else if (StringSubstr(HHLL_fullStr, 0, 2) != hhlh_curr) {
+                HHLL_fullStr = hhlh_curr + "-" + HHLL_fullStr;
+                if (StringLen(HHLL_fullStr) > 75) {
+                    HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
                 }
             }
-            LOG(SF("ZZ:H: %.2f: %s (%s)", H, hhlh, HHLL));
-            prevH = H;
+            LOG(SF("ZZ:H: %.2f: %s (%s)", HiVal, hhlh_curr, HHLL_fullStr));
+            prevH = HiVal;
         }
     }
-    {   double L = g::zigZag.LowMapBuffer.get(1);
+    {   double LoVal = g::zigZag.LowMapBuffer.get(1);
         static double prevL = 0;
-        if (L > 0) {
+        if (LoVal > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double L = g::zigZag.LowMapBuffer.get(i);
-                if (L > 0) {
-                    LOG(SF("Prev L[%d]: %.2f", i, L));
-                    prevL = L;
+                double LoVal = g::zigZag.LowMapBuffer.get(i);
+                if (LoVal > 0) {
+                    LOG(SF("Prev L[%d]: %.2f", i, LoVal));
+                    prevL = LoVal;
                     break;
                 }
             }
-            string llhl = L > prevL ? "HL" : "LL";
-            if (L < prevL && StringSubstr(HHLL, 0, 2) == "HL") {
-                StringSetCharacter(HHLL, 0, 'L');
+            string llhl_curr = LoVal > prevL ? "HL" : "LL";
+            if (LoVal < prevL && StringSubstr(HHLL_fullStr, 0, 2) == "HL") {
+                StringSetCharacter(HHLL_fullStr, 0, 'L');
             }
-            else if (StringSubstr(HHLL, 0, 2) != llhl) {
-                HHLL = llhl + "-" + HHLL;
+            else if (StringSubstr(HHLL_fullStr, 0, 2) != llhl_curr) {
+                HHLL_fullStr = llhl_curr + "-" + HHLL_fullStr;
             }
-            LOG(SF("ZZ:L: %.2f: %s (%s)", L, llhl, HHLL));
-            prevL = L;
+            LOG(SF("ZZ:L: %.2f: %s (%s)", LoVal, llhl_curr, HHLL_fullStr));
+            prevL = LoVal;
         }
     }
 }
