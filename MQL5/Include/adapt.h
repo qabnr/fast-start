@@ -21,12 +21,14 @@ char*  Symbol(...);
 double MathMax(...);
 double MathMin(...);
 double MathSqrt(double);
+double SymbolInfoDouble(...);
 
 enum mql5_consts {
     NULL,
     INDICATOR_DATA,
     INDICATOR_COLOR_INDEX,
     INDICATOR_SHORTNAME,
-
     PERIOD_CURRENT,
+    _Symbol,
+    SYMBOL_LAST,
 };

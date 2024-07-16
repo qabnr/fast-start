@@ -167,7 +167,7 @@ int OnCalculate(const int rates_total,
 
             if (is_newSellStop) {
                 stopBuffer[i] = newSellStop;
-                LOG(SF("new Sell Stop: %.2f", newSellStop));
+                // LOG(SF("new Sell Stop: %.2f", newSellStop));
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];
@@ -185,7 +185,7 @@ int OnCalculate(const int rates_total,
 
             if (is_newBuyStop) {
                 stopBuffer[i] = newBuyStop;
-                LOG(SF("new Buy Stop: %.2f", newBuyStop));
+                // LOG(SF("new Buy Stop: %.2f", newBuyStop));
             }
             else {
                 stopBuffer[i] = stopBuffer[i-1];

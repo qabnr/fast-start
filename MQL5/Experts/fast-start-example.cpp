@@ -396,6 +396,9 @@ namespace g
     double           maxRelDrawDown = 0;
 
     IndicatorList   indicatorList;
+
+    double lastMax;
+    double lastMin;
 };
 //+------------------------------------------------------------------+
 int OnInit()
@@ -638,21 +641,26 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
 //+------------------------------------------------------------------+
 void logHHLL() {
     static string HHLL_fullStr = "";
-    static double prevL = 0.0001;
-    static double prevH = 99999;
+
+    static double lastPrice = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
+
+    static double prevL = lastPrice;
+    static double prevH = lastPrice;
+
     const int prevLookBack = 100;
-    {   double HiVal = g::zigZag.HighMapBuffer.get(1);
-        if (HiVal > 0) {
+    {   double lastH = g::zigZag.HighMapBuffer.get(1);
+        if (lastH > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double backHiVal = g::zigZag.HighMapBuffer.get(i);
-                if (backHiVal > 0) {
-                    LOG(SF("Prev H[%d]: %.2f", i, backHiVal));
-                    prevH = backHiVal;
+                double backH = g::zigZag.HighMapBuffer.get(i);
+                if (backH > 0) {
+                    LOG(SF("Prev H[%d]: %.2f", i, backH));
+                    prevH = backH;
+                    g::lastMax = MathMax(lastH, backH);
                     break;
                 }
             }
-            string hhlh_curr = HiVal > prevH ? "HH" : "LH";
-            if (HiVal > prevH && StringSubstr(HHLL_fullStr, 0, 2) == "LH") {
+            string hhlh_curr = lastH > prevH ? "HH" : "LH";
+            if (lastH > prevH && StringSubstr(HHLL_fullStr, 0, 2) == "LH") {
                 StringSetCharacter(HHLL_fullStr, 0, 'H');
             }
             else if (StringSubstr(HHLL_fullStr, 0, 2) != hhlh_curr) {
@@ -661,29 +669,30 @@ void logHHLL() {
                     HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
                 }
             }
-            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", HiVal, (HiVal/prevL-1)*100, hhlh_curr, HHLL_fullStr));
-            prevH = HiVal;
+            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", lastH, (lastH/prevL-1)*100, hhlh_curr, HHLL_fullStr));
+            prevH = lastH;
         }
     }
-    {   double LoVal = g::zigZag.LowMapBuffer.get(1);
-        if (LoVal > 0) {
+    {   double lastL = g::zigZag.LowMapBuffer.get(1);
+        if (lastL > 0) {
             for (int i = 2; i < prevLookBack; i++) {
-                double backLoVal = g::zigZag.LowMapBuffer.get(i);
-                if (backLoVal > 0) {
-                    LOG(SF("Prev L[%d]: %.2f", i, backLoVal));
-                    prevL = backLoVal;
+                double backL = g::zigZag.LowMapBuffer.get(i);
+                if (backL > 0) {
+                    LOG(SF("Prev L[%d]: %.2f", i, backL));
+                    prevL = backL;
+                    g::lastMin = MathMin(lastL, backL);
                     break;
                 }
             }
-            string llhl_curr = LoVal > prevL ? "HL" : "LL";
-            if (LoVal < prevL && StringSubstr(HHLL_fullStr, 0, 2) == "HL") {
+            string llhl_curr = lastL > prevL ? "HL" : "LL";
+            if (lastL < prevL && StringSubstr(HHLL_fullStr, 0, 2) == "HL") {
                 StringSetCharacter(HHLL_fullStr, 0, 'L');
             }
             else if (StringSubstr(HHLL_fullStr, 0, 2) != llhl_curr) {
                 HHLL_fullStr = llhl_curr + "-" + HHLL_fullStr;
             }
-            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", LoVal, (LoVal/prevH-1)*100, llhl_curr, HHLL_fullStr));
-            prevL = LoVal;
+            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", lastL, (lastL/prevH-1)*100, llhl_curr, HHLL_fullStr));
+            prevL = lastL;
         }
     }
 }
@@ -739,7 +748,9 @@ public:
         logCnt++;
         if (logCnt % 20 == 1) { logHeader(); }
 
-        LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%%",
+        double lastPrice = SymbolInfoDouble(_Symbol,SYMBOL_LAST);
+
+        LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%% L%+0.1f%%",
             d2str(profit),
             profitLossPerBal * 100,
             profitLossPerPrice * 100,
@@ -749,8 +760,11 @@ public:
             d2str(equity),
             (equity-maxEquity) / maxEquity * 100,
             d2str(balance),
-            g::maxRelDrawDown * 100)
-        );
+            g::maxRelDrawDown * 100,
+            lastPrice,
+            (lastPrice / g::lastMax - 1) * 100,
+            (lastPrice / g::lastMin - 1) * 100
+        ));
     }
 };
 //+------------------------------------------------------------------+
@@ -775,8 +789,8 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        p.log();
         logHHLL();
+        p.log();
     }
 
     if (p.profitPerBalance < -profitPerBalanceLimit) {
