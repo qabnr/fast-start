@@ -28,8 +28,10 @@
 
 #include <adapt.h>
 
-input int     lookBackPeriod = 20;  // Look Back Period
-input double  offset = 0.20;        // Offset
+input int     lookBackPeriod_I = 20;  // Look Back Period
+input double  priceOffset      = 0.20;// Price Offset
+
+int lookBackPeriod   = lookBackPeriod_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT);
 
 //+------------------------------------------------------------------+
 #define SF StringFormat
@@ -60,7 +62,7 @@ void OnInit()
     SetIndexBuffer(4, sellBuffer,      INDICATOR_DATA);
     SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
-    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, offset);
+    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, priceOffset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 }
 //+------------------------------------------------------------------+
@@ -115,8 +117,8 @@ int OnCalculate(const int rates_total,
             maxLdiff = MathMax(HIGH_PRICE(i-back) - lowMin, maxLdiff);
             lowMin   = MathMin(lowMin, LOW_PRICE(i-back));
         }
-        double newSellStop = highMax - maxHdiff - offset;
-        double newBuyStop  = lowMin  + maxLdiff + offset;
+        double newSellStop = highMax - maxHdiff - priceOffset;
+        double newBuyStop  = lowMin  + maxLdiff + priceOffset;
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 

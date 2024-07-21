@@ -28,9 +28,13 @@
 #property indicator_width3  1
 //+------------------------------------------------------------------+
 //--- input parameters
-input int InpDepth     = 12;  // Depth
-input int InpDeviation = 5;   // Deviation
-input int InpBackstep  = 3;   // Back Step
+input int InpDepth_I     = 12;  // Depth
+input int InpDeviation_I = 5;   // Deviation
+input int InpBackstep_I  = 3;   // Back Step
+
+int InpDepth     = InpDepth_I    * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT);
+int InpDeviation = InpDeviation_I;
+int InpBackstep  = InpBackstep_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT);
 
 //+------------------------------------------------------------------+
 double   ZigZagBuffer[];      // main buffer

@@ -27,9 +27,9 @@
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  5
 
-input int fastEMA_period              = 96;
-input int slowEMA_period              = 208; 
-input int signalSMA_period            = 72; 
+input int fastEMA_period_I   = 96;
+input int slowEMA_period_I   = 208; 
+input int signalSMA_period_I = 72; 
 input ENUM_APPLIED_PRICE appliedPrice = PRICE_TYPICAL; 
 
 //--- indicator buffers
@@ -40,6 +40,10 @@ double SlowMA_buffer[];
 
 double OsMA_buffer[];
 double OsMAcolor_buffer[];
+
+int fastEMA_period   = fastEMA_period_I   * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT);
+int slowEMA_period   = slowEMA_period_I   * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT); 
+int signalSMA_period = signalSMA_period_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT); 
 
 int fastMA_handle;
 int slowMA_handle;
@@ -61,8 +65,9 @@ void OnInit()
     string short_name = StringFormat("myMACD2(%d,%d,%d)", fastEMA_period, slowEMA_period, signalSMA_period);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 
-    fastMA_handle = iMA(NULL, 0, fastEMA_period, 0, MODE_EMA, appliedPrice);
-    slowMA_handle = iMA(NULL, 0, slowEMA_period, 0, MODE_EMA, appliedPrice);
+    int shift = 0;
+    fastMA_handle = iMA(NULL, PERIOD_CURRENT, fastEMA_period, shift, MODE_EMA, appliedPrice);
+    slowMA_handle = iMA(NULL, PERIOD_CURRENT, slowEMA_period, shift, MODE_EMA, appliedPrice);
 }
 //+------------------------------------------------------------------+
 int OnCalculate(const int       rates_total,
