@@ -398,7 +398,9 @@ namespace g
     IndicatorList   indicatorList;
 
     double lastMax;
+    int    lastMaxTickCnt;
     double lastMin;
+    int    lastMinTickCnt;
 };
 //+------------------------------------------------------------------+
 int OnInit()
@@ -638,8 +640,8 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
         return false;
     }
 };
-//+------------------------------------------------------------------+
-void logHHLL() {
+//+------------------------------------------------------------------+./MQL5/Experts/fast-start-example.cpp
+void logHHLL(const int tickCnt) {
     static string HHLL_fullStr = "";
 
     static double lastPrice = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
@@ -656,6 +658,7 @@ void logHHLL() {
                     LOG(SF("Prev H[%d]: %.2f", i, backH));
                     prevH = backH;
                     g::lastMax = MathMax(lastH, backH);
+                    g::lastMaxTickCnt = tickCnt;
                     break;
                 }
             }
@@ -681,6 +684,7 @@ void logHHLL() {
                     LOG(SF("Prev L[%d]: %.2f", i, backL));
                     prevL = backL;
                     g::lastMin = MathMin(lastL, backL);
+                    g::lastMinTickCnt = tickCnt;
                     break;
                 }
             }
@@ -744,13 +748,13 @@ public:
     void logHeader() {
         LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
     }
-    void log() {
+    void log(const int currTickCnt) {
         logCnt++;
         if (logCnt % 20 == 1) { logHeader(); }
 
         double lastPrice = SymbolInfoDouble(_Symbol,SYMBOL_LAST);
 
-        LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%% L%+0.1f%%",
+        LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%%(%2d) L%+0.1f%%(%2d)",
             d2str(profit),
             profitLossPerBal * 100,
             profitLossPerPrice * 100,
@@ -763,7 +767,9 @@ public:
             g::maxRelDrawDown * 100,
             lastPrice,
             (lastPrice / g::lastMax - 1) * 100,
-            (lastPrice / g::lastMin - 1) * 100
+            currTickCnt - g::lastMaxTickCnt,
+            (lastPrice / g::lastMin - 1) * 100,
+            currTickCnt - g::lastMinTickCnt
         ));
     }
 };
@@ -776,6 +782,8 @@ void OnTick()
 
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
 
+    static int tickCnt = 0;
+    tickCnt++;
     static ProfitEtc p;
 
     p.setValues();
@@ -789,8 +797,8 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        logHHLL();
-        p.log();
+        logHHLL(tickCnt);
+        p.log(tickCnt);
     }
 
     if (p.profitPerBalance < -profitPerBalanceLimit) {

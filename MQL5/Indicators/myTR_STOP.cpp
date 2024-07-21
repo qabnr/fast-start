@@ -15,13 +15,13 @@
 #property indicator_label1 "ST"
 
 #property indicator_type2  DRAW_COLOR_LINE
-#property indicator_color2 clrRed, clrGreen, CLR_NONE
+#property indicator_color2 clrSpringGreen, clrSpringGreen, CLR_NONE
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 1
 #property indicator_label2 "Buy ST"
 
 #property indicator_type3  DRAW_COLOR_LINE
-#property indicator_color3 clrRed, clrGreen, CLR_NONE
+#property indicator_color3 clrOrangeRed, clrOrangeRed, CLR_NONE
 #property indicator_style3 STYLE_SOLID
 #property indicator_width3 1
 #property indicator_label3 "Sell ST"
