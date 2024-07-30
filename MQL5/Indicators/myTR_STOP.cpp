@@ -9,22 +9,22 @@
 #property indicator_plots 3
 
 #property indicator_type1  DRAW_COLOR_LINE
-#property indicator_color1 clrRed, clrGreen, clrGray
+#property indicator_color1 clrSpringGreen, clrNONE
 #property indicator_style1 STYLE_SOLID
-#property indicator_width1 3
-#property indicator_label1 "ST"
+#property indicator_width1 1
+#property indicator_label1 "Buy ST"
 
 #property indicator_type2  DRAW_COLOR_LINE
-#property indicator_color2 clrSpringGreen, clrSpringGreen, CLR_NONE
+#property indicator_color2 clrOrange, clrNONE
 #property indicator_style2 STYLE_SOLID
 #property indicator_width2 1
-#property indicator_label2 "Buy ST"
+#property indicator_label2 "Sell ST"
 
 #property indicator_type3  DRAW_COLOR_LINE
-#property indicator_color3 clrOrange, clrOrange, CLR_NONE
+#property indicator_color3 clrRed, clrGreen, clrGray
 #property indicator_style3 STYLE_SOLID
-#property indicator_width3 1
-#property indicator_label3 "Sell ST"
+#property indicator_width3 3
+#property indicator_label3 "ST"
 
 #include <adapt.h>
 
@@ -53,14 +53,14 @@ string short_name;
 //+------------------------------------------------------------------+
 void OnInit()
 {
-    SetIndexBuffer(0, stopBuffer,      INDICATOR_DATA);
-    SetIndexBuffer(1, stopColorBuffer, INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(0, buyBuffer,       INDICATOR_DATA);
+    SetIndexBuffer(1, buyColorBuffer,  INDICATOR_COLOR_INDEX);
 
-    SetIndexBuffer(2, buyBuffer,       INDICATOR_DATA);
-    SetIndexBuffer(3, buyColorBuffer,  INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(2, sellBuffer,      INDICATOR_DATA);
+    SetIndexBuffer(3, sellColorBuffer, INDICATOR_COLOR_INDEX);
 
-    SetIndexBuffer(4, sellBuffer,      INDICATOR_DATA);
-    SetIndexBuffer(5, sellColorBuffer, INDICATOR_COLOR_INDEX);
+    SetIndexBuffer(4, stopBuffer,      INDICATOR_DATA);
+    SetIndexBuffer(5, stopColorBuffer, INDICATOR_COLOR_INDEX);
 
     short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, priceOffset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
@@ -97,8 +97,8 @@ int OnCalculate(const int rates_total,
             stopBuffer[i] = LOW_PRICE(i);
 
             sellColorBuffer[i] = 2;
-            buyColorBuffer [i] = 2;
-            stopColorBuffer[i] = 2;
+            buyColorBuffer [i] = 1;
+            stopColorBuffer[i] = 1;
 
             continue;
         }
@@ -122,8 +122,8 @@ int OnCalculate(const int rates_total,
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 
-        sellColorBuffer[i] = (maxSellStop == maxResetValue) ? 2 : 0;
-        buyColorBuffer[i]  = (minBuyStop  == minResetValue) ? 2 : 1;
+        sellColorBuffer[i] = (maxSellStop == maxResetValue) ? 1 : 0;
+        buyColorBuffer[i]  = (minBuyStop  == minResetValue) ? 1 : 0;
 
         if (newSellStop > maxSellStop) {
             is_newSellStop = true;

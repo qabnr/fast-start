@@ -407,17 +407,18 @@ int OnInit()
 {
     printInputParams();
     
-    g::indicatorList.add(g::MACD1  = new myMACD2("MACD1", MACD1_fast_MA_period, MACD1_slow_MA_period, MACD1_avg_diff_period));
-    g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period, MACD2_slow_MA_period, MACD2_avg_diff_period));
+    g::indicatorList.add(g::MACD1  = new myMACD2("MACD1", MACD1_fast_MA_period,   MACD1_slow_MA_period,   MACD1_avg_diff_period  ));
+    g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period,   MACD2_slow_MA_period,   MACD2_avg_diff_period  ));
+    g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::TR_ST_list.add(15, 0.2);
+    // g::TR_ST_list.add(15, 0.2);
     g::TR_ST_list.add(10, 0.0);
-    g::TR_ST_list.add(10, 0.2);
+    // g::TR_ST_list.add(10, 0.2);
     g::TR_ST_list.add(10, 0.4);
-    g::TR_ST_list.add(10, 0.6);
+    // g::TR_ST_list.add(10, 0.6);
     g::TR_ST_list.add(10, 0.8);
-    g::TR_ST_list.add(10, 1.0);
+    // g::TR_ST_list.add(10, 1.0);
     g::TR_ST_list.add(10, 1.2);
 
     // g::linRegrChannel = new LinRegrChannel("LRCh");
