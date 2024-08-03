@@ -69,6 +69,30 @@ void OnInit()
 #define LOW_PRICE(i)  (low[i] + close[i]) / 2 
 #define HIGH_PRICE(i) (high[i] + close[i]) / 2  
 //+------------------------------------------------------------------+
+struct Trend
+{
+    enum E {
+        UP,
+        DOWN
+    };
+    
+    E trend;
+
+    Trend(const E other) : trend(other) {};
+    Trend(const Trend &that) : trend(that.trend) {};
+
+    void operator=(const Trend &that) {
+        this.trend = that.trend;
+    };
+
+    bool operator == (const Trend &that) {
+        return this.trend == that.trend;
+    }
+};
+
+const Trend UpTrend(Trend::E::UP);
+const Trend DownTrend(Trend::E::DOWN);
+
 //+------------------------------------------------------------------+
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
@@ -85,7 +109,7 @@ int OnCalculate(const int rates_total,
     static double minBuyStop  = minResetValue;
     static double maxSellStop = maxResetValue;
 
-    static int trend = 1;
+    static Trend trend(UpTrend);
 
     int i, day_n = 0, day_t = 0;
 
@@ -162,9 +186,8 @@ int OnCalculate(const int rates_total,
         }
 
 
-        if (trend > 0)  // uptrend
+        if (trend == UpTrend)
         {
-            trend++;
             stopColorBuffer[i] = 0;
 
             if (is_newSellStop) {
@@ -174,7 +197,7 @@ int OnCalculate(const int rates_total,
             else {
                 stopBuffer[i] = stopBuffer[i-1];
                 if (stopBuffer[i] > LOW_PRICE(i-1)) {
-                    trend = -1;
+                    trend = DownTrend;
                     stopBuffer[i] = buyBuffer[i];
                     stopColorBuffer[i] = 2;
                 }
@@ -182,7 +205,6 @@ int OnCalculate(const int rates_total,
         }
         else  // downtrend
         {
-            trend--;
             stopColorBuffer[i] = 1;
 
             if (is_newBuyStop) {
@@ -192,7 +214,7 @@ int OnCalculate(const int rates_total,
             else {
                 stopBuffer[i] = stopBuffer[i-1];
                 if (stopBuffer[i] < HIGH_PRICE(i-1)) {
-                    trend = 1;
+                    trend = UpTrend;
                     stopBuffer[i] = sellBuffer[i];
                     stopColorBuffer[i] = 2;
                 }
