@@ -69,15 +69,18 @@ void OnInit()
 #define LOW_PRICE(i)  (low[i] + close[i]) / 2 
 #define HIGH_PRICE(i) (high[i] + close[i]) / 2  
 //+------------------------------------------------------------------+
-struct Trend
+class Trend
 {
+public:
     enum E {
         UP,
         DOWN
     };
-    
+
+private:
     E trend;
 
+public:
     Trend(const E other) : trend(other) {};
     Trend(const Trend &that) : trend(that.trend) {};
 
