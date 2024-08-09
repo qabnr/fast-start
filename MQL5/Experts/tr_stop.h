@@ -48,12 +48,30 @@ public:
         && sellBuffer.copy(count) && sellColorBuffer.copy(count);
     }
 
-    bool isBuyNow(const double price) const {
-        return buyBuffer.get(1) < price;
+    int isBuyNow(const double price) const {
+        if (price < stopBuffer.get(1)) return -1;
+        if (price > stopBuffer.get(2)) return -1;
+        
+        const int size = stopBuffer.getSize();
+        int cnt = 0;
+        for (int i = 2; i < size; i++) {
+            if (price > stopBuffer.get(i)) break;
+            cnt++;
+        }
+        return cnt;
     }
 
-    bool isSellNow(const double price) const {
-        return sellBuffer.get(1) > price;
+    int isSellNow(const double price) const {
+        if (price > stopBuffer.get(1)) return -1;
+        if (price < stopBuffer.get(2)) return -1;
+        
+        const int size = stopBuffer.getSize();
+        int cnt = 0;
+        for (int i = 2; i < size; i++) {
+            if (price < stopBuffer.get(i)) break;
+            cnt++;
+        }
+        return cnt;
     }
 };
 //+------------------------------------------------------------------+
@@ -73,17 +91,23 @@ public:
         g::indicatorList.add(new_stop);
     }
 
-    bool isBuyNow(const double price) const {
+    int isBuyNow(const double price) const {
+        int minLen = 999999;
         for (int i = 0; i < ArraySize(trStList); i++) {
-            if (trStList[i].isBuyNow(price)) return true;
+            int len = trStList[i].isBuyNow(price);
+            if (len < 0) return -1;
+            minLen = MathMin(minLen, len);
         }
-        return false;
+        return minLen;
     }
-    bool isSellNow(const double price) const {
+    int isSellNow(const double price) const {
+        int minLen = 999999;
         for (int i = 0; i < ArraySize(trStList); i++) {
-            if (trStList[i].isSellNow(price)) return true;
+            int len = trStList[i].isSellNow(price);
+            if (len < 0) return -1;
+            minLen = MathMin(minLen, len);
         }
-        return false;
+        return minLen;
     }
 };
 //+------------------------------------------------------------------+

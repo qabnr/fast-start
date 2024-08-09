@@ -412,24 +412,10 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    // g::TR_ST_list.add(15, 0.2);
     g::TR_ST_list.add(10, 0.0);
-    // g::TR_ST_list.add(10, 0.2);
-    g::TR_ST_list.add(10, 0.4);
-    // g::TR_ST_list.add(10, 0.6);
-    g::TR_ST_list.add(10, 0.8);
-    // g::TR_ST_list.add(10, 1.0);
-    g::TR_ST_list.add(10, 1.2);
-
-    // g::linRegrChannel = new LinRegrChannel("LRCh");
-
-/*/
-    g::ATR_list.add(10, 1.0);
-    g::ATR_list.add(10, 2.0);
-    g::ATR_list.add(10, 3.0);
-/*/
-    // g::ATR_list.add(10, 4.0);
- //   g::ATR_list.add(10, 6.0);
+    // g::TR_ST_list.add(10, 0.4);
+    // g::TR_ST_list.add(10, 0.8);
+    // g::TR_ST_list.add(10, 1.2);
 
     return (0);
 }
@@ -802,6 +788,16 @@ void OnTick()
         p.log(tickCnt);
     }
 
+MqlRates price = getPrice();
+
+int len = 0;
+if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
+    LOG(SF("TRST: BuyNow: %d", len));
+}
+else if ((len = g::TR_ST_list.isSellNow(price.open)) > 0) {
+    LOG(SF("TRST: SellNow: %d", len));
+}
+
     if (p.profitPerBalance < -profitPerBalanceLimit) {
         changeDirection(Reason::chDir_profitPerBalanceLimit, __LINE__);
     }
@@ -849,13 +845,13 @@ void OnTick()
     }
 
     if (g::sellOrBuy.isGetReadyToBuy()) {
-        if (g::ATR_list.isBuyNow(getPrice().low)) {
+        if (g::ATR_list.isBuyNow(price.low)) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
         }
     }
     else
     if (g::sellOrBuy.isGetReadyToSell()) {
-        if (g::ATR_list.isSellNow(getPrice().high)) {
+        if (g::ATR_list.isSellNow(price.high)) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }

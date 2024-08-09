@@ -59,7 +59,7 @@ public:
     double get(const int index) const {
         return buff[index];
     }
-    int getNrCopied() const {
+    int getSize() const {
         return nrCopied;
     }
 };
