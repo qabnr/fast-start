@@ -663,17 +663,25 @@ void logHHLL(const int tickCnt) {
                     break;
                 }
             }
-            string hhlh_curr = lastH > prevH ? "HH" : "LH";
-            if (lastH > prevH && StringSubstr(HHLL_fullStr, 0, 2) == "LH") {
-                StringSetCharacter(HHLL_fullStr, 0, 'H');
-            }
-            else if (StringSubstr(HHLL_fullStr, 0, 2) != hhlh_curr) {
-                HHLL_fullStr = hhlh_curr + "-" + HHLL_fullStr;
-                if (StringLen(HHLL_fullStr) > 75) {
-                    HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
+            bool HH = lastH > prevH;
+            string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
+            if (HH) {
+                if (secondChar == "H") {  // was xH
+                    StringSetCharacter(HHLL_fullStr, 0, 'H');
+                }
+                else {  // was xL
+                    HHLL_fullStr = "HH-" + HHLL_fullStr;
                 }
             }
-            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", lastH, (lastH/prevL-1)*100, hhlh_curr, HHLL_fullStr));
+            else { // LH
+                if (secondChar == "L") {  // was xL
+                    HHLL_fullStr = "LH-" + HHLL_fullStr;
+                }
+            }
+            if (StringLen(HHLL_fullStr) > 75) {
+                HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
+            }
+            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", lastH, (lastH/prevL-1)*100, HH ? "HH" : "LH", HHLL_fullStr));
             prevH = lastH;
         }
     }
@@ -689,14 +697,22 @@ void logHHLL(const int tickCnt) {
                     break;
                 }
             }
-            string llhl_curr = lastL > prevL ? "HL" : "LL";
-            if (lastL < prevL && StringSubstr(HHLL_fullStr, 0, 2) == "HL") {
-                StringSetCharacter(HHLL_fullStr, 0, 'L');
+            bool LL = lastL < prevL;
+            string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
+            if (LL) {
+                if (secondChar == "L") {  // was xL
+                    StringSetCharacter(HHLL_fullStr, 0, 'L');
+                }
+                else {  // was xH
+                    HHLL_fullStr = "LL-" + HHLL_fullStr;
+                }
             }
-            else if (StringSubstr(HHLL_fullStr, 0, 2) != llhl_curr) {
-                HHLL_fullStr = llhl_curr + "-" + HHLL_fullStr;
+            else {  // HL
+                if (secondChar == "H") {  // was xH
+                    HHLL_fullStr = "HL-" + HHLL_fullStr;
+                }
             }
-            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", lastL, (lastL/prevH-1)*100, llhl_curr, HHLL_fullStr));
+            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", lastL, (lastL/prevH-1)*100, LL ? "LL" : "HL", HHLL_fullStr));
             prevL = lastL;
         }
     }
