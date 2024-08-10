@@ -16,8 +16,8 @@ bool isLOG() {
 void LOG_Naked(const string s) {
     if (isLOG()) Print(s);
 }
-#define LOG(s) if (isLOG()) Print(SF("%d: %s", __LINE__, s))
-#define LOGF(s) if (isLOG()) Print(SF("%d: %s: %s", __LINE__, __FUNCTION__, s))
+#define LOG(s) if (isLOG()) PrintFormat("%d: %s", __LINE__, s)
+#define LOGF(s) if (isLOG()) PrintFormat("%d: %s: %s", __LINE__, __FUNCTION__, s)
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60
 #define HOURS *60*60

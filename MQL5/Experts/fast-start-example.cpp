@@ -133,7 +133,7 @@ public:
         arr_[last_] = val;
     }
 };
-
+//+------------------------------------------------------------------+
 class StatList : List
 {
 private:
@@ -412,8 +412,8 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::TR_ST_list.add(10, 0.0);
-    // g::TR_ST_list.add(10, 0.4);
+    // g::TR_ST_list.add(10, 0.0);
+    g::TR_ST_list.add(10, 0.4);
     // g::TR_ST_list.add(10, 0.8);
     // g::TR_ST_list.add(10, 1.2);
 

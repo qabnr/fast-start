@@ -15,14 +15,14 @@
 class TR_STOP : public Indicator
 {
 private:
-    Buffer *stopBuffer;
-    Buffer stopColorBuffer;
-
-    Buffer buyBuffer;
+    Buffer *buyBuffer;
     Buffer buyColorBuffer;
 
     Buffer sellBuffer;
     Buffer sellColorBuffer;
+
+    Buffer stopBuffer;
+    Buffer stopColorBuffer;
 
     string indName;
 
@@ -33,12 +33,12 @@ public:
         : indName(SF("TR_ST(%d, %.1f)", lookBackPeriod, offset)),
           Indicator(0, SF("TR_ST(%d, %.1f)", lookBackPeriod, offset),
                     iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod, offset)),
-          stopBuffer     (  &buffer),
-          stopColorBuffer(1, buffer),
-          buyBuffer      (2, buffer),
-          buyColorBuffer (3, buffer),
-          sellBuffer     (4, buffer),
-          sellColorBuffer(5, buffer)
+          buyBuffer      (  &buffer),
+          buyColorBuffer (1, buffer),
+          sellBuffer     (2, buffer),
+          sellColorBuffer(3, buffer),
+          stopBuffer     (4, buffer),
+          stopColorBuffer(5, buffer)
     {}
 
     bool copyBuffers(const int count) {
@@ -55,7 +55,7 @@ public:
         const int size = stopBuffer.getSize();
         int cnt = 0;
         for (int i = 2; i < size; i++) {
-            if (price > stopBuffer.get(i)) break;
+            if (buyBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
         return cnt;
@@ -68,7 +68,7 @@ public:
         const int size = stopBuffer.getSize();
         int cnt = 0;
         for (int i = 2; i < size; i++) {
-            if (price < stopBuffer.get(i)) break;
+            if (sellBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
         return cnt;
