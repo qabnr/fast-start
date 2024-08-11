@@ -58,6 +58,7 @@ public:
             if (buyBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
+LOG(SF("%s: BuyNow: %d", indName, cnt));
         return cnt;
     }
 
@@ -71,6 +72,7 @@ public:
             if (sellBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
+LOG(SF("%s: SellNow: %d", indName, cnt));
         return cnt;
     }
 };
