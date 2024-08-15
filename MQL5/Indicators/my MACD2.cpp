@@ -9,7 +9,7 @@
 
 #property indicator_separate_window
 #property indicator_buffers 6
-#property indicator_plots   4
+#property indicator_plots   3
 
 #property indicator_label1  "MACD"
 #property indicator_type1   DRAW_LINE
