@@ -39,7 +39,8 @@ input double profitLossPerPriceLimit  = 7.98;
 input double maxRelDrawDownLimit      = 0.70;
 
 //+------------------------------------------------------------------+
-void printInputParams() {
+void printInputParams()
+{
     PrintFormat("input int    MACD1_fast_MA_period     = %d;", MACD1_fast_MA_period);
     PrintFormat("input int    MACD1_slow_MA_period     = %d;", MACD1_slow_MA_period);
     PrintFormat("input int    MACD1_avg_diff_period    = %d;", MACD1_avg_diff_period);
@@ -62,12 +63,11 @@ void printInputParams() {
     PrintFormat("input double maxRelDrawDownLimit      = %.2f;", maxRelDrawDownLimit);
 }
 //+------------------------------------------------------------------+
-#define enum2str_CASE(c) case  c: return #c
-#define enum2str_DEFAULT default: return "<UNKNOWN>"
-#define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
-
 namespace Reason
 {
+
+#define enum2str_DEFAULT default: return "<UNKNOWN>"
+
     enum ReasonCode {
         Bought,
         Sold,
@@ -118,7 +118,8 @@ namespace Reason
     }
 };
 //+------------------------------------------------------------------+
-class List {
+class List
+{
 protected:
     double arr_[];
     int    last_;
@@ -169,7 +170,8 @@ public:
     double stdDev() const { return MathSqrt(variance()); }
 };
 //+------------------------------------------------------------------+
-class Stats {
+class Stats
+{
 public:
     enum Operation {
         buy,
@@ -229,7 +231,8 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class SellOrBuy {
+class SellOrBuy
+{
 public:
     enum State {
         None,
@@ -258,6 +261,8 @@ public:
         }
     }
 
+#define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
+
     DEF_IS_METHOD(None)
     DEF_IS_METHOD(GetReadyToBuy)
     DEF_IS_METHOD(BuyNow)
@@ -267,6 +272,8 @@ public:
     string Reason2str() const { return Reason::toStr(reason); }
 
     string State2str() const { return State2str(state); }
+
+#define enum2str_CASE(c) case  c: return #c
 
     string State2str(State s) const {
         switch (s) {
@@ -280,7 +287,8 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class TradePosition {
+class TradePosition
+{
 private:
     const string        my_symbol;
     CTrade        m_Trade;
@@ -397,8 +405,10 @@ namespace g
 
     IndicatorList   indicatorList;
 
+    double lastHH;
     double lastMax;
     int    lastMaxTickCnt;
+    double lastLL;
     double lastMin;
     int    lastMinTickCnt;
 };
@@ -412,10 +422,11 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::TR_ST_list.add(10, 0.0);
+    // g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.4);
     g::TR_ST_list.add(10, 0.8);
     g::TR_ST_list.add(10, 1.2);
+    g::TR_ST_list.add(10, 1.6);
 
     return (0);
 }
@@ -424,7 +435,8 @@ void OnDeinit(const int reason)
 {
 }
 //+------------------------------------------------------------------+
-void changeDirection(const Reason::ReasonCode reason, const int lineNo) {
+void changeDirection(const Reason::ReasonCode reason, const int lineNo)
+{
     if (g::pPos.isTypeBUY()) {
         g::sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
     }
@@ -627,8 +639,9 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
         return false;
     }
 };
-//+------------------------------------------------------------------+./MQL5/Experts/fast-start-example.cpp
-void logHHLL(const int tickCnt) {
+//+------------------------------------------------------------------+
+void logHHLL(const int tickCnt)
+{
     static string HHLL_fullStr = "";
 
     static double lastPrice = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
@@ -639,29 +652,35 @@ void logHHLL(const int tickCnt) {
     const int prevLookBack = 100;
     {   double lastH = g::zigZag.HighMapBuffer.get(1);
         if (lastH > 0) {
+            g::lastMax = lastH;
+            g::lastMaxTickCnt = tickCnt - 1;
             for (int i = 2; i < prevLookBack; i++) {
                 double backH = g::zigZag.HighMapBuffer.get(i);
                 if (backH > 0) {
                     LOG(SF("Prev H[%d]: %.2f", i, backH));
+                    LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
                     prevH = backH;
-                    g::lastMax = MathMax(lastH, backH);
-                    g::lastMaxTickCnt = tickCnt;
+                    if (backH > lastH) {
+                        g::lastMax = backH;
+                        g::lastMaxTickCnt = tickCnt - i;
+                    }
                     break;
                 }
             }
             bool HH = lastH > prevH;
             string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (HH) {
-                if (secondChar == "H") {  // was xH
-                    StringSetCharacter(HHLL_fullStr, 0, 'H');
+                g::lastHH = lastH;
+                if (secondChar == "H") {  // was xH-...
+                    StringSetCharacter(HHLL_fullStr, 0, 'H');  // Now: HH-...
                 }
                 else {  // was xL
-                    HHLL_fullStr = "HH-" + HHLL_fullStr;
+                    HHLL_fullStr = "HH-" + HHLL_fullStr;  // Now: HH-...
                 }
             }
             else { // LH
-                if (secondChar == "L") {  // was xL
-                    HHLL_fullStr = "LH-" + HHLL_fullStr;
+                if (secondChar == "L") {  // was xL...
+                    HHLL_fullStr = "LH-" + HHLL_fullStr;  // Now: LH-...
                 }
             }
             if (StringLen(HHLL_fullStr) > 75) {
@@ -673,19 +692,25 @@ void logHHLL(const int tickCnt) {
     }
     {   double lastL = g::zigZag.LowMapBuffer.get(1);
         if (lastL > 0) {
+            g::lastMin = lastL;
+            g::lastMinTickCnt = tickCnt - 1;
             for (int i = 2; i < prevLookBack; i++) {
                 double backL = g::zigZag.LowMapBuffer.get(i);
                 if (backL > 0) {
                     LOG(SF("Prev L[%d]: %.2f", i, backL));
+                    LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
                     prevL = backL;
-                    g::lastMin = MathMin(lastL, backL);
-                    g::lastMinTickCnt = tickCnt;
+                    if (backL < lastL) {
+                        g::lastMin = backL;
+                        g::lastMinTickCnt = tickCnt - i;
+                    }
                     break;
                 }
             }
             bool LL = lastL < prevL;
             string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (LL) {
+                g::lastLL = lastL;
                 if (secondChar == "L") {  // was xL
                     StringSetCharacter(HHLL_fullStr, 0, 'L');
                 }
@@ -749,13 +774,17 @@ public:
     }
 
     void logHeader() {
-        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq     Eq/EqMx    Bal   RlDrDn");
+        LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq"
+        "     Eq/EqMx    Bal   RlDrDn   Pri    HH--       LL++ (ticks ago)");
     }
     void log(const int currTickCnt) {
         logCnt++;
         if (logCnt % 20 == 1) { logHeader(); }
 
         double lastPrice = SymbolInfoDouble(_Symbol,SYMBOL_LAST);
+
+        double lastMaxDiffPct = (lastPrice / g::lastMax - 1) * 100;
+        double lastMinDiffPct = (lastPrice / g::lastMin - 1) * 100;
 
         LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%%(%2d) L%+0.1f%%(%2d)",
             d2str(profit),
@@ -769,9 +798,9 @@ public:
             d2str(balance),
             g::maxRelDrawDown * 100,
             lastPrice,
-            (lastPrice / g::lastMax - 1) * 100,
+            lastMaxDiffPct,
             currTickCnt - g::lastMaxTickCnt,
-            (lastPrice / g::lastMin - 1) * 100,
+            lastMinDiffPct,
             currTickCnt - g::lastMinTickCnt
         ));
     }
