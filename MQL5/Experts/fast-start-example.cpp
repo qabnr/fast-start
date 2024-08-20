@@ -783,8 +783,8 @@ public:
 
         double lastPrice = SymbolInfoDouble(_Symbol,SYMBOL_LAST);
 
-        double lastMaxDiffPct = (lastPrice / g::lastMax - 1) * 100;
-        double lastMinDiffPct = (lastPrice / g::lastMin - 1) * 100;
+        double lastMaxDiffPct = g::lastMax == 0 ? 0 : (lastPrice / g::lastMax - 1) * 100;
+        double lastMinDiffPct = g::lastMin == 0 ? 0 : (lastPrice / g::lastMin - 1) * 100;
 
         LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%%(%2d) L%+0.1f%%(%2d)",
             d2str(profit),
@@ -833,15 +833,15 @@ void OnTick()
         p.log(tickCnt);
     }
 
-MqlRates price = getPrice();
+    MqlRates price = getPrice();
 
-int len = 0;
-if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
-    LOG(SF("TRST: BuyNow: %d", len));
-}
-else if ((len = g::TR_ST_list.isSellNow(price.open)) > 0) {
-    LOG(SF("TRST: SellNow: %d", len));
-}
+    int len = 0;
+    if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
+        LOG(SF("TRST: BuyNow: %d", len));
+    }
+    else if ((len = g::TR_ST_list.isSellNow(price.open)) > 0) {
+        LOG(SF("TRST: SellNow: %d", len));
+    }
 
     if (p.profitPerBalance < -profitPerBalanceLimit) {
         changeDirection(Reason::chDir_profitPerBalanceLimit, __LINE__);
