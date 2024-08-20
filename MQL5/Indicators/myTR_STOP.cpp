@@ -21,7 +21,7 @@
 #property indicator_label2 "Sell ST"
 
 #property indicator_type3  DRAW_COLOR_LINE
-#property indicator_color3 clrRed, clrGreen, clrGray
+#property indicator_color3 clrRed, clrGreen, clrNONE
 #property indicator_style3 STYLE_SOLID
 #property indicator_width3 3
 #property indicator_label3 "ST"
