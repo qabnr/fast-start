@@ -650,27 +650,26 @@ void logHHLL(const int tickCnt)
     static double prevH = lastPrice;
 
     const int prevLookBack = 100;
-    {   double lastH = g::zigZag.HighMapBuffer.get(1);
-        if (lastH > 0) {
-            g::lastMax = lastH;
+    {   double currH = g::zigZag.HighMapBuffer.get(1);
+        if (currH > 0) {
+            g::lastMax = currH;
             g::lastMaxTickCnt = tickCnt - 1;
             for (int i = 2; i < prevLookBack; i++) {
                 double backH = g::zigZag.HighMapBuffer.get(i);
                 if (backH > 0) {
-                    LOG(SF("Prev H[%d]: %.2f", i, backH));
-                    LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
+                    LOG(SF("lastHH: %.2f prevH: %.2f backH: %.2f(%d)", g::lastHH, prevH, backH, i));
                     prevH = backH;
-                    if (backH > lastH) {
+                    if (backH > currH) {
                         g::lastMax = backH;
                         g::lastMaxTickCnt = tickCnt - i;
                     }
                     break;
                 }
             }
-            bool HH = lastH > prevH;
+            bool HH = currH > prevH;
             string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (HH) {
-                g::lastHH = lastH;
+                g::lastHH = currH;
                 if (secondChar == "H") {  // was xH-...
                     StringSetCharacter(HHLL_fullStr, 0, 'H');  // Now: HH-...
                 }
@@ -686,31 +685,32 @@ void logHHLL(const int tickCnt)
             if (StringLen(HHLL_fullStr) > 75) {
                 HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
             }
-            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", lastH, (lastH/prevL-1)*100, HH ? "HH" : "LH", HHLL_fullStr));
-            prevH = lastH;
+            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", HHLL_fullStr));
+            prevH = currH;
         }
     }
-    {   double lastL = g::zigZag.LowMapBuffer.get(1);
-        if (lastL > 0) {
-            g::lastMin = lastL;
+    {   double currL = g::zigZag.LowMapBuffer.get(1);
+        if (currL > 0) {
+            g::lastMin = currL;
             g::lastMinTickCnt = tickCnt - 1;
             for (int i = 2; i < prevLookBack; i++) {
                 double backL = g::zigZag.LowMapBuffer.get(i);
                 if (backL > 0) {
                     LOG(SF("Prev L[%d]: %.2f", i, backL));
                     LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
+                    LOG(SF("lastLL: %.2f prevL: %.2f backL: %.2f(%d)", g::lastLL, prevL, backL, i));
                     prevL = backL;
-                    if (backL < lastL) {
+                    if (backL < currL) {
                         g::lastMin = backL;
                         g::lastMinTickCnt = tickCnt - i;
                     }
                     break;
                 }
             }
-            bool LL = lastL < prevL;
+            bool LL = currL < prevL;
             string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (LL) {
-                g::lastLL = lastL;
+                g::lastLL = currL;
                 if (secondChar == "L") {  // was xL
                     StringSetCharacter(HHLL_fullStr, 0, 'L');
                 }
@@ -723,8 +723,8 @@ void logHHLL(const int tickCnt)
                     HHLL_fullStr = "HL-" + HHLL_fullStr;
                 }
             }
-            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", lastL, (lastL/prevH-1)*100, LL ? "LL" : "HL", HHLL_fullStr));
-            prevL = lastL;
+            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", HHLL_fullStr));
+            prevL = currL;
         }
     }
 }
@@ -775,7 +775,7 @@ public:
 
     void logHeader() {
         LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq"
-        "     Eq/EqMx    Bal   RlDrDn   Pri    HH--       LL++ (ticks ago)");
+        "     Eq/EqMx    Bal   RlDrDn   Pri     H-         L+");
     }
     void log(const int currTickCnt) {
         logCnt++;
