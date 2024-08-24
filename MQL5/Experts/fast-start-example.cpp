@@ -648,6 +648,10 @@ private:
     uint latest;
     uint oldest;
 
+    double lastPrice;
+    double prevL;
+    double prevH;
+
     struct HHLL_data
     {
         bool isValid;
@@ -681,7 +685,9 @@ private:
     }
 
 public:
-    HHLLlist() : latest(arrSize-1), oldest(latest) {
+    HHLLlist() : latest(arrSize-1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
+        prevL(lastPrice), prevH(lastPrice)
+    {
         for (uint i = 0; i < arrSize; i++) {
             data[i].isValid = false;
             data[i].timeStamp = 0;
@@ -728,92 +734,85 @@ public:
         if (!data[latest].isValid) return;
         data[latest].change2lower();
     }
+
+    void log(const int tickCnt)
+    {
+        const int prevLookBack = 100;
+        {   double currH = g::zigZag.HighMapBuffer.get(1);
+            if (currH > 0) {
+                g::lastMax = currH;
+                g::lastMaxTickCnt = tickCnt - 1;
+                for (int i = 2; i < prevLookBack; i++) {
+                    double backH = g::zigZag.HighMapBuffer.get(i);
+                    if (backH > 0) {
+                        LOG(SF("lastHH: %.2f prevH: %.2f backH: %.2f(%d)", g::lastHH, prevH, backH, i));
+                        prevH = backH;
+                        if (backH > currH) {
+                            g::lastMax = backH;
+                            g::lastMaxTickCnt = tickCnt - i;
+                        }
+                        break;
+                    }
+                }
+                bool HH = currH > prevH;
+                if (HH) {
+                    g::lastHH = currH;
+                    if (isHigh()) {  // was xH-...
+                        change2higher();  // Now: HH-...
+                    }
+                    else {  // was xL
+                        addHH();  // Now: HH-...
+                    }
+                }
+                else { // LH
+                    if (isLow()) {  // was xL...
+                        addLH();
+                    }
+                }
+                LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", toStr()));
+                prevH = currH;
+            }
+        }
+        {   double currL = g::zigZag.LowMapBuffer.get(1);
+            if (currL > 0) {
+                g::lastMin = currL;
+                g::lastMinTickCnt = tickCnt - 1;
+                for (int i = 2; i < prevLookBack; i++) {
+                    double backL = g::zigZag.LowMapBuffer.get(i);
+                    if (backL > 0) {
+                        LOG(SF("Prev L[%d]: %.2f", i, backL));
+                        LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
+                        LOG(SF("lastLL: %.2f prevL: %.2f backL: %.2f(%d)", g::lastLL, prevL, backL, i));
+                        prevL = backL;
+                        if (backL < currL) {
+                            g::lastMin = backL;
+                            g::lastMinTickCnt = tickCnt - i;
+                        }
+                        break;
+                    }
+                }
+                bool LL = currL < prevL;
+                if (LL) {
+                    g::lastLL = currL;
+                    // if (secondChar == "L") {  // was xL
+                    if (isLow()) {  // was xL
+                        change2lower();
+                    }
+                    else {  // was xH
+                        addLL();
+                    }
+                }
+                else {  // HL
+                    if (isHigh()) {  // was xH
+                        addHL();
+                    }
+                }
+                LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", toStr()));
+                prevL = currL;
+            }
+        }
+    }
 };
-//+------------------------------------------------------------------+
-void logHHLL(const int tickCnt)
-{
-    static HHLLlist HHLL;
-
-    static double lastPrice = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
-
-    static double prevL = lastPrice;
-    static double prevH = lastPrice;
-
-    const int prevLookBack = 100;
-    {   double currH = g::zigZag.HighMapBuffer.get(1);
-        if (currH > 0) {
-            g::lastMax = currH;
-            g::lastMaxTickCnt = tickCnt - 1;
-            for (int i = 2; i < prevLookBack; i++) {
-                double backH = g::zigZag.HighMapBuffer.get(i);
-                if (backH > 0) {
-                    LOG(SF("lastHH: %.2f prevH: %.2f backH: %.2f(%d)", g::lastHH, prevH, backH, i));
-                    prevH = backH;
-                    if (backH > currH) {
-                        g::lastMax = backH;
-                        g::lastMaxTickCnt = tickCnt - i;
-                    }
-                    break;
-                }
-            }
-            bool HH = currH > prevH;
-            if (HH) {
-                g::lastHH = currH;
-                if (HHLL.isHigh()) {  // was xH-...
-                    HHLL.change2higher();  // Now: HH-...
-                }
-                else {  // was xL
-                    HHLL.addHH();  // Now: HH-...
-                }
-            }
-            else { // LH
-                if (HHLL.isLow()) {  // was xL...
-                    HHLL.addLH();
-                }
-            }
-            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", HHLL.toStr()));
-            prevH = currH;
-        }
-    }
-    {   double currL = g::zigZag.LowMapBuffer.get(1);
-        if (currL > 0) {
-            g::lastMin = currL;
-            g::lastMinTickCnt = tickCnt - 1;
-            for (int i = 2; i < prevLookBack; i++) {
-                double backL = g::zigZag.LowMapBuffer.get(i);
-                if (backL > 0) {
-                    LOG(SF("Prev L[%d]: %.2f", i, backL));
-                    LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
-                    LOG(SF("lastLL: %.2f prevL: %.2f backL: %.2f(%d)", g::lastLL, prevL, backL, i));
-                    prevL = backL;
-                    if (backL < currL) {
-                        g::lastMin = backL;
-                        g::lastMinTickCnt = tickCnt - i;
-                    }
-                    break;
-                }
-            }
-            bool LL = currL < prevL;
-            if (LL) {
-                g::lastLL = currL;
-                // if (secondChar == "L") {  // was xL
-                if (HHLL.isLow()) {  // was xL
-                    HHLL.change2lower();
-                }
-                else {  // was xH
-                    HHLL.addLL();
-                }
-            }
-            else {  // HL
-                if (HHLL.isHigh()) {  // was xH
-                    HHLL.addHL();
-                }
-            }
-            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", HHLL.toStr()));
-            prevL = currL;
-        }
-    }
-}
 //+------------------------------------------------------------------+
 class ProfitEtc
 {
@@ -915,7 +914,8 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        logHHLL(tickCnt);
+        static HHLLlist hhll;
+        hhll.log(tickCnt);
         p.log(tickCnt);
     }
 
