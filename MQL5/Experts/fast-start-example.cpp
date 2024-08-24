@@ -676,7 +676,8 @@ private:
         if (oldest == latest) {
             oldest = (oldest+1) % arrSize;
         }
-        data[latest].isValid  = true;
+        data[latest].isValid   = true;
+        data[latest].timeStamp = TimeCurrent();
     }
 
 public:
@@ -758,7 +759,6 @@ void logHHLL(const int tickCnt)
             bool HH = currH > prevH;
             if (HH) {
                 g::lastHH = currH;
-                // if (secondChar == "H") {  // was xH-...
                 if (HHLL.isHigh()) {  // was xH-...
                     HHLL.change2higher();  // Now: HH-...
                 }
@@ -767,7 +767,6 @@ void logHHLL(const int tickCnt)
                 }
             }
             else { // LH
-                // if (secondChar == "L") {  // was xL...
                 if (HHLL.isLow()) {  // was xL...
                     HHLL.addLH();
                 }
