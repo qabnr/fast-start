@@ -688,27 +688,16 @@ public:
     }
 
     void addHH(void) {
-        prepNew();
-        data[latest].isHigh   = true;
-        data[latest].isHigher = true;
+        prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = true;
     }
-
     void addHL(void) {
-        prepNew();
-        data[latest].isHigh   = false;
-        data[latest].isHigher = true;
+        prepNew(); data[latest].isHigh   = false; data[latest].isHigher = true;
     }
-
     void addLH(void) {
-        prepNew();
-        data[latest].isHigh   = true;
-        data[latest].isHigher = false;
+        prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = false;
     }
-
     void addLL(void) {
-        prepNew();
-        data[latest].isHigh   = false;
-        data[latest].isHigher = false;
+        prepNew(); data[latest].isHigh   = false; data[latest].isHigher = false;
     }
 
     string toStr (void) {
@@ -727,10 +716,6 @@ public:
 
     bool isLow(void) {
         return data[latest].isValid && !data[latest].isHigh;
-    }
-
-    bool isHigher(void) {
-        return data[latest].isValid && data[latest].isHigher;
     }
 
     void change2higher(void) {
