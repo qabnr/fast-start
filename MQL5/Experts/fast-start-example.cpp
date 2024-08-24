@@ -379,7 +379,7 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
-            }
+            }  
         }
         LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
@@ -640,9 +640,113 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     }
 };
 //+------------------------------------------------------------------+
+class HHLLlist
+{
+private:
+    #define arrSize 25
+
+    uint latest;
+    uint oldest;
+
+    struct HHLL_data
+    {
+        bool isValid;
+        bool isHigh;
+        bool isHigher;
+        datetime timeStamp;
+
+        void change2higher(void) {
+            isHigher = true;
+        }
+
+        void change2lower(void) {
+            isHigher = false;
+        }
+
+        string toStr() {
+            return (!isValid) ? "None" :
+                ((isHigher ? "H" : "L") + (isHigh ? "H" : "L"));
+        }
+    };
+
+    HHLL_data data[arrSize];
+
+    void prepNew(void) {
+        latest = (latest+1) % arrSize;
+        if (oldest == latest) {
+            oldest = (oldest+1) % arrSize;
+        }
+        data[latest].isValid  = true;
+    }
+
+public:
+    HHLLlist() : latest(arrSize-1), oldest(latest) {
+        for (uint i = 0; i < arrSize; i++) {
+            data[i].isValid = false;
+            data[i].timeStamp = 0;
+        }
+    }
+
+    void addHH(void) {
+        prepNew();
+        data[latest].isHigh   = true;
+        data[latest].isHigher = true;
+    }
+
+    void addHL(void) {
+        prepNew();
+        data[latest].isHigh   = false;
+        data[latest].isHigher = true;
+    }
+
+    void addLH(void) {
+        prepNew();
+        data[latest].isHigh   = true;
+        data[latest].isHigher = false;
+    }
+
+    void addLL(void) {
+        prepNew();
+        data[latest].isHigh   = false;
+        data[latest].isHigher = false;
+    }
+
+    string toStr (void) {
+        string retval = "";
+        for (uint i = latest; ; i = (i + arrSize - 1) % arrSize ) {
+            if (!data[i].isValid) break;
+            retval += data[i].toStr() + "-";
+            if (i == oldest) break;
+        }
+        return retval;
+    }
+
+    bool isHigh(void) {
+        return data[latest].isValid && data[latest].isHigh;
+    }
+
+    bool isLow(void) {
+        return data[latest].isValid && !data[latest].isHigh;
+    }
+
+    bool isHigher(void) {
+        return data[latest].isValid && data[latest].isHigher;
+    }
+
+    void change2higher(void) {
+        if (!data[latest].isValid) return;
+        data[latest].change2higher();
+    }
+
+    void change2lower(void) {
+        if (!data[latest].isValid) return;
+        data[latest].change2lower();
+    }
+};
+//+------------------------------------------------------------------+
 void logHHLL(const int tickCnt)
 {
-    static string HHLL_fullStr = "";
+    static HHLLlist HHLL;
 
     static double lastPrice = SymbolInfoDouble(_Symbol, SYMBOL_LAST);
 
@@ -667,25 +771,23 @@ void logHHLL(const int tickCnt)
                 }
             }
             bool HH = currH > prevH;
-            string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (HH) {
                 g::lastHH = currH;
-                if (secondChar == "H") {  // was xH-...
-                    StringSetCharacter(HHLL_fullStr, 0, 'H');  // Now: HH-...
+                // if (secondChar == "H") {  // was xH-...
+                if (HHLL.isHigh()) {  // was xH-...
+                    HHLL.change2higher();  // Now: HH-...
                 }
                 else {  // was xL
-                    HHLL_fullStr = "HH-" + HHLL_fullStr;  // Now: HH-...
+                    HHLL.addHH();  // Now: HH-...
                 }
             }
             else { // LH
-                if (secondChar == "L") {  // was xL...
-                    HHLL_fullStr = "LH-" + HHLL_fullStr;  // Now: LH-...
+                // if (secondChar == "L") {  // was xL...
+                if (HHLL.isLow()) {  // was xL...
+                    HHLL.addLH();
                 }
             }
-            if (StringLen(HHLL_fullStr) > 75) {
-                HHLL_fullStr = HHLL_fullStr.Substr(0, 50) + "...";
-            }
-            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", HHLL_fullStr));
+            LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", HHLL.toStr()));
             prevH = currH;
         }
     }
@@ -708,22 +810,22 @@ void logHHLL(const int tickCnt)
                 }
             }
             bool LL = currL < prevL;
-            string secondChar = StringSubstr(HHLL_fullStr, 1, 1);
             if (LL) {
                 g::lastLL = currL;
-                if (secondChar == "L") {  // was xL
-                    StringSetCharacter(HHLL_fullStr, 0, 'L');
+                // if (secondChar == "L") {  // was xL
+                if (HHLL.isLow()) {  // was xL
+                    HHLL.change2lower();
                 }
                 else {  // was xH
-                    HHLL_fullStr = "LL-" + HHLL_fullStr;
+                    HHLL.addLL();
                 }
             }
             else {  // HL
-                if (secondChar == "H") {  // was xH
-                    HHLL_fullStr = "HL-" + HHLL_fullStr;
+                if (HHLL.isHigh()) {  // was xH
+                    HHLL.addHL();
                 }
             }
-            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", HHLL_fullStr));
+            LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", HHLL.toStr()));
             prevL = currL;
         }
     }

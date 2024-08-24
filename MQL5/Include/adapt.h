@@ -1,7 +1,9 @@
 #define input
 
+
 typedef char* string;
 typedef int datetime;
+typedef unsigned uint
 
 const double DBL_MAX = 9999999.999;
 
