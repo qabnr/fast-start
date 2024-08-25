@@ -61,7 +61,7 @@ bool isNewMinute() {
     return nowMinutes != oldMinutes;
 }
 //+------------------------------------------------------------------+
-string secToStr(int totalSeconds) {
+string secToStr(const int totalSeconds) {
     int minutes = totalSeconds / 60;
     int hours   = minutes / 60;
     int days    = hours / 24;
@@ -80,11 +80,11 @@ string secToStr(int totalSeconds) {
     return SF("%2ds", seconds);
 }
 //+------------------------------------------------------------------+
-int timeDiff(datetime &then) {
+int timeDiff(datetime const &then) {
     return int(TimeCurrent() - then);
 }
 //+------------------------------------------------------------------+
-string timeDiffToStr(datetime &then) {
+string timeDiffToStr(datetime const &then) {
     return secToStr(timeDiff(then));
 }
 //+------------------------------------------------------------------+

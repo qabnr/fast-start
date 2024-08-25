@@ -661,15 +661,26 @@ private:
 
         void change2higher(void) {
             isHigher = true;
+            timeStamp = TimeCurrent();
         }
 
         void change2lower(void) {
             isHigher = false;
+            timeStamp = TimeCurrent();
+        }
+
+        void updateTimestamp(void) {
+            timeStamp = TimeCurrent();
         }
 
         string toStr() {
             return (!isValid) ? "None" :
                 ((isHigher ? "H" : "L") + (isHigh ? "H" : "L"));
+        }
+
+        string toStrWithTimestamp() {
+            return (!isValid) ? "None" :
+                (toStr() + "(" + string(timeStamp) + ")");
         }
     };
 
@@ -693,7 +704,6 @@ public:
             data[i].timeStamp = 0;
         }
     }
-
     void addHH(void) {
         prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = true;
     }
@@ -706,35 +716,32 @@ public:
     void addLL(void) {
         prepNew(); data[latest].isHigh   = false; data[latest].isHigher = false;
     }
-
+    void updateTimestamp(void) {
+        data[latest].updateTimestamp();
+    }
     string toStr (void) {
         string retval = "";
         for (uint i = latest; ; i = (i + arrSize - 1) % arrSize ) {
             if (!data[i].isValid) break;
-            retval += data[i].toStr() + "-";
+            retval += data[i].toStrWithTimestamp() + "-";
             if (i == oldest) break;
         }
         return retval;
     }
-
     bool isHigh(void) {
         return data[latest].isValid && data[latest].isHigh;
     }
-
     bool isLow(void) {
         return data[latest].isValid && !data[latest].isHigh;
     }
-
     void change2higher(void) {
         if (!data[latest].isValid) return;
         data[latest].change2higher();
     }
-
     void change2lower(void) {
         if (!data[latest].isValid) return;
         data[latest].change2lower();
     }
-
     void log(const int tickCnt)
     {
         const int prevLookBack = 100;
@@ -767,6 +774,9 @@ public:
                 else { // LH
                     if (isLow()) {  // was xL...
                         addLH();
+                    }
+                    else {  // was xH, must be LH
+                        updateTimestamp();
                     }
                 }
                 LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", toStr()));
@@ -805,6 +815,9 @@ public:
                 else {  // HL
                     if (isHigh()) {  // was xH
                         addHL();
+                    }
+                    else {  // was xL, must be HL
+                        updateTimestamp();
                     }
                 }
                 LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", toStr()));

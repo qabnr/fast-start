@@ -18,6 +18,9 @@ bool PrintFormat       (...);
 int iCustom        (...);
 int ArrayResize    (...);
 int ArraySize      (...);
+
+datetime TimeCurrent();
+
 char*  Symbol(...);
 
 double MathMax(...);
