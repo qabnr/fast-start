@@ -139,31 +139,22 @@ class StatList : List
 {
 private:
     double sum_;
+    double sumSq_;
 
 public:
-    StatList(): sum_(0) {}
+    StatList(): sum_(0), sumSq_(0) {}
     ~StatList() {}
 
     void push(double val) {
         List::push(val);
-        sum_ += val;
+        sum_   += val;
+        sumSq_ += val * val;
     }
 
     double sum() const { return sum_; }
     double avg() const { return last_ <= 0 ? 0: sum_/last_; }
     double variance() const {
-        int size = ArraySize(arr_);
-        if (size == 0) return 0;
-
-        double sum = 0;
-        for (int i = 0; i < size; i++) { sum += arr_[i]; }
-        double avg = sum / size;
-        double diffSqSum = 0;
-        for (int i = 0; i < size; i++) {
-            double diff = avg - arr_[i];
-            diffSqSum += diff * diff;
-        }
-        return diffSqSum / size;
+        return last_ < 0 ? 0 : (sumSq_ - sum_*sum_/(last_+1)) / (last_+1);
     }
 
     double stdDev() const { return MathSqrt(variance()); }
