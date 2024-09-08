@@ -151,7 +151,6 @@ public:
 
     double sum() const { return sum_; }
     double avg() const { return last_ <= 0 ? 0: sum_/last_; }
-
     double variance() const {
         int size = ArraySize(arr_);
         if (size == 0) return 0;
@@ -652,6 +651,12 @@ private:
     double prevL;
     double prevH;
 
+    enum { 
+        none = 0,
+        withTimeStamp,
+        withTimeDiff
+    };
+
     struct HHLL_data
     {
         bool isValid;
@@ -673,14 +678,23 @@ private:
             timeStamp = TimeCurrent();
         }
 
-        string toStr() {
-            return (!isValid) ? "None" :
-                ((isHigher ? "H" : "L") + (isHigh ? "H" : "L"));
-        }
-
-        string toStrWithTimestamp() {
-            return (!isValid) ? "None" :
-                (toStr() + "(" + string(timeStamp) + ")");
+        string toStr(int with = none) {
+            if (!isValid) return "None";
+            switch (with)
+            {
+                case none:
+                    return (isHigher ? "H" : "L") + (isHigh ? "H" : "L");
+                    break;
+                case withTimeStamp: {
+                    string ts = (string)timeStamp;
+                    return toStr() + "(" + StringSubstr(ts, 2, 14) + ")";
+                    break;
+                }
+                default:
+                    if (with > 200000) return toStr();
+                    return toStr() + "(" + string(with) + ")";
+                    break;
+            }
         }
     };
 
@@ -695,15 +709,6 @@ private:
         data[latest].timeStamp = TimeCurrent();
     }
 
-public:
-    HHLLlist() : latest(arrSize-1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
-        prevL(lastPrice), prevH(lastPrice)
-    {
-        for (uint i = 0; i < arrSize; i++) {
-            data[i].isValid = false;
-            data[i].timeStamp = 0;
-        }
-    }
     void addHH(void) {
         prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = true;
     }
@@ -719,11 +724,15 @@ public:
     void updateTimestamp(void) {
         data[latest].updateTimestamp();
     }
-    string toStr (void) {
+    string toStr (int with = none) {
         string retval = "";
         for (uint i = latest; ; i = (i + arrSize - 1) % arrSize ) {
             if (!data[i].isValid) break;
-            retval += data[i].toStrWithTimestamp() + "-";
+            if (with == withTimeDiff) {
+                retval += data[i].toStr((int)(data[i].timeStamp - data[(i+arrSize-1)%arrSize].timeStamp)/3600) + "-";
+            } else {
+                retval += data[i].toStr(with) + "-";
+            }
             if (i == oldest) break;
         }
         return retval;
@@ -742,6 +751,15 @@ public:
         if (!data[latest].isValid) return;
         data[latest].change2lower();
     }
+public:
+    HHLLlist() : latest(arrSize-1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
+        prevL(lastPrice), prevH(lastPrice)
+    {
+        for (uint i = 0; i < arrSize; i++) {
+            data[i].isValid = false;
+            data[i].timeStamp = 0;
+        }
+    }
     void log(const int tickCnt)
     {
         const int prevLookBack = 100;
@@ -752,7 +770,6 @@ public:
                 for (int i = 2; i < prevLookBack; i++) {
                     double backH = g::zigZag.HighMapBuffer.get(i);
                     if (backH > 0) {
-                        LOG(SF("lastHH: %.2f prevH: %.2f backH: %.2f(%d)", g::lastHH, prevH, backH, i));
                         prevH = backH;
                         if (backH > currH) {
                             g::lastMax = backH;
@@ -780,6 +797,8 @@ public:
                     }
                 }
                 LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", toStr()));
+                LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", toStr(withTimeDiff)));
+                // LOG(SF("ZZ:H: %.2f (%+.1f%%) %s (%s)", currH, (currH/prevL-1)*100, HH ? "HH" : "LH", toStr(withTimeStamp)));
                 prevH = currH;
             }
         }
@@ -790,9 +809,6 @@ public:
                 for (int i = 2; i < prevLookBack; i++) {
                     double backL = g::zigZag.LowMapBuffer.get(i);
                     if (backL > 0) {
-                        LOG(SF("Prev L[%d]: %.2f", i, backL));
-                        LOG(SF("Last LL: %.2f, Last HH: %.2f ", g::lastLL, g::lastHH));
-                        LOG(SF("lastLL: %.2f prevL: %.2f backL: %.2f(%d)", g::lastLL, prevL, backL, i));
                         prevL = backL;
                         if (backL < currL) {
                             g::lastMin = backL;
@@ -821,6 +837,8 @@ public:
                     }
                 }
                 LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", toStr()));
+                LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", toStr(withTimeDiff)));
+                // LOG(SF("ZZ:L: %.2f (%.1f%%) %s (%s)", currL, (currL/prevH-1)*100, LL ? "LL" : "HL", toStr(withTimeStamp)));
                 prevL = currL;
             }
         }
@@ -966,7 +984,7 @@ void OnTick()
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
         } else
         if (g::MACD1.OsMA_justChangedNegative()) {
-                    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
         } else
         if (MACD1peaksAndValleys.is1stPeak()) {
             // LOG(SF("1st Peak: p.profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", p.profit, p.equity, p.balance, p.profitPerBalance * 100));

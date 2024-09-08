@@ -10,8 +10,8 @@
 bool isLOG() {
 // if (TimeCurrent() > D'2022.06.13')
 // if (TimeCurrent() < D'2022.12.01')
-        return true;
-    return false;
+    return true;
+    // return MQLInfoInteger(MQL_TESTER) != 0;
 }
 void LOG_Naked(const string s) {
     if (isLOG()) Print(s);

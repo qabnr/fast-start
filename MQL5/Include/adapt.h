@@ -1,6 +1,5 @@
 #define input
 
-
 typedef char* string;
 typedef int datetime;
 typedef unsigned uint
@@ -18,6 +17,7 @@ bool PrintFormat       (...);
 int iCustom        (...);
 int ArrayResize    (...);
 int ArraySize      (...);
+int MQLInfoInteger(...);
 
 datetime TimeCurrent();
 
@@ -36,4 +36,5 @@ enum mql5_consts {
     PERIOD_CURRENT,
     _Symbol,
     SYMBOL_LAST,
+    MQL_TESTER,
 };
