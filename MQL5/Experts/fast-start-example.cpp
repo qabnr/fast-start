@@ -238,7 +238,7 @@ private:
 
 public:
 
-    SellOrBuy(): state(None) {}
+    SellOrBuy(): state(State::None) {}
     ~SellOrBuy() {}
 
     Reason::ReasonCode getReason() { return reason; }
@@ -251,28 +251,22 @@ public:
         }
     }
 
-#define DEF_IS_METHOD(state_)  bool is##state_  () { return state == state_; }
-
-    DEF_IS_METHOD(None)
-    DEF_IS_METHOD(GetReadyToBuy)
-    DEF_IS_METHOD(BuyNow)
-    DEF_IS_METHOD(GetReadyToSell)
-    DEF_IS_METHOD(SellNow)
-
-    string Reason2str() const { return Reason::toStr(reason); }
-
-    string State2str() const { return State2str(state); }
-
-#define enum2str_CASE(c) case  c: return #c
+    bool isNone()           const { return state == State::None; }
+    bool isGetReadyToBuy()  const { return state == State::GetReadyToBuy; }
+    bool isBuyNow()         const { return state == State::BuyNow; }
+    bool isGetReadyToSell() const { return state == State::GetReadyToSell; }
+    bool isSellNow()        const { return state == State::SellNow; }
+    string Reason2str()     const { return Reason::toStr(reason); }
+    string State2str()      const { return State2str(state); }
 
     string State2str(State s) const {
         switch (s) {
-            enum2str_CASE(None);
-            enum2str_CASE(GetReadyToBuy);
-            enum2str_CASE(BuyNow);
-            enum2str_CASE(GetReadyToSell);
-            enum2str_CASE(SellNow);
-            enum2str_DEFAULT;
+            case State::None:           return "None";
+            case State::GetReadyToBuy:  return "GetReadyToBuy";
+            case State::BuyNow:         return "BuyNow";
+            case State::GetReadyToSell: return "GetReadyToSell";
+            case State::SellNow:        return "SellNow";
+            default:                    return "<UNKNOWN>";
         }
     }
 };
@@ -302,7 +296,7 @@ public:
     double getTotalPricePaid() const { return totalPricePaid; }
 
     void close(Reason::ReasonCode reason, double profit) {
-LOG(SF("Close, profit: %+.1f%%", (profit)));
+        LOG(SF("Close, profit: %+.1f%%", (profit)));
 
         stats.addOpReason(stats.close,  reason);
         stats.addProfit(profit, reason);
@@ -310,7 +304,6 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
         uint cnt = 0;
         while(m_Trade.PositionClose(my_symbol)) {
             cnt++;
-// LOG(SF("Close: Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
             if (cnt == 1) {
                 LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
             }
@@ -335,7 +328,6 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
-// LOG(SF("Buy:   Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));
             posType = POSITION_TYPE_BUY;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
@@ -365,7 +357,6 @@ LOG(SF("Close, profit: %+.1f%%", (profit)));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
-// LOG(SF("Sell:  Ticket: %u  Price = %.2f", m_Trade.ResultDeal(), m_Trade.ResultPrice()));          
             posType = POSITION_TYPE_SELL;
             if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
