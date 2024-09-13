@@ -2,3 +2,4 @@
 *.sh
 *.log
 .vscode
+*.ex5
