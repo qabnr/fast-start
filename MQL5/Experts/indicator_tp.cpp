@@ -49,7 +49,7 @@ int OnCalculate(const int rates_total,
     ArraySetAsSeries(atr, true);
 
     for (i = prev_calculated; i < rates_total; i++)
-    {   day_time = time[i] / PeriodSeconds(ATR_timeframe);
+    {   day_time = (int)time[i] / PeriodSeconds(ATR_timeframe);
         if (day_n  < day_time)
         {   day_n  = day_time;
             day_lo = low[i];
