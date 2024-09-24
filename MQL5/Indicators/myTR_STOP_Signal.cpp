@@ -1,15 +1,15 @@
 //+------------------------------------------------------------------+
 //|                                               TR_STOP_Signal.mq5 |
-//|                             Copyright 2000-2024, MetaQuotes Ltd. |
-//|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
-#property copyright "Copyright 2000-2024, MetaQuotes Ltd."
-#property link "https://www.mql5.com"
+#property copyright "GM"
+#property link "https://www.gm.com"
 #property description "Moving Average Convergence/Divergence"
 
 #property indicator_separate_window
-#property indicator_buffers 3
-#property indicator_plots   3
+#property indicator_buffers 2
+#property indicator_plots   2
+//#property indicator_buffers 3
+//#property indicator_plots   3
 
 #property indicator_label1  "Diff"
 #property indicator_type1   DRAW_LINE
@@ -21,10 +21,12 @@
 #property indicator_color2  clrRed
 #property indicator_width2  1
  
+/*
 #property indicator_label3  "Comb"
 #property indicator_type3   DRAW_LINE
 #property indicator_color3  clrGreen
 #property indicator_width3  3
+*/
 
 #include "../Include/utils.h"
 
@@ -50,23 +52,28 @@ string short_name;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
+
+    LOG(SF("lookBackPeriod_I = %d, priceOffset = %.2f, weight = %.2f", lookBackPeriod_I, priceOffset, weight));
+
+    SetIndexBuffer(0, diff_buffer,  INDICATOR_DATA);
+    SetIndexBuffer(1, len_buffer,   INDICATOR_DATA);
+//    SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
+
+//    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
+//    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
+
+    trStop_handle = //iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
+    iCustom(NULL,0,"Examples\\Custom Moving Average", 
+                     21, 
+                     0, 
+                     MODE_SMA, 
+                     PRICE_CLOSE // using the close prices 
+                     ); 
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
         return(INIT_FAILED);
     }
-
-    //--- indicator buffers mapping
-    SetIndexBuffer(0, diff_buffer,  INDICATOR_DATA);
-    SetIndexBuffer(1, len_buffer,   INDICATOR_DATA);
-    SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
-
-//    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
-//    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
-
-    // PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, signalSMA_period - 1);
-    // PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, signalSMA_period - 1);
 
     short_name = StringFormat("TRSTS (%d, %.2f)", lookBackPeriod, priceOffset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
@@ -86,6 +93,23 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
+   int copy = CopyBuffer(trStop_handle, 0, 0, rates_total, diff_buffer); 
+   Print("copy = ",copy,"    rates_total = ",rates_total); 
+//--- If our attempt has failed - Report this 
+   if(copy<=0) 
+      Print("An attempt to get the values if Custom Moving Average has failed"); 
+//--- return value of prev_calculated for next call 
+
+    for (int i = prev_calculated; i < rates_total; i++) {
+        len_buffer[i] = 0;
+        comb_buffer[i] = 0;
+    }
+
+
+   return(rates_total); 
+
+
+
 LOG(SF("OnCalculate: %d %d", rates_total, prev_calculated));
     for (int i = prev_calculated; i < rates_total; i++) {
         diff_buffer[i] = 0;
