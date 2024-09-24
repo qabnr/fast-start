@@ -410,6 +410,14 @@ int OnInit()
     g::TR_ST_list.add(10, 1.2);
     g::TR_ST_list.add(10, 1.6);
 
+    int h = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP_Signal", 10, 1.61, 1.0);
+    if (h == INVALID_HANDLE)
+    {
+        PrintFormat("Failed to create indicator myTR_STOP_Signal for the symbol %s/%s, error code %d",
+                    _Symbol,
+                    EnumToString(PERIOD_CURRENT),
+                    GetLastError());
+    }
     return (0);
 }
 //+------------------------------------------------------------------+

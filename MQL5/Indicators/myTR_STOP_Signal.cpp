@@ -8,7 +8,7 @@
 #property description "Moving Average Convergence/Divergence"
 
 #property indicator_separate_window
-#property indicator_buffers 6
+#property indicator_buffers 3
 #property indicator_plots   3
 
 #property indicator_label1  "Diff"
@@ -25,6 +25,8 @@
 #property indicator_type3   DRAW_LINE
 #property indicator_color3  clrGreen
 #property indicator_width3  3
+
+#include "../Include/utils.h"
 
 input int     lookBackPeriod_I = 10;
 input double  priceOffset      = 1.6;
@@ -48,8 +50,7 @@ string short_name;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-    trStop_handle = iCustom(NULL, PERIOD_CURRENT, 
-        "myTR_STOP", lookBackPeriod_I, priceOffset);
+    trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
@@ -61,15 +62,16 @@ int OnInit()
     SetIndexBuffer(1, len_buffer,   INDICATOR_DATA);
     SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
 
-    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
-    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
+//    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
+//    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
 
     // PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, signalSMA_period - 1);
     // PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, signalSMA_period - 1);
 
-    short_name = StringFormat("TRST (%d, %.1f)", lookBackPeriod, priceOffset);
+    short_name = StringFormat("TRSTS (%d, %.2f)", lookBackPeriod, priceOffset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 
+    LOG(short_name + " initialized successfully");
     return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -84,21 +86,25 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
+LOG(SF("OnCalculate: %d %d", rates_total, prev_calculated));
+    for (int i = prev_calculated; i < rates_total; i++) {
+        diff_buffer[i] = 0;
+        len_buffer[i] = 0;
+        comb_buffer[i] = 0;
+    }
+    return (rates_total);
+
+
     if (rates_total < lookBackPeriod) {
+        LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
         return (0);
     }
     //--- not all data may be calculated
     int calculated = BarsCalculated(trStop_handle);
     if (calculated < rates_total) {
-        // Print("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
+        LOG(SF("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError()));
         return (0);
     }
-    calculated = BarsCalculated(trStop_handle);
-    if (calculated < rates_total) {
-        // Print("Not all data of slowMA_handle is calculated (", calculated, " bars). Error ", GetLastError());
-        return (0);
-    }
-
     int to_copy;
     if (prev_calculated > rates_total || prev_calculated < 0){
         to_copy = rates_total;
@@ -108,18 +114,19 @@ int OnCalculate(const int       rates_total,
         if (prev_calculated > 0)
             to_copy++;
     }
-    
+LOG(SF("to_copy = %d", to_copy));
     if (IsStopped()) { return (0); }
     if (CopyBuffer(trStop_handle, 4, 0, to_copy, stopBuffer) <= 0) {
-        Print("Getting stop buffer data failed! Error ", GetLastError());
+        LOG(SF("Getting stop buffer data failed! Error ", GetLastError()));
         return (0);
     }
     if (CopyBuffer(trStop_handle, 5, 0, to_copy, stopColorBuffer) <= 0) {
-        Print("Getting stop color buffer data failed! Error ", GetLastError());
+        LOG(SF("Getting stop color buffer data failed! Error ", GetLastError()));
         return (0);
     }
 
-    int start = (prev_calculated == 0) ? 0 : prev_calculated - 1;
+    const int start = (prev_calculated == 0) ? 0 : prev_calculated - 1;
+ LOG(SF("start: %d", start));
 
     //--- find first stop value with a different color
     int i = start;
@@ -128,12 +135,23 @@ int OnCalculate(const int       rates_total,
             break;
         }
     }
-    // calculate diff of current and found stop values
-    diff_buffer[start] = stopBuffer[i] - stopBuffer[start];
-    len_buffer[start]  = i - start;
-    comb_buffer[start] = weight * diff_buffer[start] * diff_buffer[start]
-     + len_buffer[start] * len_buffer[start];
-
+LOG(SF("i: %d", i));
+LOG(SF("stopBuffer[%d] = %.5f", i, stopBuffer[i]));
+LOG(SF("stopBuffer[%d] = %.5f", start, stopBuffer[start]));
+    // diff_buffer[start] = stopBuffer[i] - stopBuffer[start];
+    diff_buffer[start] = 0;
+LOG(SF("diff: %.5f", diff_buffer[start]));
+    // len_buffer[start]  = i - start;
+    // comb_buffer[start] = weight * diff_buffer[start] * diff_buffer[start]
+    //  + len_buffer[start] * len_buffer[start];
+    len_buffer[start]  = 0;
+    comb_buffer[start] = 0;
+LOG(SF("rates_total: %d", rates_total));
     return (rates_total);
 }
 
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+    LOG("Deinit");
+}
