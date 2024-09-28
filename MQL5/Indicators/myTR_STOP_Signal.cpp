@@ -94,7 +94,8 @@ int OnCalculate(const int       rates_total,
                 const int      &spread[])
 {
    int copy = CopyBuffer(trStop_handle, 0, 0, rates_total, diff_buffer); 
-   Print("copy = ",copy,"    rates_total = ",rates_total); 
+   //int copy = CopyBuffer(trStop_handle, 0, prev_calculated, rates_total-prev_calculated, diff_buffer); 
+//   Print("copy = ",copy,"    rates_total = ",rates_total); 
 //--- If our attempt has failed - Report this 
    if(copy<=0) 
       Print("An attempt to get the values if Custom Moving Average has failed"); 
