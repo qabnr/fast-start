@@ -8,8 +8,6 @@
 #property indicator_separate_window
 #property indicator_buffers 2
 #property indicator_plots   2
-//#property indicator_buffers 3
-//#property indicator_plots   3
 
 #property indicator_label1  "Diff"
 #property indicator_type1   DRAW_LINE
@@ -21,13 +19,6 @@
 #property indicator_color2  clrRed
 #property indicator_width2  1
  
-/*
-#property indicator_label3  "Comb"
-#property indicator_type3   DRAW_LINE
-#property indicator_color3  clrGreen
-#property indicator_width3  3
-*/
-
 #include "../Include/utils.h"
 
 input int     lookBackPeriod_I = 10;
@@ -39,7 +30,7 @@ int lookBackPeriod   = lookBackPeriod_I * PeriodSeconds(PERIOD_H1) / PeriodSecon
 //--- indicator buffers
 double diff_buffer[];
 double len_buffer[];
-double comb_buffer[];
+// double comb_buffer[];
 
 // my TR stop buffers
 double stopBuffer[];
@@ -62,13 +53,13 @@ int OnInit()
 //    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
 //    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
 
-    trStop_handle = //iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
-    iCustom(NULL,0,"Examples\\Custom Moving Average", 
-                     21, 
-                     0, 
-                     MODE_SMA, 
-                     PRICE_CLOSE // using the close prices 
-                     ); 
+    trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
+    // iCustom(NULL,0,"Examples\\Custom Moving Average", 
+    //                  21, 
+    //                  0, 
+    //                  MODE_SMA, 
+    //                  PRICE_CLOSE // using the close prices 
+    //                  ); 
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
@@ -102,8 +93,8 @@ int OnCalculate(const int       rates_total,
 //--- return value of prev_calculated for next call 
 
     for (int i = prev_calculated; i < rates_total; i++) {
-        len_buffer[i] = 0;
-        comb_buffer[i] = 0;
+        len_buffer[i] = 40;
+        // comb_buffer[i] = 0;
     }
 
 
@@ -114,8 +105,8 @@ int OnCalculate(const int       rates_total,
 LOG(SF("OnCalculate: %d %d", rates_total, prev_calculated));
     for (int i = prev_calculated; i < rates_total; i++) {
         diff_buffer[i] = 0;
-        len_buffer[i] = 0;
-        comb_buffer[i] = 0;
+        len_buffer[i] =  40;
+        // comb_buffer[i] = 0;
     }
     return (rates_total);
 
@@ -170,7 +161,7 @@ LOG(SF("diff: %.5f", diff_buffer[start]));
     // comb_buffer[start] = weight * diff_buffer[start] * diff_buffer[start]
     //  + len_buffer[start] * len_buffer[start];
     len_buffer[start]  = 0;
-    comb_buffer[start] = 0;
+    // comb_buffer[start] = 0;
 LOG(SF("rates_total: %d", rates_total));
     return (rates_total);
 }
