@@ -6,8 +6,8 @@
 #property description "Moving Average Convergence/Divergence"
 
 #property indicator_separate_window
-#property indicator_buffers 2
-#property indicator_plots   2
+#property indicator_buffers 3
+#property indicator_plots   3
 
 #property indicator_label1  "Diff"
 #property indicator_type1   DRAW_LINE
@@ -18,6 +18,11 @@
 #property indicator_type2   DRAW_LINE
 #property indicator_color2  clrRed
 #property indicator_width2  1
+ 
+#property indicator_label3  "Comb"
+#property indicator_type3   DRAW_LINE
+#property indicator_color3  C'0,255,8'
+#property indicator_width3  1
  
 #include "../Include/utils.h"
 
@@ -30,7 +35,7 @@ int lookBackPeriod   = lookBackPeriod_I * PeriodSeconds(PERIOD_H1) / PeriodSecon
 //--- indicator buffers
 double diff_buffer[];
 double len_buffer[];
-// double comb_buffer[];
+double comb_buffer[];
 
 // my TR stop buffers
 double stopBuffer[];
@@ -48,7 +53,7 @@ int OnInit()
 
     SetIndexBuffer(0, diff_buffer,  INDICATOR_DATA);
     SetIndexBuffer(1, len_buffer,   INDICATOR_DATA);
-//    SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
+    SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
 
 //    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
 //    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
@@ -94,7 +99,7 @@ int OnCalculate(const int       rates_total,
 
     for (int i = prev_calculated; i < rates_total; i++) {
         len_buffer[i] = 30;
-        // comb_buffer[i] = 0;
+        comb_buffer[i] = 20;
     }
 
 
