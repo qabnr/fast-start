@@ -59,12 +59,7 @@ int OnInit()
 //    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
 
     trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
-    // iCustom(NULL,0,"Examples\\Custom Moving Average", 
-    //                  21, 
-    //                  0, 
-    //                  MODE_SMA, 
-    //                  PRICE_CLOSE // using the close prices 
-    //                  ); 
+
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
@@ -89,32 +84,15 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-//    int copy = CopyBuffer(trStop_handle, 0, 0, rates_total, diff_buffer); 
    int copy = CopyBuffer(trStop_handle, 0, prev_calculated, rates_total-prev_calculated, diff_buffer); 
-//   Print("copy = ",copy,"    rates_total = ",rates_total); 
-//--- If our attempt has failed - Report this 
    if(copy<=0) 
       Print("An attempt to get the values if Custom Moving Average has failed"); 
-//--- return value of prev_calculated for next call 
 
     for (int i = prev_calculated; i < rates_total; i++) {
         len_buffer[i] = 30;
         comb_buffer[i] = 20;
     }
-
-
-   return(rates_total); 
-
-
-
-LOG(SF("OnCalculate: %d %d", rates_total, prev_calculated));
-    for (int i = prev_calculated; i < rates_total; i++) {
-        diff_buffer[i] = 0;
-        len_buffer[i] =  40;
-        // comb_buffer[i] = 0;
-    }
-    return (rates_total);
-
+    return rates_total; 
 
     if (rates_total < lookBackPeriod) {
         LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
