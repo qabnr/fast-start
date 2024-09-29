@@ -84,8 +84,8 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-   int copy = CopyBuffer(trStop_handle, 0, 0, rates_total, diff_buffer); 
-   //int copy = CopyBuffer(trStop_handle, 0, prev_calculated, rates_total-prev_calculated, diff_buffer); 
+//    int copy = CopyBuffer(trStop_handle, 0, 0, rates_total, diff_buffer); 
+   int copy = CopyBuffer(trStop_handle, 0, prev_calculated, rates_total-prev_calculated, diff_buffer); 
 //   Print("copy = ",copy,"    rates_total = ",rates_total); 
 //--- If our attempt has failed - Report this 
    if(copy<=0) 
@@ -93,7 +93,7 @@ int OnCalculate(const int       rates_total,
 //--- return value of prev_calculated for next call 
 
     for (int i = prev_calculated; i < rates_total; i++) {
-        len_buffer[i] = 40;
+        len_buffer[i] = 30;
         // comb_buffer[i] = 0;
     }
 
