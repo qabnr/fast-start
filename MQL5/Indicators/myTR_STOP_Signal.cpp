@@ -45,6 +45,26 @@ int trStop_handle;
 
 string short_name;
 
+/*
+    my TR stop buffers:
+
+    SetIndexBuffer(0, buyBuffer,       INDICATOR_DATA);
+    SetIndexBuffer(1, buyColorBuffer,  INDICATOR_COLOR_INDEX);
+
+    SetIndexBuffer(2, sellBuffer,      INDICATOR_DATA);
+    SetIndexBuffer(3, sellColorBuffer, INDICATOR_COLOR_INDEX);
+
+    SetIndexBuffer(4, stopBuffer,      INDICATOR_DATA);
+    SetIndexBuffer(5, stopColorBuffer, INDICATOR_COLOR_INDEX);
+
+*/
+const int buyBufferNumber       = 0;
+const int buyColorBufferNumber  = 1;
+const int sellBufferNumber      = 2;
+const int sellColorBufferNumber = 3;
+const int stopBufferNumber      = 4;
+const int stopColorBufferNumber = 5;
+
 //+------------------------------------------------------------------+
 int OnInit()
 {
@@ -55,8 +75,8 @@ int OnInit()
     SetIndexBuffer(1, len_buffer,   INDICATOR_DATA);
     SetIndexBuffer(2, comb_buffer,  INDICATOR_DATA);
 
-//    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
-//    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
+    SetIndexBuffer(3, stopBuffer,      INDICATOR_CALCULATIONS);
+    SetIndexBuffer(4, stopColorBuffer, INDICATOR_CALCULATIONS);
 
     trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
 
@@ -84,18 +104,13 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-   int copy = CopyBuffer(trStop_handle, 0, prev_calculated, rates_total-prev_calculated, diff_buffer); 
-   if(copy<=0) Print("An attempt to get the values if Custom Moving Average has failed"); 
-
-   copy = CopyBuffer(trStop_handle, 2, prev_calculated, rates_total-prev_calculated, len_buffer); 
-   if(copy<=0) Print("An attempt to get the values if Custom Moving Average has failed"); 
-
-   copy = CopyBuffer(trStop_handle, 4, prev_calculated, rates_total-prev_calculated, comb_buffer); 
-   if(copy<=0) Print("An attempt to get the values if Custom Moving Average has failed"); 
+    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, buyBufferNumber, diff_buffer);
+    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, buyColorBufferNumber, len_buffer);
+    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, stopColorBufferNumber, comb_buffer);
 
     for (int i = prev_calculated; i < rates_total; i++) {
-        //len_buffer[i] = 30;
-        //comb_buffer[i] = 20;
+        stopBuffer[i] = 30;
+        stopColorBuffer[i] = 0;
     }
     return rates_total; 
 
@@ -153,7 +168,11 @@ LOG(SF("diff: %.5f", diff_buffer[start]));
 LOG(SF("rates_total: %d", rates_total));
     return (rates_total);
 }
-
+//+------------------------------------------------------------------+
+void CopyBufferWithCheck(int startPos, int cnt, int fromBuff, double &toBuff[]) {
+    int copy = CopyBuffer(trStop_handle, fromBuff, startPos, cnt, toBuff);
+    if(copy <= 0) PrintFormat("An attempt to get the values if Custom Moving Average has failed. Error %d", GetLastError());
+}
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
