@@ -58,12 +58,12 @@ string short_name;
     SetIndexBuffer(5, stopColorBuffer, INDICATOR_COLOR_INDEX);
 
 */
-const int buyBufferNumber       = 0;
-const int buyColorBufferNumber  = 1;
-const int sellBufferNumber      = 2;
-const int sellColorBufferNumber = 3;
-const int stopBufferNumber      = 4;
-const int stopColorBufferNumber = 5;
+const int trStop_buyBufferNumber       = 0;
+const int trStop_buyColorBufferNumber  = 1;
+const int trStop_sellBufferNumber      = 2;
+const int trStop_sellColorBufferNumber = 3;
+const int trStop_stopBufferNumber      = 4;
+const int trStop_stopColorBufferNumber = 5;
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -125,9 +125,14 @@ int OnCalculate(const int       rates_total,
             to_copy++;
     }
 
-    CopyBufferWithCheck(prev_calculated, to_copy, buyBufferNumber, diff_buffer);
-    CopyBufferWithCheck(prev_calculated, to_copy, buyColorBufferNumber, len_buffer);
-    CopyBufferWithCheck(prev_calculated, to_copy, stopColorBufferNumber, comb_buffer);
+    const int start_pos = prev_calculated;
+
+    CopyBufferWithCheck(start_pos, to_copy, trStop_buyBufferNumber,       diff_buffer);
+    CopyBufferWithCheck(start_pos, to_copy, trStop_buyColorBufferNumber,  len_buffer);
+    CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, comb_buffer);
+
+    CopyBufferWithCheck(start_pos, to_copy, trStop_stopBufferNumber,      stopBuffer);
+    CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, stopColorBuffer);
 
     for (int i = prev_calculated; i < rates_total; i++) {
         //len_buffer[i] = 30;
