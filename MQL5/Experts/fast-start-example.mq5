@@ -1,1 +1,0 @@
-fast-start-example.cpp

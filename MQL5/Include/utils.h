@@ -49,16 +49,13 @@ string d2str(const double d, bool human = true) {
 }
 //+------------------------------------------------------------------+
 bool isNewMinute() {
-    static datetime oldTime = 0;
+    static datetime oldMinutes = 0;
 
-    datetime now = TimeCurrent();
+    datetime nowMinutes = TimeCurrent() / 60;
+    bool isNew = nowMinutes != oldMinutes;
+    oldMinutes = nowMinutes;
 
-    datetime nowMinutes = now / 60;
-    datetime oldMinutes = oldTime / 60;
-
-    oldTime = now;
-
-    return nowMinutes != oldMinutes;
+    return isNew;
 }
 //+------------------------------------------------------------------+
 string secToStr(const int totalSeconds) {

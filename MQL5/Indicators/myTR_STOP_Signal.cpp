@@ -109,8 +109,8 @@ int OnCalculate(const int       rates_total,
     CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, stopColorBufferNumber, comb_buffer);
 
     for (int i = prev_calculated; i < rates_total; i++) {
-        stopBuffer[i] = 30;
-        stopColorBuffer[i] = 0;
+        //len_buffer[i] = 30;
+        //comb_buffer[i] = 20;
     }
     return rates_total; 
 
