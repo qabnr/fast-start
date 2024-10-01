@@ -135,27 +135,18 @@ int OnCalculate(const int       rates_total,
     CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, stopColorBuffer);
 
     for (int i = prev_calculated; i < rates_total; i++) {
-        //len_buffer[i] = 30;
-        //comb_buffer[i] = 20;
-    }
-    return rates_total; 
-
-    if (IsStopped()) { return (0); }
-    if (CopyBuffer(trStop_handle, 4, 0, to_copy, stopBuffer) <= 0) {
-        LOG(SF("Getting stop buffer data failed! Error ", GetLastError()));
-        return (0);
-    }
-    if (CopyBuffer(trStop_handle, 5, 0, to_copy, stopColorBuffer) <= 0) {
-        LOG(SF("Getting stop color buffer data failed! Error ", GetLastError()));
-        return (0);
+        len_buffer[i] = 30;
+        comb_buffer[i] = 20;
     }
 
-    const int start = (prev_calculated == 0) ? 0 : prev_calculated - 1;
+    const int start = rates_total - 1;
  LOG(SF("start: %d", start));
 
     //--- find first stop value with a different color
-    int i = start;
-    for (i = start; i < rates_total && !IsStopped(); i++) {
+    int i;
+    for (i = start; i > 0; i--) {
+        diff_buffer[i] = stopBuffer[i] - stopBuffer[start];
+        len_buffer[i] = i - start;
         if (stopColorBuffer[i] != stopColorBuffer[start]) {
             break;
         }
@@ -163,21 +154,19 @@ int OnCalculate(const int       rates_total,
 LOG(SF("i: %d", i));
 LOG(SF("stopBuffer[%d] = %.5f", i, stopBuffer[i]));
 LOG(SF("stopBuffer[%d] = %.5f", start, stopBuffer[start]));
-    // diff_buffer[start] = stopBuffer[i] - stopBuffer[start];
-    diff_buffer[start] = 0;
+    diff_buffer[start] = stopBuffer[i] - stopBuffer[start];
 LOG(SF("diff: %.5f", diff_buffer[start]));
-    // len_buffer[start]  = i - start;
+    len_buffer[start]  = i - start;
     // comb_buffer[start] = weight * diff_buffer[start] * diff_buffer[start]
     //  + len_buffer[start] * len_buffer[start];
-    len_buffer[start]  = 0;
-    // comb_buffer[start] = 0;
 LOG(SF("rates_total: %d", rates_total));
-    return (rates_total);
+
+    return rates_total; 
 }
 //+------------------------------------------------------------------+
 void CopyBufferWithCheck(int startPos, int cnt, int fromBuff, double &toBuff[]) {
     int copy = CopyBuffer(trStop_handle, fromBuff, startPos, cnt, toBuff);
-    if(copy <= 0) PrintFormat("An attempt to get the values if Custom Moving Average has failed. Error %d", GetLastError());
+    if(copy <= 0) LOG(SF("CopyBuffer from myTR_STOP failed. Error %d", GetLastError()));
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
