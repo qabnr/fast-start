@@ -104,16 +104,6 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
-    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, buyBufferNumber, diff_buffer);
-    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, buyColorBufferNumber, len_buffer);
-    CopyBufferWithCheck(prev_calculated, rates_total-prev_calculated, stopColorBufferNumber, comb_buffer);
-
-    for (int i = prev_calculated; i < rates_total; i++) {
-        //len_buffer[i] = 30;
-        //comb_buffer[i] = 20;
-    }
-    return rates_total; 
-
     if (rates_total < lookBackPeriod) {
         LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
         return (0);
@@ -124,6 +114,7 @@ int OnCalculate(const int       rates_total,
         LOG(SF("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError()));
         return (0);
     }
+
     int to_copy;
     if (prev_calculated > rates_total || prev_calculated < 0){
         to_copy = rates_total;
@@ -133,7 +124,17 @@ int OnCalculate(const int       rates_total,
         if (prev_calculated > 0)
             to_copy++;
     }
-LOG(SF("to_copy = %d", to_copy));
+
+    CopyBufferWithCheck(prev_calculated, to_copy, buyBufferNumber, diff_buffer);
+    CopyBufferWithCheck(prev_calculated, to_copy, buyColorBufferNumber, len_buffer);
+    CopyBufferWithCheck(prev_calculated, to_copy, stopColorBufferNumber, comb_buffer);
+
+    for (int i = prev_calculated; i < rates_total; i++) {
+        //len_buffer[i] = 30;
+        //comb_buffer[i] = 20;
+    }
+    return rates_total; 
+
     if (IsStopped()) { return (0); }
     if (CopyBuffer(trStop_handle, 4, 0, to_copy, stopBuffer) <= 0) {
         LOG(SF("Getting stop buffer data failed! Error ", GetLastError()));
