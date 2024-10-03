@@ -104,6 +104,8 @@ int OnCalculate(const int       rates_total,
                 const long     &volume[],
                 const int      &spread[])
 {
+    if (rates_total <= prev_calculated) { return (rates_total); }
+
     if (rates_total < lookBackPeriod) {
         LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
         return (0);
@@ -127,40 +129,30 @@ int OnCalculate(const int       rates_total,
 
     const int start_pos = prev_calculated;
 
-    CopyBufferWithCheck(start_pos, to_copy, trStop_buyBufferNumber,       diff_buffer);
-    CopyBufferWithCheck(start_pos, to_copy, trStop_buyColorBufferNumber,  len_buffer);
-    CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, comb_buffer);
-
     CopyBufferWithCheck(start_pos, to_copy, trStop_stopBufferNumber,      stopBuffer);
     CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, stopColorBuffer);
 
-    for (int i = prev_calculated; i < rates_total; i++) {
-        len_buffer[i] = 30;
-        comb_buffer[i] = 20;
+    for (int i = 0; i < rates_total; i++) {
+        diff_buffer[i] = 0;
+        len_buffer[i] =  0;
+        comb_buffer[i] = stopColorBuffer[i];
     }
 
-    const int start = rates_total - 1;
- LOG(SF("start: %d", start));
-
-    //--- find first stop value with a different color
-    int i;
-    for (i = start; i > 0; i--) {
-        diff_buffer[i] = stopBuffer[i] - stopBuffer[start];
-        len_buffer[i] = i - start;
-        if (stopColorBuffer[i] != stopColorBuffer[start]) {
-            break;
+    for (int start = rates_total - 1; start >= 0;) {
+        int i;
+        for (i = start; i >= 0; i--) {
+            // len_buffer[i] = -1000;
+            if (stopColorBuffer[i] == 2) {
+                break;
+            }
         }
+        for (int j = i; j <= start; j++) {
+            len_buffer[j] = j-i;
+            diff_buffer[j] = stopBuffer[j] - stopBuffer[i];
+            comb_buffer[j] = len_buffer[j]*len_buffer[j] + weight * diff_buffer[j]*diff_buffer[j];
+        }
+        start = i-2;
     }
-LOG(SF("i: %d", i));
-LOG(SF("stopBuffer[%d] = %.5f", i, stopBuffer[i]));
-LOG(SF("stopBuffer[%d] = %.5f", start, stopBuffer[start]));
-    diff_buffer[start] = stopBuffer[i] - stopBuffer[start];
-LOG(SF("diff: %.5f", diff_buffer[start]));
-    len_buffer[start]  = i - start;
-    // comb_buffer[start] = weight * diff_buffer[start] * diff_buffer[start]
-    //  + len_buffer[start] * len_buffer[start];
-LOG(SF("rates_total: %d", rates_total));
-
     return rates_total; 
 }
 //+------------------------------------------------------------------+

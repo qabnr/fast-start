@@ -57,7 +57,7 @@ int OnCalculate(const int rates_total,
                 const long &volume[], 
                 const int &spread[]) 
   {
-    if (rates_total == prev_calculated) { return (rates_total); }
+    if (rates_total <= prev_calculated) { return (rates_total); }
 //--- Copy the values of the indicator Custom Moving Average to our indicator buffer 
    int copy=CopyBuffer(MA_handle,0,0,rates_total,Label1Buffer); 
    Print("copy = ",copy,"    rates_total = ",rates_total); 
