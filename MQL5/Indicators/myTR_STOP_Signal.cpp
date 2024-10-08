@@ -20,9 +20,9 @@
 #property indicator_width2  1
  
 #property indicator_label3  "Comb"
-#property indicator_type3   DRAW_LINE
-#property indicator_color3  C'0,255,8'
-#property indicator_width3  1
+#property indicator_type3   DRAW_HISTOGRAM
+#property indicator_color3  clrTeal
+#property indicator_width3  2
  
 #include "../Include/utils.h"
 
@@ -42,8 +42,7 @@ double stopBuffer[];
 double stopColorBuffer[];
 
 int trStop_handle;
-
-string short_name;
+int MA_handle; 
 
 /*
     my TR stop buffers:
@@ -68,7 +67,6 @@ const int trStop_stopColorBufferNumber = 5;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-
     LOG(SF("lookBackPeriod_I = %d, priceOffset = %.2f, weight = %.2f", lookBackPeriod_I, priceOffset, weight));
 
     SetIndexBuffer(0, diff_buffer,  INDICATOR_DATA);
@@ -80,13 +78,19 @@ int OnInit()
 
     trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
 
+    MA_handle = iCustom(NULL,0,"Examples\\Custom Moving Average", 
+                        21,        // MA_Period, 
+                        0,         // MA_Shift, 
+                        MODE_SMA,  // MA_Method, 
+                        PRICE_CLOSE);
+
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
         return(INIT_FAILED);
     }
 
-    short_name = StringFormat("TRSTS (%d, %.2f)", lookBackPeriod, priceOffset);
+    string short_name = StringFormat("TRSTS (%d, %.2f)", lookBackPeriod, priceOffset);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 
     LOG(short_name + " initialized successfully");
@@ -105,17 +109,18 @@ int OnCalculate(const int       rates_total,
                 const int      &spread[])
 {
     if (rates_total <= prev_calculated) { return (rates_total); }
+LOG(SF("OnCalculate(%d %.2f, %.2f) : %d %d", lookBackPeriod_I, priceOffset, weight, rates_total, prev_calculated));
 
-    if (rates_total < lookBackPeriod) {
-        LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
-        return (0);
-    }
-    //--- not all data may be calculated
-    int calculated = BarsCalculated(trStop_handle);
-    if (calculated < rates_total) {
-        LOG(SF("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError()));
-        return (0);
-    }
+    // if (rates_total < lookBackPeriod) {
+    //     LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
+    //     return (0);
+    // }
+    // //--- not all data may be calculated
+    // int calculated = BarsCalculated(trStop_handle);
+    // if (calculated < rates_total) {
+    //     LOG(SF("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError()));
+    //     return (0);
+    // }
 
     int to_copy;
     if (prev_calculated > rates_total || prev_calculated < 0){
@@ -129,27 +134,35 @@ int OnCalculate(const int       rates_total,
 
     const int start_pos = prev_calculated;
 
+    int copy = CopyBuffer(MA_handle, 0, 0, rates_total, comb_buffer);
+
     CopyBufferWithCheck(start_pos, to_copy, trStop_stopBufferNumber,      stopBuffer);
     CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, stopColorBuffer);
 
     for (int i = 0; i < rates_total; i++) {
         diff_buffer[i] = 0;
-        len_buffer[i] =  0;
-        comb_buffer[i] = stopColorBuffer[i];
+        len_buffer[i] =  10;
+        comb_buffer[i] = 20;
+        // comb_buffer[i] = stopColorBuffer[i];
     }
 
-    for (int start = rates_total - 1; start >= 0;) {
+    // for (int start = rates_total - 1; start >= 0;) {
+    for (int start = rates_total - 1; start > 0;) {
         int i;
-        for (i = start; i >= 0; i--) {
-            // len_buffer[i] = -1000;
+        for (i = start; i > 0; i--) {
             if (stopColorBuffer[i] == 2) {
                 break;
             }
         }
         for (int j = i; j <= start; j++) {
-            len_buffer[j] = j-i;
-            diff_buffer[j] = stopBuffer[j] - stopBuffer[i];
-            comb_buffer[j] = len_buffer[j]*len_buffer[j] + weight * diff_buffer[j]*diff_buffer[j];
+            int timeDiff  = ((int)time[j] - (int)time[i]) / 3600 ;
+            len_buffer[j] = timeDiff;
+            diff_buffer[j] = weight * (stopBuffer[j] - stopBuffer[i]);
+            comb_buffer[j] = MathSqrt(timeDiff*timeDiff + diff_buffer[j]*diff_buffer[j]);
+            if (diff_buffer[j] < 0) {
+                comb_buffer[j] = -comb_buffer[j];
+                len_buffer[j]  = -len_buffer[j];
+            }
         }
         start = i-2;
     }

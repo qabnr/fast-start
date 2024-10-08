@@ -109,8 +109,8 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 
 {
-    if (rates_total == prev_calculated) { return (rates_total); }
-// LOG(SF("OnCalculate(%d %.2f) : %d %d", lookBackPeriod, priceOffset, rates_total, prev_calculated));
+    if (rates_total <= prev_calculated) { return (rates_total); }
+LOG(SF("OnCalculate(%d %.2f) : %d %d", lookBackPeriod, priceOffset, rates_total, prev_calculated));
     static double minBuyStop  = minResetValue;
     static double maxSellStop = maxResetValue;
 

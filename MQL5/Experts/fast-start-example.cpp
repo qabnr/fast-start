@@ -714,6 +714,8 @@ void OnTick()
 
     if (stopToRespond) return;
 
+    if (!isNewPeriod()) return;
+
     //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
 
     static int tickCnt = 0;

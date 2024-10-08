@@ -58,6 +58,16 @@ bool isNewMinute() {
     return isNew;
 }
 //+------------------------------------------------------------------+
+bool isNewPeriod() {
+    static datetime oldPeriod = 0;
+
+    datetime nowPeriod = TimeCurrent() / PeriodSeconds(PERIOD_CURRENT);
+    bool isNew = nowPeriod != oldPeriod;
+    oldPeriod = nowPeriod;
+
+    return isNew;
+}
+//+------------------------------------------------------------------+
 string secToStr(const int totalSeconds) {
     int minutes = totalSeconds / 60;
     int hours   = minutes / 60;
