@@ -335,12 +335,14 @@ public:
             }
         }
         LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
-        if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
-            totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-            LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
-            return true;
+        switch (m_Trade.ResultRetcode()) {
+            case TRADE_RETCODE_MARKET_CLOSED:
+            case TRADE_RETCODE_NO_MONEY:
+               return false;
         }
-        return false;
+        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        return true;
     }
 
     bool sell(Reason::ReasonCode reason) {
@@ -364,13 +366,16 @@ public:
             }  
         }
         LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
-        if (m_Trade.ResultRetcode() != TRADE_RETCODE_MARKET_CLOSED) {
-            totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
-            LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
-            return true;
+        switch (m_Trade.ResultRetcode()) {
+            case TRADE_RETCODE_MARKET_CLOSED:
+            case TRADE_RETCODE_NO_MONEY:
+               return false;
         }
-        return false;
-}
+
+        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        return true;
+    }
 };
 //+------------------------------------------------------------------+
 namespace g
@@ -723,9 +728,9 @@ void OnTick()
     static ProfitEtc p;
 
     p.setValues();
-  
+LOG("");
     if (p.totalPricePaid == 0) return;
-
+LOG("");
     if (g::indicatorList.copyBuffers(300) == false) {
         LOG("Failed to copy data from buffer");
         stopToRespond = true;
