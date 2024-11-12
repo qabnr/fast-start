@@ -386,6 +386,9 @@ namespace g
     myMACD2         *MACD2;
     myMACD2         *MACD3;
     ZigZag          *zigZag;
+
+    TR_STOP_SIGNAL  *TR_STS;
+
     TradePosition    pPos;
     LinRegrChannel  *linRegrChannel;
     SellOrBuy        sellOrBuy;
@@ -409,6 +412,8 @@ int OnInit()
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period,   MACD2_slow_MA_period,   MACD2_avg_diff_period  ));
     g::indicatorList.add(g::MACD3  = new myMACD2("MACD3", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
+
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.8, 2.0));    
 
     // g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.4);

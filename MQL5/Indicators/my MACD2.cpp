@@ -62,7 +62,7 @@ void OnInit()
     PlotIndexSetInteger(1, PLOT_DRAW_BEGIN, signalSMA_period - 1);
     PlotIndexSetInteger(2, PLOT_DRAW_BEGIN, signalSMA_period - 1);
 
-    string short_name = StringFormat("myMACD2(%d,%d,%d)", fastEMA_period, slowEMA_period, signalSMA_period);
+    string short_name = StringFormat("MACD(%d,%d,%d)", fastEMA_period, slowEMA_period, signalSMA_period);
     IndicatorSetString(INDICATOR_SHORTNAME, short_name);
 
     int shift = 0;

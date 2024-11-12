@@ -77,6 +77,33 @@ LOG(SF("%s: SellNow: %d", indName, cnt));
     }
 };
 //+------------------------------------------------------------------+
+class TR_STOP_SIGNAL : public Indicator
+{
+private:
+    Buffer *diff_buffer;
+    Buffer len_buffer;
+    Buffer comb_buffer;
+
+    string indName;
+
+public:
+    ~TR_STOP_SIGNAL() { LOGF(indName); }
+  
+    TR_STOP_SIGNAL(const int lookBackPeriod, const double priceOffset, const double weight)
+        : indName(SF("TRSTS(%d, %.2f)", lookBackPeriod, priceOffset, weight)),
+          Indicator(0, SF("TRSTS(%d, %.2f)", lookBackPeriod, priceOffset, weight),
+                    iCustom(NULL, PERIOD_CURRENT, "myTR_STOP_Signal", lookBackPeriod, priceOffset, weight)),
+          diff_buffer(  &buffer),
+          len_buffer (1, buffer),
+          comb_buffer(2, buffer)
+    {}
+
+    bool copyBuffers(const int count) {
+        return
+           diff_buffer.copy(count) && len_buffer.copy(count) && comb_buffer .copy(count);
+    }
+};
+//+------------------------------------------------------------------+
 class TR_STOP_List
 {
 private:

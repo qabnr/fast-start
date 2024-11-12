@@ -109,7 +109,7 @@ int OnCalculate(const int       rates_total,
                 const int      &spread[])
 {
     if (rates_total <= prev_calculated) { return (rates_total); }
-LOG(SF("OnCalculate(%d %.2f, %.2f) : %d %d", lookBackPeriod_I, priceOffset, weight, rates_total, prev_calculated));
+// LOG(SF("OnCalculate(%d, %.2f, %.2f) : %d, %d", lookBackPeriod_I, priceOffset, weight, rates_total, prev_calculated));
 
     // if (rates_total < lookBackPeriod) {
     //     LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
@@ -122,22 +122,12 @@ LOG(SF("OnCalculate(%d %.2f, %.2f) : %d %d", lookBackPeriod_I, priceOffset, weig
     //     return (0);
     // }
 
-    int to_copy;
-    if (prev_calculated > rates_total || prev_calculated < 0){
-        to_copy = rates_total;
-    }
-    else {
-        to_copy = rates_total - prev_calculated;
-        if (prev_calculated > 0)
-            to_copy++;
-    }
+    int nr_copied = CopyBuffer(MA_handle, 0, 0, rates_total, comb_buffer);
 
-    const int start_pos = prev_calculated;
-
-    int copy = CopyBuffer(MA_handle, 0, 0, rates_total, comb_buffer);
-
-    CopyBufferWithCheck(start_pos, to_copy, trStop_stopBufferNumber,      stopBuffer);
-    CopyBufferWithCheck(start_pos, to_copy, trStop_stopColorBufferNumber, stopColorBuffer);
+    if (CopyBufferWithCheck(0, rates_total, trStop_stopBufferNumber,      stopBuffer) <= 0
+     || CopyBufferWithCheck(0, rates_total, trStop_stopColorBufferNumber, stopColorBuffer) <= 0) {
+        return prev_calculated;
+    };
 
     for (int i = 0; i < rates_total; i++) {
         diff_buffer[i] = 0;
@@ -169,9 +159,13 @@ LOG(SF("OnCalculate(%d %.2f, %.2f) : %d %d", lookBackPeriod_I, priceOffset, weig
     return rates_total; 
 }
 //+------------------------------------------------------------------+
-void CopyBufferWithCheck(int startPos, int cnt, int fromBuff, double &toBuff[]) {
-    int copy = CopyBuffer(trStop_handle, fromBuff, startPos, cnt, toBuff);
-    if(copy <= 0) LOG(SF("CopyBuffer from myTR_STOP failed. Error %d", GetLastError()));
+int CopyBufferWithCheck(int startPos, int cnt, int fromBuff, double &toBuff[]) {
+    int copied = CopyBuffer(trStop_handle, fromBuff, startPos, cnt, toBuff);
+    if(copied <= 0) {
+        LOG(SF("CopyBuffer from myTR_STOP handle failed. Error %d", GetLastError()));
+        LOG(SF("startPos: %d, cnt: %d, copied: %d", startPos, cnt, copied));
+    }
+    return copied;
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
