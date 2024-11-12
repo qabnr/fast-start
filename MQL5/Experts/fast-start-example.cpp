@@ -384,6 +384,7 @@ namespace g
     TR_STOP_List     TR_ST_list;
     myMACD2         *MACD1;
     myMACD2         *MACD2;
+    myMACD2         *MACD3;
     ZigZag          *zigZag;
     TradePosition    pPos;
     LinRegrChannel  *linRegrChannel;
@@ -406,7 +407,7 @@ int OnInit()
     
     g::indicatorList.add(g::MACD1  = new myMACD2("MACD1", MACD1_fast_MA_period,   MACD1_slow_MA_period,   MACD1_avg_diff_period  ));
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period,   MACD2_slow_MA_period,   MACD2_avg_diff_period  ));
-    g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
+    g::indicatorList.add(g::MACD3  = new myMACD2("MACD3", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
     // g::TR_ST_list.add(10, 0.0);
@@ -728,9 +729,9 @@ void OnTick()
     static ProfitEtc p;
 
     p.setValues();
-LOG("");
+// LOG("");
     if (p.totalPricePaid == 0) return;
-LOG("");
+// LOG("");
     if (g::indicatorList.copyBuffers(300) == false) {
         LOG("Failed to copy data from buffer");
         stopToRespond = true;
