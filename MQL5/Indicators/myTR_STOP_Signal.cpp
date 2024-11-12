@@ -42,7 +42,6 @@ double stopBuffer[];
 double stopColorBuffer[];
 
 int trStop_handle;
-int MA_handle; 
 
 /*
     my TR stop buffers:
@@ -78,12 +77,6 @@ int OnInit()
 
     trStop_handle = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP", lookBackPeriod_I, priceOffset);
 
-    MA_handle = iCustom(NULL,0,"Examples\\Custom Moving Average", 
-                        21,        // MA_Period, 
-                        0,         // MA_Shift, 
-                        MODE_SMA,  // MA_Method, 
-                        PRICE_CLOSE);
-
     if (trStop_handle == INVALID_HANDLE) {
         PrintFormat("Failed to create iCustom handle of the myTR_STOP indicator for the symbol %s/%s, error code %d",
                     _Symbol, EnumToString(PERIOD_CURRENT), GetLastError());
@@ -110,19 +103,6 @@ int OnCalculate(const int       rates_total,
 {
     if (rates_total <= prev_calculated) { return (rates_total); }
 // LOG(SF("OnCalculate(%d, %.2f, %.2f) : %d, %d", lookBackPeriod_I, priceOffset, weight, rates_total, prev_calculated));
-
-    // if (rates_total < lookBackPeriod) {
-    //     LOG(SF("Not enough data. rates_total = %d, lookBackPeriod = %d", rates_total, lookBackPeriod));
-    //     return (0);
-    // }
-    // //--- not all data may be calculated
-    // int calculated = BarsCalculated(trStop_handle);
-    // if (calculated < rates_total) {
-    //     LOG(SF("Not all data of fastMA_handle is calculated (", calculated, " bars). Error ", GetLastError()));
-    //     return (0);
-    // }
-
-    int nr_copied = CopyBuffer(MA_handle, 0, 0, rates_total, comb_buffer);
 
     if (CopyBufferWithCheck(0, rates_total, trStop_stopBufferNumber,      stopBuffer) <= 0
      || CopyBufferWithCheck(0, rates_total, trStop_stopColorBufferNumber, stopColorBuffer) <= 0) {

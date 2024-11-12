@@ -413,7 +413,8 @@ int OnInit()
     g::indicatorList.add(g::MACD3  = new myMACD2("MACD3", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.8, 2.0));    
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.61, 1.0));    
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.80, 2.0));    
 
     // g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.4);
@@ -421,15 +422,7 @@ int OnInit()
     g::TR_ST_list.add(10, 1.2);
     g::TR_ST_list.add(10, 1.6);
 
-    int h = iCustom(NULL, PERIOD_CURRENT, "myTR_STOP_Signal", 10, 1.61, 1.0);
-    if (h == INVALID_HANDLE)
-    {
-        PrintFormat("Failed to create indicator myTR_STOP_Signal for the symbol %s/%s, error code %d",
-                    _Symbol,
-                    EnumToString(PERIOD_CURRENT),
-                    GetLastError());
-    }
-    return (0);
+    return 0;
 }
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
