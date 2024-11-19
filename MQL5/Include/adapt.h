@@ -25,6 +25,7 @@ char*  Symbol(...);
 
 double MathMax(...);
 double MathMin(...);
+double MathFloor(...);
 double MathSqrt(double);
 double SymbolInfoDouble(...);
 

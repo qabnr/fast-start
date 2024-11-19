@@ -6,7 +6,6 @@
 #property version   "3.4"
 
 #include <Trade/Trade.mqh>
-#include <Trade/PositionInfo.mqh>
 
 #include <adapt.h>
 #include <utils.h>
@@ -275,23 +274,27 @@ public:
 class TradePosition
 {
 private:
-    const string        my_symbol;
-    CTrade        m_Trade;
-    CPositionInfo m_Position;
+    const string    my_symbol;
+    CTrade          m_Trade;
 
-    int           posType;
-    double        volume;
-    double        totalPricePaid;
-    Stats         stats;
+    int             posType;
+    double          volume;
+    double          totalPricePaid;
+    Stats           stats;
+
+    enum {
+        POSITION_TYPE_SELL,
+        POSITION_TYPE_BUY,
+    };
 
 public:
     TradePosition(): my_symbol(Symbol()),
-        volume(MathFloor(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX) / tradeSizeFraction)),
+        volume(MathFloor(1000000.0 / tradeSizeFraction)),
         posType(-1), totalPricePaid(0.01)
     {}
     ~TradePosition() { stats.print(); }
 
-    bool select()                    { return m_Position.Select(my_symbol); }
+    bool select()                    { return true; /*PositionSelect(my_symbol);*/ }
     bool isTypeSELL()          const { return posType == POSITION_TYPE_SELL; }
     bool isTypeBUY()           const { return posType == POSITION_TYPE_BUY; }
     double getTotalPricePaid() const { return totalPricePaid; }
