@@ -2,7 +2,7 @@
 
 typedef char* string;
 typedef int datetime;
-typedef unsigned uint
+typedef unsigned uint;
 
 const double DBL_MAX = 9999999.999;
 

@@ -1,9 +1,11 @@
 //+------------------------------------------------------------------+
 //| fast-start-example.mq5
 //+------------------------------------------------------------------+
+#ifndef __cplusplus
 #property copyright "Copyright 2024, Mogyo Software Corp."
 #property link      "http://www.mogyo.com"
 #property version   "3.4"
+#endif
 
 #include <Trade/Trade.mqh>
 
