@@ -292,7 +292,7 @@ public:
     // }
     
     double getFreeMargin() {
-        return g::account.getFreeMargin();
+        return AccountInfoDouble(ACCOUNT_FREEMARGIN);
     }
 };
 //+------------------------------------------------------------------+
