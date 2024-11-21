@@ -280,16 +280,21 @@ class Account
 public:
     Account(): balance(10000) {}
 
-    // double getBalance() { 
-    //     LOG(SF("balance: %.2f ACC_BAL: %.2f", balance, AccountInfoDouble(ACCOUNT_BALANCE)));
-    //     return AccountInfoDouble(ACCOUNT_BALANCE);
-    // }
+    void addToBalance(double amount) {
+        balance += amount;
+        LOG(SF("balance: %.2f ACC_BAL: %.2f", balance, AccountInfoDouble(ACCOUNT_BALANCE)));
+    }
 
-    // double getEquity(double currentPrice) {
-    //     double equity = balance + g::pPos.getCurrentValue(currentPrice);
-    //     LOG(SF("equity: %.2f ACC_EQU: %.2f", equity, AccountInfoDouble(ACCOUNT_EQUITY)));
-    //     return AccountInfoDouble(ACCOUNT_EQUITY);
-    // }
+    double getBalance(void) { 
+        LOG(SF("balance: %.2f ACC_BAL: %.2f", balance, AccountInfoDouble(ACCOUNT_BALANCE)));
+        return AccountInfoDouble(ACCOUNT_BALANCE);
+    }
+
+    double getEquity(void) {
+        double equity = balance + g::pPos.getCurrentValue();
+        LOG(SF("equity: %.2f ACC_EQU: %.2f", equity, AccountInfoDouble(ACCOUNT_EQUITY)));
+        return AccountInfoDouble(ACCOUNT_EQUITY);
+    }
     
     double getFreeMargin() {
         return AccountInfoDouble(ACCOUNT_FREEMARGIN);
@@ -305,6 +310,7 @@ private:
     int             posType;
     double          volume;
     double          totalPricePaid;
+    double          totalVolume;
     Stats           stats;
 
     enum {
@@ -324,6 +330,17 @@ public:
     bool isTypeBUY()           const { return posType == POSITION_TYPE_BUY; }
     double getTotalPricePaid() const { return totalPricePaid; }
 
+    double lastPrice() { return SymbolInfoDouble(my_symbol, SYMBOL_LAST); }
+    double getCurrentValue() { return totalVolume * lastPrice(); }
+
+    MqlRates getPrice()
+    {
+        MqlRates bar[2];
+        if(CopyRates(my_symbol,_Period, 0, 2, bar) > 0) {
+        }
+        return bar[1];
+    }
+
     void close(Reason::ReasonCode reason, double profit) {
         LOG(SF("Close, profit: %+.1f%%", (profit)));
 
@@ -340,6 +357,9 @@ public:
         if (cnt == 0) {
             LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         }
+        else {
+            g::account.addToBalance(lastPrice() * totalVolume);
+        }
     }
 
     bool buy(Reason::ReasonCode reason) {
@@ -351,17 +371,20 @@ public:
         double stopLoss         = 0.0;
         double takeProfit       = 0.0;
 
+        totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
             bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
             if (!res) {
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
+            totalVolume += volume;
             posType = POSITION_TYPE_BUY;
             if (g::account.getFreeMargin() < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
+        g::account.addToBalance(-lastPrice() * totalVolume);
         LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
@@ -369,7 +392,7 @@ public:
                return false;
         }
         totalPricePaid = freeMarginBeforeTrade - g::account.getFreeMargin();
-        LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
         return true;
     }
 
@@ -382,17 +405,20 @@ public:
         double stopLoss         = 0.0;
         double takeProfit       = 0.0;
 
+        totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
             bool res = m_Trade.Sell(volume, my_symbol, executionPrice, stopLoss, takeProfit);
             if (!res) {
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
+            totalVolume -= volume;
             posType = POSITION_TYPE_SELL;
             if (g::account.getFreeMargin() < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }  
         }
+        g::account.addToBalance(-lastPrice() * totalVolume);
         LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
@@ -401,7 +427,7 @@ public:
         }
 
         totalPricePaid = freeMarginBeforeTrade - g::account.getFreeMargin();
-        LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
+        LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
         return true;
     }
 };
@@ -664,7 +690,6 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     }
 };
 //+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
 class ProfitEtc
 {
 private:
@@ -690,7 +715,7 @@ public:
     void setValues() {
         totalPricePaid = g::pPos.getTotalPricePaid();
         balance = AccountInfoDouble(ACCOUNT_BALANCE);
-        equity  = AccountInfoDouble(ACCOUNT_EQUITY);
+        equity  = g::account.getEquity();
         profit  = equity - balance;
 
         if (profit  > maxProfit)  { maxProfit = profit; }
@@ -717,7 +742,7 @@ public:
         logCnt++;
         if (logCnt % 20 == 1) { logHeader(); }
 
-        double lastPrice = SymbolInfoDouble(_Symbol,SYMBOL_LAST);
+        double lastPrice = g::pPos.lastPrice();
 
         double lastMaxDiffPct = g::lastMax == 0 ? 0 : (lastPrice / g::lastMax - 1) * 100;
         double lastMinDiffPct = g::lastMin == 0 ? 0 : (lastPrice / g::lastMin - 1) * 100;
@@ -772,7 +797,7 @@ void OnTick()
         p.log(tickCnt);
     }
 
-    MqlRates price = getPrice();
+    MqlRates price = g::pPos.getPrice();
 
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
@@ -878,14 +903,6 @@ void OnTick()
             p.newLogHeader();
         }
     }
-}
-//+------------------------------------------------------------------+
-MqlRates getPrice()
-{
-    MqlRates bar[2];
-    if(CopyRates(_Symbol,_Period, 0, 2, bar) > 0) {
-    }
-    return bar[1];
 }
 //+------------------------------------------------------------------+
 double OnTester()
