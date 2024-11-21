@@ -273,6 +273,29 @@ public:
     }
 };
 //+------------------------------------------------------------------+
+class Account 
+{
+    double balance;
+
+public:
+    Account(): balance(10000) {}
+
+    // double getBalance() { 
+    //     LOG(SF("balance: %.2f ACC_BAL: %.2f", balance, AccountInfoDouble(ACCOUNT_BALANCE)));
+    //     return AccountInfoDouble(ACCOUNT_BALANCE);
+    // }
+
+    // double getEquity(double currentPrice) {
+    //     double equity = balance + g::pPos.getCurrentValue(currentPrice);
+    //     LOG(SF("equity: %.2f ACC_EQU: %.2f", equity, AccountInfoDouble(ACCOUNT_EQUITY)));
+    //     return AccountInfoDouble(ACCOUNT_EQUITY);
+    // }
+    
+    double getFreeMargin() {
+        return g::account.getFreeMargin();
+    }
+};
+//+------------------------------------------------------------------+
 class TradePosition
 {
 private:
@@ -322,7 +345,7 @@ public:
     bool buy(Reason::ReasonCode reason) {
         stats.addOpReason(stats.buy, reason);
 
-        double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        double freeMarginBeforeTrade = g::account.getFreeMargin();
 
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
@@ -335,7 +358,7 @@ public:
                 break;
             }
             posType = POSITION_TYPE_BUY;
-            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
+            if (g::account.getFreeMargin() < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }
         }
@@ -345,7 +368,7 @@ public:
             case TRADE_RETCODE_NO_MONEY:
                return false;
         }
-        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        totalPricePaid = freeMarginBeforeTrade - g::account.getFreeMargin();
         LOG(SF("BUY for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
         return true;
     }
@@ -353,7 +376,7 @@ public:
     bool sell(Reason::ReasonCode reason) {
         stats.addOpReason(stats.sell, reason);
 
-        double freeMarginBeforeTrade = AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        double freeMarginBeforeTrade = g::account.getFreeMargin();
 
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
@@ -366,7 +389,7 @@ public:
                 break;
             }
             posType = POSITION_TYPE_SELL;
-            if (AccountInfoDouble(ACCOUNT_FREEMARGIN) < freeMarginBeforeTrade * equityTradeLimit) {
+            if (g::account.getFreeMargin() < freeMarginBeforeTrade * equityTradeLimit) {
                 break;
             }  
         }
@@ -377,7 +400,7 @@ public:
                return false;
         }
 
-        totalPricePaid = freeMarginBeforeTrade - AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        totalPricePaid = freeMarginBeforeTrade - g::account.getFreeMargin();
         LOG(SF("SELL for %s at %.2f each", d2str(totalPricePaid), m_Trade.ResultPrice()));
         return true;
     }
@@ -407,6 +430,8 @@ namespace g
     double lastLL;
     double lastMin;
     int    lastMinTickCnt;
+
+    Account account;
 };
 //+------------------------------------------------------------------+
 int OnInit()
