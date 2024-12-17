@@ -818,6 +818,11 @@ void OnTick()
 
     MqlRates price = g::pPos.getPrice();
 
+LOG(SF("%s, %.2f, %.2f, %.2f, %.2f, %.2ll", TimeToString(price.time), price.open, price.high, price.low, price.close, price.real_volume));
+return;
+
+
+
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
         LOG(SF("TRST: BuyNow: %d", len));
