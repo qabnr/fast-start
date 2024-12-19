@@ -789,21 +789,15 @@ public:
 void OnTick()
 {
     static bool stopToRespond = false;
-
     if (stopToRespond) return;
-
     if (!isNewPeriod()) return;
-
-    //if (MQLInfoInteger(MQL_TESTER) && g::maxRelDrawDown > maxRelDrawDownLimit) return;
 
     static int tickCnt = 0;
     tickCnt++;
     static ProfitEtc p;
 
     p.setValues();
-// LOG("");
     if (p.totalPricePaid == 0) return;
-// LOG("");
     if (g::indicatorList.copyBuffers(300) == false) {
         LOG("Failed to copy data from buffer");
         stopToRespond = true;
@@ -817,7 +811,12 @@ void OnTick()
     }
 
     MqlRates price = g::pPos.getPrice();
+    handleTradeSignals(price, p, tickCnt);
+    handleBuySell(p, price);
+}
 
+void handleTradeSignals(const MqlRates& price, ProfitEtc& p, int tickCnt)
+{
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
         LOG(SF("TRST: BuyNow: %d", len));
@@ -843,84 +842,92 @@ void OnTick()
     }
     else {
         static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
-
         MACD1peaksAndValleys.process();
-
-        if (g::MACD1.OsMA_justChangedPositive()) {
-            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
-        } else
-        if (g::MACD1.OsMA_justChangedNegative()) {
-            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
-        } else
-        if (MACD1peaksAndValleys.is1stPeak()) {
-            // LOG(SF("1st Peak: p.profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", p.profit, p.equity, p.balance, p.profitPerBalance * 100));
-            if (p.profitPerBalance > 0.5) {
-                //    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
-            }
-        } else 
-        if (MACD1peaksAndValleys.is2ndPeak()) {
-            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
-        } else 
-        if (MACD1peaksAndValleys.is1stValley()) {
-            // LOG(SF("1st Valley: p.profit = %.2f eq = %.2f bal = %.2f   pr/bal = %.2f %%  --------------------", p.profit, p.equity, p.balance, p.profitPerBalance*100));
-            if (p.profitPerBalance > 0.5) {
-            //    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
-            }
-        } else 
-        if (MACD1peaksAndValleys.is2ndValley()) {
-            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
-        }
+        handleMACDSignals(MACD1peaksAndValleys, p);
     }
+}
 
+void handleMACDSignals(MACD_PeaksAndValleys& MACD1peaksAndValleys, ProfitEtc& p)
+{
+    if (g::MACD1.OsMA_justChangedPositive()) {
+        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
+    } else if (g::MACD1.OsMA_justChangedNegative()) {
+        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+    } else if (MACD1peaksAndValleys.is1stPeak()) {
+        if (p.profitPerBalance > 0.5) {
+            // g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
+        }
+    } else if (MACD1peaksAndValleys.is2ndPeak()) {
+        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
+    } else if (MACD1peaksAndValleys.is1stValley()) {
+        if (p.profitPerBalance > 0.5) {
+            // g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
+        }
+    } else if (MACD1peaksAndValleys.is2ndValley()) {
+        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
+    }
+}
+
+void handleBuySell(ProfitEtc& p, const MqlRates& price)
+{
     if (g::sellOrBuy.isGetReadyToBuy()) {
         if (g::ATR_list.isBuyNow(price.low)) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
         }
     }
-    else
-    if (g::sellOrBuy.isGetReadyToSell()) {
+    else if (g::sellOrBuy.isGetReadyToSell()) {
         if (g::ATR_list.isSellNow(price.high)) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }
 
     if (g::sellOrBuy.isBuyNow()) {
-        Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        if (g::pPos.select()) {
-            if (g::pPos.isTypeSELL()) {
-                g::pPos.close(reason, p.profitPerBalance*100);
-            }
-            else if (g::pPos.isTypeBUY()) {
-                g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
-                LOG(" Already bought");
-                return;
-            }
-        }
-        if (g::pPos.buy(reason)) {
-            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
-            p.cummPrLossPerPrice = 0;
-            p.maxProfit = 0;
-            p.newLogHeader();
-        }
+        executeBuy(p);
     }
     else if (g::sellOrBuy.isSellNow()) {
-        Reason::ReasonCode reason = g::sellOrBuy.getReason();
-        if (g::pPos.select()) {
-            if (g::pPos.isTypeBUY()) {
-                g::pPos.close(reason, p.profitPerBalance*100);
-            }
-            else if (g::pPos.isTypeSELL()) {
-                g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
-                LOG(" Already sold");
-                return;
-            }
+        executeSell(p);
+    }
+}
+
+void executeBuy(ProfitEtc& p)
+{
+    Reason::ReasonCode reason = g::sellOrBuy.getReason();
+    if (g::pPos.select()) {
+        if (g::pPos.isTypeSELL()) {
+            g::pPos.close(reason, p.profitPerBalance*100);
         }
-        if (g::pPos.sell(reason)) {
+        else if (g::pPos.isTypeBUY()) {
+            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
+            LOG(" Already bought");
+            return;
+        }
+    }
+    if (g::pPos.buy(reason)) {
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
+        p.cummPrLossPerPrice = 0;
+        p.maxProfit = 0;
+        p.newLogHeader();
+    }
+}
+
+void executeSell(ProfitEtc& p)
+{
+    Reason::ReasonCode reason = g::sellOrBuy.getReason();
+    if (g::pPos.select()) {
+        if (g::pPos.isTypeBUY()) {
+            g::pPos.close(reason, p.profitPerBalance*100);
+        }
+        else if (g::pPos.isTypeSELL()) {
             g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
-            p.cummPrLossPerPrice = 0;
-            p.maxProfit = 0;
-            p.newLogHeader();
+            LOG(" Already sold");
+            return;
         }
+    }
+    if (g::pPos.sell(reason)) {
+        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
+        p.cummPrLossPerPrice = 0;
+        p.maxProfit = 0;
+        p.newLogHeader();
     }
 }
 //+------------------------------------------------------------------+
@@ -935,4 +942,3 @@ double OnTester()
 //+------------------------------------------------------------------+
 
 //+------------------------------------------------------------------+
-
