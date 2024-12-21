@@ -504,10 +504,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo)
 {
-    if (g::pPos.getType() == POSITION_TYPE_BUY) {
+    if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
         g::sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
     }
-    else if (g::pPos.getType() == POSITION_TYPE_SELL) {
+    else if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
         g::sellOrBuy.set(SellOrBuy::State::BuyNow, reason, lineNo);
     }
 }
@@ -892,10 +892,10 @@ void executeBuy(ProfitEtc& p)
 {
     Reason::ReasonCode reason = g::sellOrBuy.getReason();
     if (g::pPos.select()) {
-        if (g::pPos.getType() == POSITION_TYPE_SELL) {
+        if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
             g::pPos.close(reason, p.profitPerBalance*100);
         }
-        else if (g::pPos.getType() == POSITION_TYPE_BUY) {
+        else if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
             g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
             LOG(" Already bought");
             return;
@@ -913,10 +913,10 @@ void executeSell(ProfitEtc& p)
 {
     Reason::ReasonCode reason = g::sellOrBuy.getReason();
     if (g::pPos.select()) {
-        if (g::pPos.getType() == POSITION_TYPE_BUY) {
+        if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
             g::pPos.close(reason, p.profitPerBalance*100);
         }
-        else if (g::pPos.getType() == POSITION_TYPE_SELL) {
+        else if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
             g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
             LOG(" Already sold");
             return;
