@@ -330,8 +330,7 @@ public:
     ~TradePosition() { stats.print(); }
 
     bool select()                    { return true; /*PositionSelect(my_symbol);*/ }
-    bool isTypeSELL()          const { return posType == POSITION_TYPE_SELL; }
-    bool isTypeBUY()           const { return posType == POSITION_TYPE_BUY; }
+    int getType()              const { return posType; }
     double getTotalPricePaid() const { return totalPricePaid; }
 
     double lastPrice()    { return SymbolInfoDouble(my_symbol, SYMBOL_LAST); }
@@ -348,7 +347,6 @@ public:
     void close(Reason::ReasonCode reason, double profit) {
         LOG(SF("Close, profit: %+.1f%%", (profit)));
         g::account.LOGall();
-
 
         stats.addOpReason(stats.close,  reason);
         stats.addProfit(profit, reason);
@@ -368,7 +366,6 @@ public:
             LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(currentValue()), totalVolume, lastPrice()));
             totalVolume = 0;
         }
-        // g::account.LOGall();
     }
 
     bool buy(Reason::ReasonCode reason) {
@@ -507,10 +504,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void changeDirection(const Reason::ReasonCode reason, const int lineNo)
 {
-    if (g::pPos.isTypeBUY()) {
+    if (g::pPos.getType() == POSITION_TYPE_BUY) {
         g::sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
     }
-    else if (g::pPos.isTypeSELL()) {
+    else if (g::pPos.getType() == POSITION_TYPE_SELL) {
         g::sellOrBuy.set(SellOrBuy::State::BuyNow, reason, lineNo);
     }
 }
@@ -895,10 +892,10 @@ void executeBuy(ProfitEtc& p)
 {
     Reason::ReasonCode reason = g::sellOrBuy.getReason();
     if (g::pPos.select()) {
-        if (g::pPos.isTypeSELL()) {
+        if (g::pPos.getType() == POSITION_TYPE_SELL) {
             g::pPos.close(reason, p.profitPerBalance*100);
         }
-        else if (g::pPos.isTypeBUY()) {
+        else if (g::pPos.getType() == POSITION_TYPE_BUY) {
             g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
             LOG(" Already bought");
             return;
@@ -916,10 +913,10 @@ void executeSell(ProfitEtc& p)
 {
     Reason::ReasonCode reason = g::sellOrBuy.getReason();
     if (g::pPos.select()) {
-        if (g::pPos.isTypeBUY()) {
+        if (g::pPos.getType() == POSITION_TYPE_BUY) {
             g::pPos.close(reason, p.profitPerBalance*100);
         }
-        else if (g::pPos.isTypeSELL()) {
+        else if (g::pPos.getType() == POSITION_TYPE_SELL) {
             g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
             LOG(" Already sold");
             return;
