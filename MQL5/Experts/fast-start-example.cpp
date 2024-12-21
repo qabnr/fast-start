@@ -25,20 +25,21 @@ input int    MACD1_avg_diff_period    = 9;
 input int    MACD2_fast_MA_period     = 96;
 input int    MACD2_slow_MA_period     = 208;
 input int    MACD2_avg_diff_period    = 72;
-input double OsMA_limit               = 0.28;
-input double decP_OsMa_limit          = 2.13;
+input double OsMA_limit               = 0.73;
+input double decP_OsMa_limit          = 17.08;
 input int    minMaxBAckTrack          = 5;
-input double profitPerBalanceLimit    = 0.48;
-input double profitLossPerBalLimit    = 0.46;
-input int    maxTransactions          = 1000;
-input double equityTradeLimit         = 1.00;
-input double tradeSizeFraction        = 1.00;
-input int    LastChangeOfSignMinLimit = 98810;
-input int    LastChangeOfSignMaxLimit = 250950;
-input double profitPerPriceLimit      = 1.73;
-input double cummPrLossPerPriceLimit  = 29.26;
-input double profitLossPerPriceLimit  = 7.98;
+input double profitPerBalanceLimit    = 1.76;
+input double profitLossPerBalLimit    = 3.20;
+input int    maxTransactions          = 791;
+input double equityTradeLimit         = 38.00;
+input double tradeSizeFraction        = 2650.00;
+input int    LastChangeOfSignMinLimit = 139810;
+input int    LastChangeOfSignMaxLimit = 330950;
+input double profitPerPriceLimit      = 14.71;
+input double cummPrLossPerPriceLimit  = 289.67;
+input double profitLossPerPriceLimit  = 56.66;
 input double maxRelDrawDownLimit      = 0.70;
+
 
 //+------------------------------------------------------------------+
 void printInputParams()
@@ -811,11 +812,11 @@ void OnTick()
     }
 
     MqlRates price = g::pPos.getPrice();
-    handleTradeSignals(price, p, tickCnt);
+    handleTradeSignals(price, p);
     handleBuySell(p, price);
 }
 
-void handleTradeSignals(const MqlRates& price, ProfitEtc& p, int tickCnt)
+void handleTradeSignals(const MqlRates& price, ProfitEtc& p)
 {
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
@@ -841,14 +842,15 @@ void handleTradeSignals(const MqlRates& price, ProfitEtc& p, int tickCnt)
         changeDirection(Reason::chDir_cummPrLossPerPriceLimit, __LINE__);
     }
     else {
-        static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
-        MACD1peaksAndValleys.process();
-        handleMACDSignals(MACD1peaksAndValleys, p);
+        handleMACDSignals(p);
     }
 }
 
-void handleMACDSignals(MACD_PeaksAndValleys& MACD1peaksAndValleys, ProfitEtc& p)
+void handleMACDSignals(ProfitEtc& p)
 {
+    static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
+    MACD1peaksAndValleys.process();
+
     if (g::MACD1.OsMA_justChangedPositive()) {
         g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
     } else if (g::MACD1.OsMA_justChangedNegative()) {
