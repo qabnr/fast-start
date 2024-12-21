@@ -812,11 +812,11 @@ void OnTick()
     }
 
     MqlRates price = g::pPos.getPrice();
-    handleTradeSignals(price, p);
+    handleTradeSignals(p, price);
     handleBuySell(p, price);
 }
 
-void handleTradeSignals(const MqlRates& price, ProfitEtc& p)
+void handleTradeSignals(ProfitEtc& p, const MqlRates& price)
 {
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
