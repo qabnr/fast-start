@@ -317,12 +317,12 @@ private:
     double          totalVolume;
     Stats           stats;
 
+public:
     enum {
         POSITION_TYPE_SELL,
         POSITION_TYPE_BUY,
     };
 
-public:
     TradePosition(): my_symbol(Symbol()),
         volume(MathFloor(1000000.0 / tradeSizeFraction)),
         posType(-1), totalPricePaid(0.01)
@@ -812,7 +812,7 @@ void OnTick()
     handleTradeSignals(p, price);
     handleBuySell(p, price);
 }
-
+//+------------------------------------------------------------------+
 void handleTradeSignals(ProfitEtc& p, const MqlRates& price)
 {
     int len = 0;
@@ -842,7 +842,7 @@ void handleTradeSignals(ProfitEtc& p, const MqlRates& price)
         handleMACDSignals(p);
     }
 }
-
+//+------------------------------------------------------------------+
 void handleMACDSignals(ProfitEtc& p)
 {
     static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
@@ -866,7 +866,7 @@ void handleMACDSignals(ProfitEtc& p)
         g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
     }
 }
-
+//+------------------------------------------------------------------+
 void handleBuySell(ProfitEtc& p, const MqlRates& price)
 {
     if (g::sellOrBuy.isGetReadyToBuy()) {
@@ -881,49 +881,27 @@ void handleBuySell(ProfitEtc& p, const MqlRates& price)
     }
 
     if (g::sellOrBuy.isBuyNow()) {
-        executeBuy(p);
+        executeTrade(p, TradePosition::POSITION_TYPE_BUY, Reason::Bought);
     }
     else if (g::sellOrBuy.isSellNow()) {
-        executeSell(p);
+
+        executeTrade(p, TradePosition::POSITION_TYPE_SELL, Reason::Sold);
     }
 }
-
-void executeBuy(ProfitEtc& p)
+//+------------------------------------------------------------------+
+void executeTrade(ProfitEtc& p, int type, Reason::ReasonCode newReason)
 {
-    Reason::ReasonCode reason = g::sellOrBuy.getReason();
+    Reason::ReasonCode oldReason = g::sellOrBuy.getReason();
     if (g::pPos.select()) {
-        if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
-            g::pPos.close(reason, p.profitPerBalance*100);
-        }
-        else if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
-            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
-            LOG(" Already bought");
+        if (g::pPos.getType() == type) {
+            g::sellOrBuy.set(SellOrBuy::State::None, newReason, __LINE__);
+            LOG(type == TradePosition::POSITION_TYPE_BUY ? " Already bought" : " Already sold");
             return;
         }
+        g::pPos.close(oldReason, p.profitPerBalance * 100);
     }
-    if (g::pPos.buy(reason)) {
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Bought, __LINE__);
-        p.cummPrLossPerPrice = 0;
-        p.maxProfit = 0;
-        p.newLogHeader();
-    }
-}
-
-void executeSell(ProfitEtc& p)
-{
-    Reason::ReasonCode reason = g::sellOrBuy.getReason();
-    if (g::pPos.select()) {
-        if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
-            g::pPos.close(reason, p.profitPerBalance*100);
-        }
-        else if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
-            g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
-            LOG(" Already sold");
-            return;
-        }
-    }
-    if (g::pPos.sell(reason)) {
-        g::sellOrBuy.set(SellOrBuy::State::None, Reason::Sold, __LINE__);
+    if (type == TradePosition::POSITION_TYPE_BUY ? g::pPos.buy(oldReason) : g::pPos.sell(oldReason)) {
+        g::sellOrBuy.set(SellOrBuy::State::None, newReason, __LINE__);
         p.cummPrLossPerPrice = 0;
         p.maxProfit = 0;
         p.newLogHeader();
