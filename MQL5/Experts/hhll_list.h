@@ -1,4 +1,3 @@
-
 //+------------------------------------------------------------------+
 // HHLL_list.h
 //+------------------------------------------------------------------+
@@ -31,72 +30,65 @@ private:
         bool isHigher;
         datetime timeStamp;
 
-        void change2higher(void) {
+        void change2higher() {
             isHigher = true;
             timeStamp = TimeCurrent();
         }
 
-        void change2lower(void) {
+        void change2lower() {
             isHigher = false;
             timeStamp = TimeCurrent();
         }
 
-        void updateTimestamp(void) {
+        void updateTimestamp() {
             timeStamp = TimeCurrent();
         }
 
-        string toStr(int with = none) {
+        string toStr(int with = none) const {
             if (!isValid) return "None";
-            switch (with)
-            {
-                case none:
-                    return (isHigher ? "H" : "L") + (isHigh ? "H" : "L");
-                    break;
-                case withTimeStamp: {
-                    string ts = (string)timeStamp;
-                    return toStr() + "(" + StringSubstr(ts, 2, 14) + ")";
-                    break;
-                }
-                default:
-                    if (with > 200000) return toStr();
-                    return toStr() + "(" + string(with) + ")";
-                    break;
+            string result = (isHigher ? "H" : "L") + (isHigh ? "H" : "L");
+            if (with == none || with > 200000) {
+                return result;
+            } else if (with == withTimeStamp) {
+                return result + "(" + StringSubstr((string)timeStamp, 2, 14) + ")";
+            } else {
+                return result + "(" + string(with) + ")";
             }
         }
     };
 
     HHLL_data data[arrSize];
 
-    void prepNew(void) {
-        latest = (latest+1) % arrSize;
+    void prepNew() {
+        latest = (latest + 1) % arrSize;
         if (oldest == latest) {
-            oldest = (oldest+1) % arrSize;
+            oldest = (oldest + 1) % arrSize;
         }
         data[latest].isValid   = true;
         data[latest].timeStamp = TimeCurrent();
     }
 
-    void addHH(void) {
-        prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = true;
+    void addHH() {
+        prepNew(); data[latest].isHigh = true;  data[latest].isHigher = true;
     }
-    void addHL(void) {
-        prepNew(); data[latest].isHigh   = false; data[latest].isHigher = true;
+    void addHL() {
+        prepNew(); data[latest].isHigh = false; data[latest].isHigher = true;
     }
-    void addLH(void) {
-        prepNew(); data[latest].isHigh   = true;  data[latest].isHigher = false;
+    void addLH() {
+        prepNew(); data[latest].isHigh = true;  data[latest].isHigher = false;
     }
-    void addLL(void) {
-        prepNew(); data[latest].isHigh   = false; data[latest].isHigher = false;
+    void addLL() {
+        prepNew(); data[latest].isHigh = false; data[latest].isHigher = false;
     }
-    void updateTimestamp(void) {
+    void updateTimestamp() {
         data[latest].updateTimestamp();
     }
-    string toStr (int with = none) {
+    string toStr(int with = none) const {
         string retval = "";
-        for (uint i = latest; ; i = (i + arrSize - 1) % arrSize ) {
+        for (uint i = latest; ; i = (i + arrSize - 1) % arrSize) {
             if (!data[i].isValid) break;
             if (with == withTimeDiff) {
-                retval += data[i].toStr((int)(data[i].timeStamp - data[(i+arrSize-1)%arrSize].timeStamp)/3600) + "-";
+                retval += data[i].toStr((int)(data[i].timeStamp - data[(i + arrSize - 1) % arrSize].timeStamp) / 3600) + "-";
             } else {
                 retval += data[i].toStr(with) + "-";
             }
@@ -104,22 +96,22 @@ private:
         }
         return retval;
     }
-    bool isHigh(void) {
+    bool isHigh() const {
         return data[latest].isValid && data[latest].isHigh;
     }
-    bool isLow(void) {
+    bool isLow() const {
         return data[latest].isValid && !data[latest].isHigh;
     }
-    void change2higher(void) {
+    void change2higher() {
         if (!data[latest].isValid) return;
         data[latest].change2higher();
     }
-    void change2lower(void) {
+    void change2lower() {
         if (!data[latest].isValid) return;
         data[latest].change2lower();
     }
 public:
-    HHLLlist() : latest(arrSize-1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
+    HHLLlist() : latest(arrSize - 1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
         prevL(lastPrice), prevH(lastPrice)
     {
         for (uint i = 0; i < arrSize; i++) {
@@ -130,7 +122,8 @@ public:
     void log(const int tickCnt)
     {
         const int prevLookBack = 100;
-        {   double currH = g::zigZag.HighMapBuffer.get(1);
+        {   
+            double currH = g::zigZag.HighMapBuffer.get(1);
             if (currH > 0) {
                 g::lastMax = currH;
                 g::lastMaxTickCnt = tickCnt - 1;
@@ -150,16 +143,14 @@ public:
                     g::lastHH = currH;
                     if (isHigh()) {  // was xH-...
                         change2higher();  // Now: HH-...
-                    }
-                    else {  // was xL
+                    } else {  // was xL
                         addHH();  // Now: HH-...
                     }
                 }
                 else { // LH
                     if (isLow()) {  // was xL...
                         addLH();
-                    }
-                    else {  // was xH, must be LH
+                    } else {  // was xH, must be LH
                         updateTimestamp();
                     }
                 }
@@ -169,7 +160,8 @@ public:
                 prevH = currH;
             }
         }
-        {   double currL = g::zigZag.LowMapBuffer.get(1);
+        {   
+            double currL = g::zigZag.LowMapBuffer.get(1);
             if (currL > 0) {
                 g::lastMin = currL;
                 g::lastMinTickCnt = tickCnt - 1;
@@ -187,19 +179,15 @@ public:
                 bool LL = currL < prevL;
                 if (LL) {
                     g::lastLL = currL;
-                    // if (secondChar == "L") {  // was xL
-                    if (isLow()) {  // was xL
+                    if (isLow()) {
                         change2lower();
-                    }
-                    else {  // was xH
+                    } else {
                         addLL();
                     }
-                }
-                else {  // HL
-                    if (isHigh()) {  // was xH
+                } else {
+                    if (isHigh()) {
                         addHL();
-                    }
-                    else {  // was xL, must be HL
+                    } else {
                         updateTimestamp();
                     }
                 }

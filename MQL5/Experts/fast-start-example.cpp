@@ -250,7 +250,7 @@ public:
         if (state != state_) {
             state  = state_;
             reason = reason_;
-            LOG_Naked(SF("%d: ==> %s <== %s", lineNo, State2str(), Reason2str()));
+            LOG_Naked(SF("%5d: ==> %s <== %s", lineNo, State2str(), Reason2str()));
         }
     }
 
