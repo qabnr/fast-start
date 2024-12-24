@@ -276,13 +276,13 @@ public:
 //+------------------------------------------------------------------+
 class Account
 {
-    double balance;
+    double cash;
 
 public:
-    Account(): balance(10000) {}
+    Account(): cash(10000) {}
 
-    void addToBalance(double amount) {
-        balance += amount;
+    void addToCash(double amount) {
+        cash += amount;
     }
 
     double getBalance(void) { 
@@ -298,31 +298,42 @@ public:
     }
 
     void LOGall(void) {
-        double equity = balance + g::pPos.currentValue();
-        LOG(SF("balance: %9.2f   ACC_BAL: %9.2f", balance, AccountInfoDouble(ACCOUNT_BALANCE)));
-        LOG(SF("equity:  %9.2f   ACC_EQU: %9.2f", equity,  AccountInfoDouble(ACCOUNT_EQUITY)));
-        LOG(SF("balance: %9.2f   FRE_MAR: %9.2f", balance, AccountInfoDouble(ACCOUNT_FREEMARGIN)));
+        double equity  = cash + g::pPos.valueOpenPos();
+        double balance = cash + g::pPos.getTotalPricePaid();
+        LOG("-----");
+        LOG(SF("Curr Value: %9.2f", g::pPos.valueOpenPos()));
+        LOG(SF("balance: %9.2f   ACC_BAL: %9.2f    diff: %.2f  (%.2f%%)",
+             balance, AccountInfoDouble(ACCOUNT_BALANCE), balance - AccountInfoDouble(ACCOUNT_BALANCE), 
+             (balance - AccountInfoDouble(ACCOUNT_BALANCE)) / AccountInfoDouble(ACCOUNT_BALANCE) * 100));
+        LOG(SF("equity:  %9.2f   ACC_EQU: %9.2f    diff: %.2f  (%.2f%%)",
+             equity,  AccountInfoDouble(ACCOUNT_EQUITY), equity - AccountInfoDouble(ACCOUNT_EQUITY),
+             (equity - AccountInfoDouble(ACCOUNT_EQUITY)) / AccountInfoDouble(ACCOUNT_EQUITY) * 100));
+        LOG(SF("cash:    %9.2f   FRE_MAR: %9.2f    diff: %.2f  (%.2f%%)",
+             cash,    AccountInfoDouble(ACCOUNT_FREEMARGIN), cash - AccountInfoDouble(ACCOUNT_FREEMARGIN),
+             (cash - AccountInfoDouble(ACCOUNT_FREEMARGIN)) / AccountInfoDouble(ACCOUNT_FREEMARGIN) * 100));
+        LOG("-----");
     }
 };
 //+------------------------------------------------------------------+
 class TradePosition
 {
+public:
+    enum positionType{
+        POSITION_TYPE_SELL,
+        POSITION_TYPE_BUY,
+    };
+
 private:
     const string    my_symbol;
     CTrade          m_Trade;
 
-    int             posType;
+    positionType    posType;
     double          volume;
     double          totalPricePaid;
     double          totalVolume;
     Stats           stats;
 
 public:
-    enum {
-        POSITION_TYPE_SELL,
-        POSITION_TYPE_BUY,
-    };
-
     TradePosition(): my_symbol(Symbol()),
         volume(MathFloor(1000000.0 / tradeSizeFraction)),
         posType(-1), totalPricePaid(0.01)
@@ -334,7 +345,11 @@ public:
     double getTotalPricePaid() const { return totalPricePaid; }
 
     double lastPrice()    { return SymbolInfoDouble(my_symbol, SYMBOL_LAST); }
-    double currentValue() { return totalVolume * lastPrice(); }
+    double valueOpenPos() {
+        if (posType == POSITION_TYPE_BUY)  return totalVolume * lastPrice();
+        if (posType == POSITION_TYPE_SELL) return 2 * totalPricePaid - totalVolume * lastPrice();
+        return 0;
+    }
 
     MqlRates getPrice()
     {
@@ -362,8 +377,9 @@ public:
             LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         }
         else {
-            g::account.addToBalance(currentValue());
-            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(currentValue()), totalVolume, lastPrice()));
+            g::account.addToCash(valueOpenPos());
+            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(valueOpenPos()), totalVolume, lastPrice()));
+            totalPricePaid = 0.01;
             totalVolume = 0;
         }
     }
@@ -392,15 +408,17 @@ public:
                 break;
             }
         }
-        g::account.addToBalance(-lastPrice() * totalVolume);
         LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
                return false;
         }
+
         totalPricePaid = freeMarginBeforeBuy - g::account.getFreeMargin();
+        g::account.addToCash(-valueOpenPos());
         LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
+        LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
         g::account.LOGall();
 
@@ -413,7 +431,6 @@ public:
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeSell = g::account.getFreeMargin();
-        LOG(SF("FR_MARG before sell: %.2f", freeMarginBeforeSell));
 
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
@@ -432,7 +449,6 @@ public:
                 break;
             }  
         }
-        g::account.addToBalance(-lastPrice() * totalVolume);
         LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
@@ -441,7 +457,9 @@ public:
         }
 
         totalPricePaid = freeMarginBeforeSell - g::account.getFreeMargin();
+        g::account.addToCash(-valueOpenPos());
         LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, lastPrice()));
+        LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
         g::account.LOGall();
 
@@ -731,7 +749,7 @@ public:
 
     void setValues() {
         totalPricePaid = g::pPos.getTotalPricePaid();
-        balance = AccountInfoDouble(ACCOUNT_BALANCE);
+        balance = g::account.getBalance();
         equity  = g::account.getEquity();
         profit  = equity - balance;
 
