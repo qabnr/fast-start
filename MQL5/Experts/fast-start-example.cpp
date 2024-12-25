@@ -286,15 +286,15 @@ public:
     }
 
     double getBalance(void) { 
-        return AccountInfoDouble(ACCOUNT_BALANCE);
+        return cash + g::pPos.getTotalPricePaid();
     }
 
     double getEquity(void) {
-        return AccountInfoDouble(ACCOUNT_EQUITY);
+        return cash + g::pPos.valueOpenPos();
     }
     
     double getFreeMargin() {
-        return AccountInfoDouble(ACCOUNT_FREEMARGIN);
+        return cash;
     }
 
     void LOGall(void) {
@@ -319,6 +319,7 @@ class TradePosition
 {
 public:
     enum positionType{
+        UNKNOWN = -1,
         POSITION_TYPE_SELL,
         POSITION_TYPE_BUY,
     };
@@ -336,7 +337,7 @@ private:
 public:
     TradePosition(): my_symbol(Symbol()),
         volume(MathFloor(1000000.0 / tradeSizeFraction)),
-        posType(-1), totalPricePaid(0.01)
+        posType(UNKNOWN), totalPricePaid(0.01)
     {}
     ~TradePosition() { stats.print(); }
 
@@ -390,6 +391,7 @@ public:
         stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeBuy = g::account.getFreeMargin();
+        double price = lastPrice();
 
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
@@ -403,6 +405,7 @@ public:
                 break;
             }
             totalVolume += volume;
+            g::account.addToCash(-volume * price);
             posType = POSITION_TYPE_BUY;
             if (g::account.getFreeMargin() < freeMarginBeforeBuy * equityTradeLimit) {
                 break;
@@ -416,7 +419,6 @@ public:
         }
 
         totalPricePaid = freeMarginBeforeBuy - g::account.getFreeMargin();
-        g::account.addToCash(-valueOpenPos());
         LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
@@ -431,6 +433,7 @@ public:
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeSell = g::account.getFreeMargin();
+        double price = lastPrice();
 
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
@@ -444,6 +447,7 @@ public:
                 break;
             }
             totalVolume += volume;
+            g::account.addToCash(-volume * price);
             posType = POSITION_TYPE_SELL;
             if (g::account.getFreeMargin() < freeMarginBeforeSell * equityTradeLimit) {
                 break;
@@ -457,7 +461,6 @@ public:
         }
 
         totalPricePaid = freeMarginBeforeSell - g::account.getFreeMargin();
-        g::account.addToCash(-valueOpenPos());
         LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, lastPrice()));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
@@ -930,9 +933,9 @@ double OnTester()
 {
     if (g::maxRelDrawDown > maxRelDrawDownLimit) return 0;
     if (g::maxRelDrawDown < 0.01) return 0;
-    if (AccountInfoDouble(ACCOUNT_BALANCE) < 10) return 0;
-    // return AccountInfoDouble(ACCOUNT_BALANCE);
-    return AccountInfoDouble(ACCOUNT_BALANCE) / g::maxRelDrawDown;
+    if (g::account.getBalance() < 10) return 0;
+    // return g::account.getBalance();
+    return g::account.getBalance() / g::maxRelDrawDown;
 }
 //+------------------------------------------------------------------+
 

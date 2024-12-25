@@ -11,13 +11,18 @@ void SetIndexBuffer    (...);
 void IndicatorSetString(...);
 void IndicatorRelease  (...);
 void Print             (...);
-void Print             (...);
+void StringInit        (...);
+
+
 bool PrintFormat       (...);
 
 int iCustom        (...);
 int ArrayResize    (...);
 int ArraySize      (...);
 int MQLInfoInteger(...);
+int CopyRates(...);
+int StringLen(...);
+int iTime    (...);
 
 datetime TimeCurrent();
 
@@ -28,6 +33,14 @@ double MathMin(...);
 double MathFloor(...);
 double MathSqrt(double);
 double SymbolInfoDouble(...);
+double AccountInfoDouble(...);
+
+struct MqlRates {
+    double open;
+    double close;
+    double high;
+    double low;
+};
 
 enum mql5_consts {
     NULL,
@@ -36,6 +49,12 @@ enum mql5_consts {
     INDICATOR_SHORTNAME,
     PERIOD_CURRENT,
     _Symbol,
+    _Period,
     SYMBOL_LAST,
     MQL_TESTER,
+    ACCOUNT_BALANCE,
+    ACCOUNT_EQUITY,
+    ACCOUNT_FREEMARGIN,
+    TRADE_RETCODE_MARKET_CLOSED,
+    TRADE_RETCODE_NO_MONEY
 };

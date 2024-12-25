@@ -5,8 +5,10 @@
 //+------------------------------------------------------------------+
 #ifndef INDICATOR_H
 #define INDICATOR_H
+#ifndef __cplusplus
 #property copyright "mogyo"
 #property link      "http://www.mogyo.com"
+#endif
 
 #include <adapt.h>
 #include <utils.h>
