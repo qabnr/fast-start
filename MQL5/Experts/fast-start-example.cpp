@@ -297,24 +297,56 @@ public:
         return cash;
     }
 
-    void LOGall(void) {
-        double equity  = cash + g::pPos.valueOpenPos();
-        double balance = cash + g::pPos.getTotalPricePaid();
-        LOG("-----");
-        LOG(SF("Curr Value: %9.2f", g::pPos.valueOpenPos()));
-        LOG(SF("balance: %9.2f   ACC_BAL: %9.2f    diff: %.2f  (%.2f%%)",
-             balance, AccountInfoDouble(ACCOUNT_BALANCE), balance - AccountInfoDouble(ACCOUNT_BALANCE), 
-             (balance - AccountInfoDouble(ACCOUNT_BALANCE)) / AccountInfoDouble(ACCOUNT_BALANCE) * 100));
-        LOG(SF("equity:  %9.2f   ACC_EQU: %9.2f    diff: %.2f  (%.2f%%)",
-             equity,  AccountInfoDouble(ACCOUNT_EQUITY), equity - AccountInfoDouble(ACCOUNT_EQUITY),
-             (equity - AccountInfoDouble(ACCOUNT_EQUITY)) / AccountInfoDouble(ACCOUNT_EQUITY) * 100));
-        LOG(SF("cash:    %9.2f   FRE_MAR: %9.2f    diff: %.2f  (%.2f%%)",
-             cash,    AccountInfoDouble(ACCOUNT_FREEMARGIN), cash - AccountInfoDouble(ACCOUNT_FREEMARGIN),
-             (cash - AccountInfoDouble(ACCOUNT_FREEMARGIN)) / AccountInfoDouble(ACCOUNT_FREEMARGIN) * 100));
-        LOG("-----");
+    void log(void) {
+        LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f", 
+               g::pPos.valueOpenPos(), g::account.getBalance(), g::account.getEquity(), cash));
     }
 };
 //+------------------------------------------------------------------+
+class MTrade
+{
+private:
+    CTrade m_trade;
+    string symbol;
+
+public:
+    MTrade(const string &_symbol) : symbol(_symbol) {}
+    ~MTrade() {}
+
+    bool Buy(double volume) {
+        double executionPrice   = 0.0;
+        double stopLoss         = 0.0;
+        double takeProfit       = 0.0;
+
+        return m_trade.Buy(volume, symbol, executionPrice, stopLoss, takeProfit);
+    }
+
+    bool Sell(double volume) {
+        double executionPrice   = 0.0;
+        double stopLoss         = 0.0;
+        double takeProfit       = 0.0;
+
+        return m_trade.Sell(volume, symbol, executionPrice, stopLoss, takeProfit);
+    }
+
+    bool PositionClose() {
+        return m_trade.PositionClose(symbol);
+    }
+
+    string ResultRetcodeDescription() const {
+        return m_trade.ResultRetcodeDescription();
+    }
+
+    uint ResultRetcode() const {
+        return m_trade.ResultRetcode();
+    }
+
+    double ResultPrice() const {
+        return m_trade.ResultPrice();
+    }
+};
+//+------------------------------------------------------------------+
+
 class TradePosition
 {
 public:
@@ -326,7 +358,7 @@ public:
 
 private:
     const string    my_symbol;
-    CTrade          m_Trade;
+    MTrade          m_Trade;
 
     positionType    posType;
     double          volume;
@@ -337,6 +369,7 @@ private:
 public:
     TradePosition(): my_symbol(Symbol()),
         volume(MathFloor(1000000.0 / tradeSizeFraction)),
+        m_Trade(my_symbol),
         posType(UNKNOWN), totalPricePaid(0.01)
     {}
     ~TradePosition() { stats.print(); }
@@ -362,13 +395,13 @@ public:
 
     void close(Reason::ReasonCode reason, double profit) {
         LOG(SF("Close, profit: %+.1f%%", (profit)));
-        g::account.LOGall();
+        g::account.log();
 
         stats.addOpReason(stats.close,  reason);
         stats.addProfit(profit, reason);
 
         uint cnt = 0;
-        while(m_Trade.PositionClose(my_symbol)) {
+        while(m_Trade.PositionClose()) {
             cnt++;
             if (cnt == 1) {
                 LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
@@ -386,20 +419,16 @@ public:
     }
 
     bool buy(Reason::ReasonCode reason) {
-        g::account.LOGall();
+        g::account.log();
 
         stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeBuy = g::account.getFreeMargin();
         double price = lastPrice();
 
-        double executionPrice   = 0.0;
-        double stopLoss         = 0.0;
-        double takeProfit       = 0.0;
-
         totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
-            bool res = m_Trade.Buy(volume, my_symbol, executionPrice, stopLoss, takeProfit);
+            bool res = m_Trade.Buy(volume);
             if (!res) {
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
@@ -422,26 +451,22 @@ public:
         LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
-        g::account.LOGall();
+        g::account.log();
 
         return true;
     }
 
     bool sell(Reason::ReasonCode reason) {
-        g::account.LOGall();
+        g::account.log();
 
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeSell = g::account.getFreeMargin();
         double price = lastPrice();
 
-        double executionPrice   = 0.0;
-        double stopLoss         = 0.0;
-        double takeProfit       = 0.0;
-
         totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
-            bool res = m_Trade.Sell(volume, my_symbol, executionPrice, stopLoss, takeProfit);
+            bool res = m_Trade.Sell(volume);
             if (!res) {
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
@@ -464,7 +489,7 @@ public:
         LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, lastPrice()));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
-        g::account.LOGall();
+        g::account.log();
 
         return true;
     }
@@ -824,9 +849,9 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        static HHLLlist hhll;
-        hhll.log(tickCnt);
-        p.log(tickCnt);
+        // static HHLLlist hhll;
+        // hhll.log(tickCnt);
+        // p.log(tickCnt);
     }
 
     MqlRates price = g::pPos.getPrice();
@@ -905,7 +930,6 @@ void handleBuySell(ProfitEtc& p, const MqlRates& price)
         executeTrade(p, TradePosition::POSITION_TYPE_BUY, Reason::Bought);
     }
     else if (g::sellOrBuy.isSellNow()) {
-
         executeTrade(p, TradePosition::POSITION_TYPE_SELL, Reason::Sold);
     }
 }
