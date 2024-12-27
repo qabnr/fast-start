@@ -32,7 +32,7 @@ input double profitPerBalanceLimit    = 1.76;
 input double profitLossPerBalLimit    = 3.20;
 input int    maxTransactions          = 791;
 input double equityTradeLimit         = 38.00;
-input double tradeSizeFraction        = 2650.00;
+input double tradeSize                = 2650.00;
 input int    LastChangeOfSignMinLimit = 139810;
 input int    LastChangeOfSignMaxLimit = 330950;
 input double profitPerPriceLimit      = 14.71;
@@ -57,7 +57,7 @@ void printInputParams()
     PrintFormat("input double profitLossPerBalLimit    = %.2f;", profitLossPerBalLimit);
     PrintFormat("input int    maxTransactions          = %d;", maxTransactions);
     PrintFormat("input double equityTradeLimit         = %.2f;", equityTradeLimit);
-    PrintFormat("input double tradeSizeFraction        = %.2f;", tradeSizeFraction);
+    PrintFormat("input double tradeSize                = %.2f;", tradeSize);
     PrintFormat("input int    LastChangeOfSignMinLimit = %d;", LastChangeOfSignMinLimit);
     PrintFormat("input int    LastChangeOfSignMaxLimit = %d;", LastChangeOfSignMaxLimit);
     PrintFormat("input double profitPerPriceLimit      = %.2f;", profitPerPriceLimit);
@@ -282,20 +282,13 @@ public:
     Account(): cash(10000) {}
 
     void addToCash(double amount) {
-        cash += amount;
-    }
+LOG(SF("Cash: %9.2f + %9.2f = %9.2f", cash, amount, cash + amount));
+         cash += amount; }
 
-    double getBalance(void) { 
-        return cash + g::pPos.getTotalPricePaid();
-    }
-
-    double getEquity(void) {
-        return cash + g::pPos.valueOpenPos();
-    }
-    
-    double getFreeMargin() {
-        return cash;
-    }
+    double getCash(void)    { return cash; }
+    double getBalance(void) { return cash + g::pPos.getTotalPricePaid(); }
+    double getEquity(void)  { return cash + g::pPos.valueOpenPos(); }
+    double getFreeMargin()  { return cash; }
 
     void log(void) {
         LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f", 
@@ -308,25 +301,41 @@ class MTrade
 private:
     CTrade m_trade;
     string symbol;
+    uint   retcode;
 
 public:
     MTrade(const string &_symbol) : symbol(_symbol) {}
     ~MTrade() {}
 
-    bool Buy(double volume) {
+    bool Buy(double volume, double price) {
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
         double takeProfit       = 0.0;
 
-        return m_trade.Buy(volume, symbol, executionPrice, stopLoss, takeProfit);
+        if (g::account.getCash() > volume * price) {
+            m_trade.Buy(volume, symbol, executionPrice, stopLoss, takeProfit);
+            retcode = TRADE_RETCODE_DONE;
+        } else {
+            retcode = TRADE_RETCODE_NO_MONEY;
+        }
+        return retcode == TRADE_RETCODE_DONE;
+
+        // return m_trade.Buy(volume, symbol, executionPrice, stopLoss, takeProfit);
     }
 
-    bool Sell(double volume) {
+    bool Sell(double volume, double price) {
         double executionPrice   = 0.0;
         double stopLoss         = 0.0;
         double takeProfit       = 0.0;
 
-        return m_trade.Sell(volume, symbol, executionPrice, stopLoss, takeProfit);
+        if (g::account.getCash() > volume * price) {
+            m_trade.Sell(volume, symbol, executionPrice, stopLoss, takeProfit);
+            retcode = TRADE_RETCODE_DONE;
+        } else {
+            retcode = TRADE_RETCODE_NO_MONEY;
+        }
+        return retcode == TRADE_RETCODE_DONE;
+        // return m_trade.Sell(volume, symbol, executionPrice, stopLoss, takeProfit);
     }
 
     bool PositionClose() {
@@ -334,19 +343,28 @@ public:
     }
 
     string ResultRetcodeDescription() const {
-        return m_trade.ResultRetcodeDescription();
+        switch (retcode) 
+        {
+        case TRADE_RETCODE_MARKET_CLOSED:
+            return "Market is closed";
+        case TRADE_RETCODE_NO_MONEY:
+            return "Not enough money";
+        case TRADE_RETCODE_DONE:
+            return "Done";
+        default:
+            return "<UNKNOWN>";
+        }
     }
 
     uint ResultRetcode() const {
-        return m_trade.ResultRetcode();
-    }
-
-    double ResultPrice() const {
-        return m_trade.ResultPrice();
+        return retcode;
+        // return m_trade.ResultRetcode();
+            // case TRADE_RETCODE_MARKET_CLOSED:
+            // case TRADE_RETCODE_NO_MONEY:
+            // case TRADE_RETCODE_DONE:
     }
 };
 //+------------------------------------------------------------------+
-
 class TradePosition
 {
 public:
@@ -358,6 +376,8 @@ public:
 
 private:
     const string    my_symbol;
+    const double    maxVolume;
+
     MTrade          m_Trade;
 
     positionType    posType;
@@ -368,7 +388,8 @@ private:
 
 public:
     TradePosition(): my_symbol(Symbol()),
-        volume(MathFloor(1000000.0 / tradeSizeFraction)),
+        maxVolume(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX)),
+        volume(MathFloor(tradeSize)),
         m_Trade(my_symbol),
         posType(UNKNOWN), totalPricePaid(0.01)
     {}
@@ -378,19 +399,41 @@ public:
     int getType()              const { return posType; }
     double getTotalPricePaid() const { return totalPricePaid; }
 
-    double lastPrice()    { return SymbolInfoDouble(my_symbol, SYMBOL_LAST); }
+    double lastPrice() {
+        return SymbolInfoDouble(my_symbol, SYMBOL_LAST);
+    }
+
+    double getDivisor() {
+        double div = 1;
+
+        if (TimeCurrent() < 1642070400) { // Jan. 13, 2022
+            div = 2;
+        }
+        if (TimeCurrent() < 1611216000) { // Jan. 21, 2021
+            div *= 2;
+        }
+        if (TimeCurrent() < 1527120000) { // May 24, 2018
+            div *= 3;
+        }
+        if (TimeCurrent() < 1484208000) { // Jan. 12, 2017
+            div *= 2;
+        }
+        if (TimeCurrent() < 1390560000) { // Jan. 24, 2014
+            div *= 2;
+        }
+        if (TimeCurrent() < 1336694400) { // May 11, 2012
+            div *= 2;
+        }
+        if (TimeCurrent() < 1298620800) { // Feb. 25, 2011
+            div *= 2;
+        }
+        return div;
+    }
+
     double valueOpenPos() {
         if (posType == POSITION_TYPE_BUY)  return totalVolume * lastPrice();
         if (posType == POSITION_TYPE_SELL) return 2 * totalPricePaid - totalVolume * lastPrice();
         return 0;
-    }
-
-    MqlRates getPrice()
-    {
-        MqlRates bar[2];
-        if(CopyRates(my_symbol,_Period, 0, 2, bar) > 0) {
-        }
-        return bar[1];
     }
 
     void close(Reason::ReasonCode reason, double profit) {
@@ -419,24 +462,36 @@ public:
     }
 
     bool buy(Reason::ReasonCode reason) {
+LOG("/--- BUY ---\\");
         g::account.log();
 
         stats.addOpReason(stats.buy, reason);
 
-        double freeMarginBeforeBuy = g::account.getFreeMargin();
+        double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
+        // double div = getDivisor();
+        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * equityTradeLimit / 100 / price);
+        double volume = MathMin(maxVolume, maxTotalVolume);
+LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
+    price, freeMarginBeforeTransaction, equityTradeLimit, maxTotalVolume, volume));
 
+    double adjVolume = MathFloor(volume);
         totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
-            bool res = m_Trade.Buy(volume);
+            bool res = m_Trade.Buy(adjVolume, price);
             if (!res) {
+                LOG(SF("BUY for %.2f = %.0f x %.2f", adjVolume * price, adjVolume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
-            totalVolume += volume;
-            g::account.addToCash(-volume * price);
+            totalVolume += adjVolume;
+            g::account.addToCash(-adjVolume * price);
             posType = POSITION_TYPE_BUY;
-            if (g::account.getFreeMargin() < freeMarginBeforeBuy * equityTradeLimit) {
+LOG(SF("Free margin after buy: %.2f", g::account.getFreeMargin()));
+            if (g::account.getFreeMargin() < freeMarginBeforeTransaction * equityTradeLimit/100.0) {
+                break;
+            }
+            if (totalVolume >= maxTotalVolume) {
                 break;
             }
         }
@@ -444,53 +499,66 @@ public:
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
+LOG("\\--- BUY ---/");
                return false;
         }
 
-        totalPricePaid = freeMarginBeforeBuy - g::account.getFreeMargin();
-        LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, m_Trade.ResultPrice()));
+        totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
+        LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
         g::account.log();
 
+LOG("\\--- BUY ---/");
         return true;
     }
 
     bool sell(Reason::ReasonCode reason) {
+LOG("/--- SELL ---\\");
         g::account.log();
 
         stats.addOpReason(stats.sell, reason);
 
-        double freeMarginBeforeSell = g::account.getFreeMargin();
+        double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
+        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * equityTradeLimit / 100 / price);
+        double volume = MathMin(maxVolume, maxTotalVolume);
+LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
+    price, freeMarginBeforeTransaction, equityTradeLimit, maxTotalVolume, volume));
 
         totalVolume = 0;
         for (int i = maxTransactions; i > 0; i--) {
-            bool res = m_Trade.Sell(volume);
+            bool res = m_Trade.Sell(volume, price);
             if (!res) {
+                LOG(SF("SELL for %.2f = %.0f x %.2f", volume * price, volume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
             totalVolume += volume;
             g::account.addToCash(-volume * price);
             posType = POSITION_TYPE_SELL;
-            if (g::account.getFreeMargin() < freeMarginBeforeSell * equityTradeLimit) {
+LOG(SF("Free margin after sell: %.2f", g::account.getFreeMargin()));
+            if (g::account.getFreeMargin() < freeMarginBeforeTransaction * equityTradeLimit/100) {
                 break;
-            }  
+            }
+            if (totalVolume >= maxTotalVolume) {
+                break;
+            }
         }
         LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
+LOG("\\--- SELL ---/"); 
                return false;
         }
 
-        totalPricePaid = freeMarginBeforeSell - g::account.getFreeMargin();
-        LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, lastPrice()));
+        totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
+        LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
         g::account.log();
-
+LOG("\\--- SELL ---/");
         return true;
     }
 };
@@ -854,18 +922,18 @@ void OnTick()
         // p.log(tickCnt);
     }
 
-    MqlRates price = g::pPos.getPrice();
+    double price = g::pPos.lastPrice();
     handleTradeSignals(p, price);
     handleBuySell(p, price);
 }
 //+------------------------------------------------------------------+
-void handleTradeSignals(ProfitEtc& p, const MqlRates& price)
+void handleTradeSignals(ProfitEtc& p, const double price)
 {
     int len = 0;
-    if ((len = g::TR_ST_list.isBuyNow(price.open)) > 0) {
+    if ((len = g::TR_ST_list.isBuyNow(price)) > 0) {
         LOG(SF("TRST: BuyNow: %d", len));
     }
-    else if ((len = g::TR_ST_list.isSellNow(price.open)) > 0) {
+    else if ((len = g::TR_ST_list.isSellNow(price)) > 0) {
         LOG(SF("TRST: SellNow: %d", len));
     }
 
@@ -913,15 +981,15 @@ void handleMACDSignals(ProfitEtc& p)
     }
 }
 //+------------------------------------------------------------------+
-void handleBuySell(ProfitEtc& p, const MqlRates& price)
+void handleBuySell(ProfitEtc& p, const double price)
 {
     if (g::sellOrBuy.isGetReadyToBuy()) {
-        if (g::ATR_list.isBuyNow(price.low)) {
+        if (g::ATR_list.isBuyNow(price)) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
         }
     }
     else if (g::sellOrBuy.isGetReadyToSell()) {
-        if (g::ATR_list.isSellNow(price.high)) {
+        if (g::ATR_list.isSellNow(price)) {
             g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }
@@ -958,8 +1026,11 @@ double OnTester()
     if (g::maxRelDrawDown > maxRelDrawDownLimit) return 0;
     if (g::maxRelDrawDown < 0.01) return 0;
     if (g::account.getBalance() < 10) return 0;
-    // return g::account.getBalance();
+    //*
+    return g::account.getBalance();
+    /*/
     return g::account.getBalance() / g::maxRelDrawDown;
+    /**/
 }
 //+------------------------------------------------------------------+
 
