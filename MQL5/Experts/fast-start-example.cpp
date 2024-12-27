@@ -32,7 +32,7 @@ input double profitPerBalanceLimit    = 1.76;
 input double profitLossPerBalLimit    = 3.20;
 input int    maxTransactions          = 791;
 input double equityTradeLimit         = 38.00;
-input double tradeSize                = 2650.00;
+input double tradeSize                = 2650.00; // not used
 input int    LastChangeOfSignMinLimit = 139810;
 input int    LastChangeOfSignMaxLimit = 330950;
 input double profitPerPriceLimit      = 14.71;
@@ -381,7 +381,6 @@ private:
     MTrade          m_Trade;
 
     positionType    posType;
-    double          volume;
     double          totalPricePaid;
     double          totalVolume;
     Stats           stats;
@@ -389,7 +388,6 @@ private:
 public:
     TradePosition(): my_symbol(Symbol()),
         maxVolume(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX)),
-        volume(MathFloor(tradeSize)),
         m_Trade(my_symbol),
         posType(UNKNOWN), totalPricePaid(0.01)
     {}
@@ -462,7 +460,7 @@ public:
     }
 
     bool buy(Reason::ReasonCode reason) {
-LOG("/--- BUY ---\\");
+LOG("/--- --- BUY --- ---\\");
         g::account.log();
 
         stats.addOpReason(stats.buy, reason);
@@ -499,7 +497,7 @@ LOG(SF("Free margin after buy: %.2f", g::account.getFreeMargin()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
-LOG("\\--- BUY ---/");
+LOG("\\--- --- BUY --- ---/");
                return false;
         }
 
@@ -509,12 +507,12 @@ LOG("\\--- BUY ---/");
 
         g::account.log();
 
-LOG("\\--- BUY ---/");
+LOG("\\--- --- BUY --- ---/");
         return true;
     }
 
     bool sell(Reason::ReasonCode reason) {
-LOG("/--- SELL ---\\");
+LOG("/--- --- SELL --- ---\\");
         g::account.log();
 
         stats.addOpReason(stats.sell, reason);
@@ -549,7 +547,7 @@ LOG(SF("Free margin after sell: %.2f", g::account.getFreeMargin()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
-LOG("\\--- SELL ---/"); 
+LOG("\\--- --- SELL --- ---/"); 
                return false;
         }
 
@@ -558,7 +556,7 @@ LOG("\\--- SELL ---/");
         LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
 
         g::account.log();
-LOG("\\--- SELL ---/");
+LOG("\\--- --- SELL --- ---/");
         return true;
     }
 };
