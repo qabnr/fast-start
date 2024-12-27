@@ -31,7 +31,7 @@ input int    minMaxBAckTrack          = 5;
 input double profitPerBalanceLimit    = 1.76;
 input double profitLossPerBalLimit    = 3.20;
 input int    maxTransactions          = 791;
-input double equityTradeLimit         = 38.00;
+input double freeMarginTradeLimit     = 38.00;
 input double tradeSize                = 2650.00; // not used
 input int    LastChangeOfSignMinLimit = 139810;
 input int    LastChangeOfSignMaxLimit = 330950;
@@ -56,7 +56,7 @@ void printInputParams()
     PrintFormat("input double profitPerBalanceLimit    = %.2f;", profitPerBalanceLimit);
     PrintFormat("input double profitLossPerBalLimit    = %.2f;", profitLossPerBalLimit);
     PrintFormat("input int    maxTransactions          = %d;", maxTransactions);
-    PrintFormat("input double equityTradeLimit         = %.2f;", equityTradeLimit);
+    PrintFormat("input double freeMarginTradeLimit         = %.2f;", freeMarginTradeLimit);
     PrintFormat("input double tradeSize                = %.2f;", tradeSize);
     PrintFormat("input int    LastChangeOfSignMinLimit = %d;", LastChangeOfSignMinLimit);
     PrintFormat("input int    LastChangeOfSignMaxLimit = %d;", LastChangeOfSignMaxLimit);
@@ -434,6 +434,10 @@ public:
         return 0;
     }
 
+    bool checkFreeMarginTradeLimit() {
+        return g::account.getFreeMargin() >= g::account.getEquity() * freeMarginTradeLimit / 100;
+    }
+
     void close(Reason::ReasonCode reason, double profit) {
         LOG(SF("Close, profit: %+.1f%%", (profit)));
         g::account.log();
@@ -468,10 +472,10 @@ LOG("/--- --- BUY --- ---\\");
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
         // double div = getDivisor();
-        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * equityTradeLimit / 100 / price);
+        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * freeMarginTradeLimit / 100 / price);
         double volume = MathMin(maxVolume, maxTotalVolume);
-LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
-    price, freeMarginBeforeTransaction, equityTradeLimit, maxTotalVolume, volume));
+LOG(SF("Price: %.2f, Free margin before: %.2f, freeMarginTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
+    price, freeMarginBeforeTransaction, freeMarginTradeLimit, maxTotalVolume, volume));
 
     double adjVolume = MathFloor(volume);
         totalVolume = 0;
@@ -486,7 +490,7 @@ LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalV
             g::account.addToCash(-adjVolume * price);
             posType = POSITION_TYPE_BUY;
 LOG(SF("Free margin after buy: %.2f", g::account.getFreeMargin()));
-            if (g::account.getFreeMargin() < freeMarginBeforeTransaction * equityTradeLimit/100.0) {
+            if (checkFreeMarginTradeLimit()) {
                 break;
             }
             if (totalVolume >= maxTotalVolume) {
@@ -519,13 +523,12 @@ LOG("/--- --- SELL --- ---\\");
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
-        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * equityTradeLimit / 100 / price);
+        double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * freeMarginTradeLimit / 100 / price);
         double volume = MathMin(maxVolume, maxTotalVolume);
-LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
-    price, freeMarginBeforeTransaction, equityTradeLimit, maxTotalVolume, volume));
+LOG(SF("Price: %.2f, Free margin before: %.2f, freeMarginTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
+    price, freeMarginBeforeTransaction, freeMarginTradeLimit, maxTotalVolume, volume));
 
-        totalVolume = 0;
-        for (int i = maxTransactions; i > 0; i--) {
+        for(totalVolume = 0; totalVolume < maxTotalVolume; totalVolume += volume) {
             bool res = m_Trade.Sell(volume, price);
             if (!res) {
                 LOG(SF("SELL for %.2f = %.0f x %.2f", volume * price, volume, price));
@@ -536,10 +539,7 @@ LOG(SF("Price: %.2f, Free margin before: %.2f, equityTradeLimit: %.2f, maxTotalV
             g::account.addToCash(-volume * price);
             posType = POSITION_TYPE_SELL;
 LOG(SF("Free margin after sell: %.2f", g::account.getFreeMargin()));
-            if (g::account.getFreeMargin() < freeMarginBeforeTransaction * equityTradeLimit/100) {
-                break;
-            }
-            if (totalVolume >= maxTotalVolume) {
+            if (checkFreeMarginTradeLimit()) {
                 break;
             }
         }
