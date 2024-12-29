@@ -811,14 +811,14 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        static HHLLlist hhll;
-        hhll.log(tickCnt);
-        p.log(tickCnt);
+        // static HHLLlist hhll;
+        // hhll.log(tickCnt);
+        // p.log(tickCnt);
     }
 
     MqlRates price = g::pPos.getPrice();
 
-LOG(SF("%s, %.2f, %.2f, %.2f, %.2f, %.2ll", TimeToString(price.time), price.open, price.high, price.low, price.close, price.real_volume));
+LOG(SF("%.2f, %.2f, %.2f, %.2f", price.open, price.high, price.low, price.close));
 return;
 
 
