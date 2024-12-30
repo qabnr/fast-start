@@ -309,7 +309,7 @@ public:
 
     bool ExecuteTrade(bool isBuy, double volume, double price) {
         if (g::account.getCash() > volume * price) {
-            if (tradeSize > 0) {
+            if (g::execTradeinMT()) {
                 double executionPrice = 0.0;
                 double stopLoss = 0.0;
                 double takeProfit = 0.0;
@@ -336,14 +336,14 @@ public:
     }
 
     bool PositionClose() {
-        if (tradeSize > 0) {
+        if (g::execTradeinMT()) {
             return c_trade.PositionClose(symbol);
         }
         return true;
     }
 
     string ResultRetcodeDescription() const {
-        if (tradeSize > 0) {
+        if (g::execTradeinMT()) {
             return c_trade.ResultRetcodeDescription();
         }
         switch (retcode) 
@@ -360,7 +360,7 @@ public:
     }
 
     uint ResultRetcode() const {
-        if (tradeSize > 0) {
+        if (g::execTradeinMT()) {
             return c_trade.ResultRetcode();
         }
         return retcode;
@@ -454,7 +454,7 @@ public:
         stats.addProfit(profit, reason);
 
         uint cnt = 0;
-        if (tradeSize > 0) {
+        if (g::execTradeinMT()) {
             for (cnt = 0; m_Trade.PositionClose(); cnt++) {
             }
             LOG(SF("Close: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
@@ -588,6 +588,8 @@ namespace g
     int    lastMinTickCnt;
 
     Account account;
+
+    bool execTradeinMT() { return tradeSize > 0; }
 };
 //+------------------------------------------------------------------+
 int OnInit()
