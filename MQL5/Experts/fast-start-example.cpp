@@ -178,7 +178,7 @@ private:
     StatList profitList[Reason::ReasonCode::size];
 
 public:
-    string op2str(int op) const {
+    string op2str(Operation op) const {
         switch (op) {
             case Operation::buy:     return "Buy";
             case Operation::sell:    return "Sell";
@@ -197,7 +197,7 @@ public:
   
     void print() {
         string line = SF("%41s", "");
-        for (int op = 0; op < Operation::size; op++) {
+        for (Operation op = 0; op < Operation::size; op++) {
             line += SF("%7s", op2str(op));
         }
         LOG("");
@@ -287,12 +287,12 @@ LOG(SF("Cash: %9.2f + %9.2f = %9.2f", cash, amount, cash + amount));
 
     double getCash(void)    { return cash; }
     double getBalance(void) { return cash + g::pPos.getTotalPricePaid(); }
-    double getEquity(void)  { return cash + g::pPos.valueOpenPos(); }
+    double getEquity(void)  { return cash + g::pPos.getValOfOpenPos(); }
     double getFreeMargin()  { return cash; }
 
     void log(void) {
         LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f", 
-               g::pPos.valueOpenPos(), g::account.getBalance(), g::account.getEquity(), cash));
+               g::pPos.getValOfOpenPos(), g::account.getBalance(), g::account.getEquity(), cash));
     }
 };
 //+------------------------------------------------------------------+
@@ -436,7 +436,7 @@ public:
         return div;
     }
 
-    double valueOpenPos() {
+    double getValOfOpenPos() {
         if (posType == POSITION_TYPE_BUY)  return totalVolume * lastPrice();
         if (posType == POSITION_TYPE_SELL) return 2 * totalPricePaid - totalVolume * lastPrice();
         return 0;
@@ -463,8 +463,8 @@ public:
             cnt = 1;
         }
         if (cnt > 0) {
-            g::account.addToCash(valueOpenPos());
-            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(valueOpenPos()), totalVolume, lastPrice()));
+            g::account.addToCash(getValOfOpenPos());
+            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(getValOfOpenPos()), totalVolume, lastPrice()));
             totalPricePaid = 0.01;
             totalVolume = 0;
         }
@@ -508,7 +508,7 @@ LOG("\\--- --- BUY --- ---/");
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
         LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
-        LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
+        LOG(SF("Value of open positions: %s", d2str(getValOfOpenPos())));
 
         g::account.log();
 
@@ -554,7 +554,7 @@ LOG("\\--- --- SELL --- ---/");
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
         LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
-        LOG(SF("Value of open positions: %s", d2str(valueOpenPos())));
+        LOG(SF("Value of open positions: %s", d2str(getValOfOpenPos())));
 
         g::account.log();
 LOG("\\--- --- SELL --- ---/");
