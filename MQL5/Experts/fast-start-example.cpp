@@ -282,7 +282,7 @@ public:
     Account(): cash(10000) {}
 
     void addToCash(double amount) {
-LOG(SF("Cash: %9.2f + %9.2f = %9.2f", cash, amount, cash + amount));
+        // LOG(SF("Cash: %9.2f + %9.2f = %9.2f", cash, amount, cash + amount));
          cash += amount; }
 
     double getCash(void)    { return cash; }
@@ -471,9 +471,6 @@ public:
     }
 
     bool buy(Reason::ReasonCode reason) {
-LOG("/--- --- BUY --- ---\\");
-        g::account.log();
-
         stats.addOpReason(stats.buy, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
@@ -486,78 +483,64 @@ LOG("/--- --- BUY --- ---\\");
         for(totalVolume = 0; totalVolume < maxTotalVolume;) {
             bool res = m_Trade.Buy(adjVolume, price);
             if (!res) {
-                LOG(SF("BUY for %.2f = %.0f x %.2f", adjVolume * price, adjVolume, price));
+                LOG(SF("BUY: %.2f = %.0f x %.2f", adjVolume * price, adjVolume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
             totalVolume += adjVolume;
             g::account.addToCash(-adjVolume * price);
             posType = POSITION_TYPE_BUY;
-LOG(SF("Free margin after buy: %.2f", g::account.getFreeMargin()));
             if (checkFreeMarginTradeLimit()) {
                 break;
             }
         }
-        LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
-LOG("\\--- --- BUY --- ---/");
+            LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
                return false;
         }
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
-        LOG(SF("BUY for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
-        LOG(SF("Value of open positions: %s", d2str(getValOfOpenPos())));
-
+        LOG(SF("BUY: %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
         g::account.log();
 
-LOG("\\--- --- BUY --- ---/");
         return true;
     }
 
     bool sell(Reason::ReasonCode reason) {
-LOG("/--- --- SELL --- ---\\");
-        g::account.log();
-
         stats.addOpReason(stats.sell, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
         double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * freeMarginTradeLimit / 100 / price);
         double volume = MathMin(maxVolume, maxTotalVolume);
-LOG(SF("Price: %.2f, Free margin before: %.2f, freeMarginTradeLimit: %.2f, maxTotalVolume: %.2f, volume: %.2f",
-    price, freeMarginBeforeTransaction, freeMarginTradeLimit, maxTotalVolume, volume));
 
         for(totalVolume = 0; totalVolume < maxTotalVolume;) {
             bool res = m_Trade.Sell(volume, price);
             if (!res) {
-                LOG(SF("SELL for %.2f = %.0f x %.2f", volume * price, volume, price));
+                LOG(SF("SELL: %.2f = %.0f x %.2f", volume * price, volume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
             totalVolume += volume;
             g::account.addToCash(-volume * price);
             posType = POSITION_TYPE_SELL;
-LOG(SF("Free margin after sell: %.2f", g::account.getFreeMargin()));
             if (checkFreeMarginTradeLimit()) {
                 break;
             }
         }
-        LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
         switch (m_Trade.ResultRetcode()) {
             case TRADE_RETCODE_MARKET_CLOSED:
             case TRADE_RETCODE_NO_MONEY:
-LOG("\\--- --- SELL --- ---/"); 
+            LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
                return false;
         }
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
-        LOG(SF("SELL for %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
-        LOG(SF("Value of open positions: %s", d2str(getValOfOpenPos())));
-
+        LOG(SF("SELL: %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
         g::account.log();
-LOG("\\--- --- SELL --- ---/");
+
         return true;
     }
 };
