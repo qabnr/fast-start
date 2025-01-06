@@ -32,16 +32,16 @@ BEGIN {
   sI  = 0
   div = splits[sI]
 
-  print "<DATE>        <TIME>           <OPEN>    <HIGH>    <LOW>    <CLOSE>   <TICKVOL>     <VOL>    <SPREAD> "
+  print "<DATE>	<TIME>	<OPEN>	<HIGH>	<LOW>	<CLOSE>	<TICKVOL>	<VOL>	<SPREAD> "
 }
 {
   delta=($3/prev-1)*1000
   if (delta < -300) {
-#    printf "%s %s  %6.2f  %6.2f  %8.2f\n", $1,$2, prev, $3, delta
+#    printf "%s	%s	%6.2f	%6.2f	%8.2f\n", $1,$2, prev, $3, delta
     sI = sI + 1
     div = splits[sI]
   }
-  printf "%s    %s     %9.3f %9.3f %9.3f %9.3f %9d %14d %6d\n", $1,$2, $3/div, $4/div, $5/div, $6/div, $7, $8, $9
+  printf "%s	%s	%.3f	%.3f	%.3f	%.3f	%d	%d	%d\n", $1,$2, $3/div, $4/div, $5/div, $6/div, $7, $8, $9
   prev = $3
 }'
 
