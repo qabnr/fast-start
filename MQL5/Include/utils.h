@@ -13,10 +13,8 @@ bool isLOG() {
     return true;
     // return MQLInfoInteger(MQL_TESTER) != 0;
 }
-void LOG_Naked(const string s) {
-    if (isLOG()) Print(s);
-}
 #define LOG(s) if (isLOG()) PrintFormat("%5d: %s", __LINE__, s)
+#define LOG_LINENO(l, s) if (isLOG()) PrintFormat("%5d: %s", l, s)
 #define LOGF(s) if (isLOG()) PrintFormat("%5d: %s: %s", __LINE__, __FUNCTION__, s)
 //+------------------------------------------------------------------+
 #define DAYS *24*60*60

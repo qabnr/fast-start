@@ -25,55 +25,51 @@ input int    MACD1_avg_diff_period    = 9;
 input int    MACD2_fast_MA_period     = 96;
 input int    MACD2_slow_MA_period     = 208;
 input int    MACD2_avg_diff_period    = 72;
-input double OsMA_limit               = 0.73;
-input double decP_OsMa_limit          = 17.08;
-input int    minMaxBAckTrack          = 5;
-input double profitPerBalanceLimit    = 1.76;
-input double profitLossPerBalLimit    = 3.20;
-input int    maxTransactions          = 791;
-input double freeMarginTradeLimit     = 38.00;
+input double OsMA_limit               = 0.336;
+input double decP_OsMa_limit          = 5.325;
+input int    minMaxBAckTrack          = 11;
+input double profitPerBalanceLimit    = 1.632;
+input double profitLossPerBalLimit    = 0.410;
+input int    maxTransactions          = 11;
+input double freeMarginTradeLimit     = 71.00;
 input double tradeSize                = 0; // > 0: execute trades in MT5
 input int    LastChangeOfSignMinLimit = 139810;
 input int    LastChangeOfSignMaxLimit = 330950;
-input double profitPerPriceLimit      = 14.71;
-input double cummPrLossPerPriceLimit  = 289.67;
-input double profitLossPerPriceLimit  = 56.66;
+input double profitPerPriceLimit      = 14.705;
+input double cummPrLossPerPriceLimit  = 289.674;
+input double profitLossPerPriceLimit  = 56.658;
 input double maxRelDrawDownLimit      = 0.70;
 
 
 //+------------------------------------------------------------------+
 void printInputParams()
 {
-    PrintFormat("input int    MACD1_fast_MA_period     = %d;", MACD1_fast_MA_period);
-    PrintFormat("input int    MACD1_slow_MA_period     = %d;", MACD1_slow_MA_period);
-    PrintFormat("input int    MACD1_avg_diff_period    = %d;", MACD1_avg_diff_period);
-    PrintFormat("input int    MACD2_fast_MA_period     = %d;", MACD2_fast_MA_period);
-    PrintFormat("input int    MACD2_slow_MA_period     = %d;", MACD2_slow_MA_period);
-    PrintFormat("input int    MACD2_avg_diff_period    = %d;", MACD2_avg_diff_period);
-    PrintFormat("input double OsMA_limit               = %.2f;", OsMA_limit);
-    PrintFormat("input double decP_OsMa_limit          = %.2f;", decP_OsMa_limit);
-    PrintFormat("input int    minMaxBAckTrack          = %d;", minMaxBAckTrack);
-    PrintFormat("input double profitPerBalanceLimit    = %.2f;", profitPerBalanceLimit);
-    PrintFormat("input double profitLossPerBalLimit    = %.2f;", profitLossPerBalLimit);
-    PrintFormat("input int    maxTransactions          = %d;", maxTransactions);
-    PrintFormat("input double freeMarginTradeLimit         = %.2f;", freeMarginTradeLimit);
-    PrintFormat("input double tradeSize                = %.2f;", tradeSize);
-    PrintFormat("input int    LastChangeOfSignMinLimit = %d;", LastChangeOfSignMinLimit);
-    PrintFormat("input int    LastChangeOfSignMaxLimit = %d;", LastChangeOfSignMaxLimit);
-    PrintFormat("input double profitPerPriceLimit      = %.2f;", profitPerPriceLimit);
-    PrintFormat("input double cummPrLossPerPriceLimit  = %.2f;", cummPrLossPerPriceLimit);
-    PrintFormat("input double profitLossPerPriceLimit  = %.2f;", profitLossPerPriceLimit);
-    PrintFormat("input double maxRelDrawDownLimit      = %.2f;", maxRelDrawDownLimit);
+    PrintFormat("input int    MACD1_fast_MA_period     = %d;",   MACD1_fast_MA_period);
+    PrintFormat("input int    MACD1_slow_MA_period     = %d;",   MACD1_slow_MA_period);
+    PrintFormat("input int    MACD1_avg_diff_period    = %d;",   MACD1_avg_diff_period);
+    PrintFormat("input int    MACD2_fast_MA_period     = %d;",   MACD2_fast_MA_period);
+    PrintFormat("input int    MACD2_slow_MA_period     = %d;",   MACD2_slow_MA_period);
+    PrintFormat("input int    MACD2_avg_diff_period    = %d;",   MACD2_avg_diff_period);
+    PrintFormat("input double OsMA_limit               = %.3f;", OsMA_limit);
+    PrintFormat("input double decP_OsMa_limit          = %.3f;", decP_OsMa_limit);
+    PrintFormat("input int    minMaxBAckTrack          = %d;",   minMaxBAckTrack);
+    PrintFormat("input double profitPerBalanceLimit    = %.3f;", profitPerBalanceLimit);
+    PrintFormat("input double profitLossPerBalLimit    = %.3f;", profitLossPerBalLimit);
+    PrintFormat("input int    maxTransactions          = %d;",   maxTransactions);
+    PrintFormat("input double freeMarginTradeLimit     = %.3f;", freeMarginTradeLimit);
+    PrintFormat("input double tradeSize                = %.3f;", tradeSize);
+    PrintFormat("input int    LastChangeOfSignMinLimit = %d;",   LastChangeOfSignMinLimit);
+    PrintFormat("input int    LastChangeOfSignMaxLimit = %d;",   LastChangeOfSignMaxLimit);
+    PrintFormat("input double profitPerPriceLimit      = %.3f;", profitPerPriceLimit);
+    PrintFormat("input double cummPrLossPerPriceLimit  = %.3f;", cummPrLossPerPriceLimit);
+    PrintFormat("input double profitLossPerPriceLimit  = %.3f;", profitLossPerPriceLimit);
+    PrintFormat("input double maxRelDrawDownLimit      = %.3f;", maxRelDrawDownLimit);
 }
 //+------------------------------------------------------------------+
 namespace Reason
 {
-
-#define enum2str_DEFAULT default: return "<UNKNOWN>"
-
     enum Code {
-        Bought,
-        Sold,
+        None,
         peakNr1,
         peakNr2,
         valleyNr1,
@@ -96,8 +92,7 @@ namespace Reason
 
     string toStr(int r) {
         switch (r) {
-            case Bought:            return "Bought";
-            case Sold:              return "Sold";
+            case None:              return "None";
             case peakNr1:           return "1st peak";
             case peakNr2:           return "2nd peak";
             case valleyNr1:         return "1st valley";
@@ -115,8 +110,7 @@ namespace Reason
             case changeOfSign_pos:  return "Change of sign: (+)";
             case OsMA_pos:          return "OsMA (+)";
             case OsMA_neg:          return "OsMA (-)";
-
-            enum2str_DEFAULT;
+            default:                return "<UNKNOWN>";
         }
     }
 };
@@ -246,11 +240,13 @@ public:
 
     Reason::Code getReason() { return reason; }
 
-    void set(State state_, Reason::Code reason_, int lineNo = 0) {
-        if (state != state_) {
-            state  = state_;
-            reason = reason_;
-            LOG_Naked(SF("%5d: ==> %s <== %s", lineNo, State2str(), Reason2str()));
+    void set(State newState, Reason::Code newReason, int lineNo = 0) {
+        if (state != newState) {
+            reason = newReason;
+            if (newReason != Reason::None) {
+                LOG_LINENO(lineNo, SF("==> %s <== %s (%s)", State2str(newState), State2str(state), Reason2str()));
+            }
+            state  = newState;
         }
     }
 
@@ -370,75 +366,50 @@ public:
 class TradePosition
 {
 public:
-    enum positionType{
-        UNKNOWN = -1,
-        POSITION_TYPE_SELL,
-        POSITION_TYPE_BUY,
+    enum Type {
+        None = -1,
+        Sell,
+        Buy,
     };
 
 private:
-    const string    my_symbol;
-    const double    maxVolume;
+    const string  my_symbol;
+    const double  maxVolume;
 
-    MTrade          m_Trade;
+    MTrade  m_Trade;
 
-    positionType    posType;
-    double          totalPricePaid;
-    double          totalVolume;
-    Stats           stats;
+    Type    posType;
+    double  posTotalPricePaid;
+    double  posTotalVolume;
+    Stats   stats;
+
+    Reason::Code  posReason;
 
 public:
     TradePosition() : my_symbol(Symbol()),
                       maxVolume(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX)),
                       m_Trade(my_symbol),
-                      posType(UNKNOWN), totalPricePaid(0.01)
+                      posType(None), posTotalPricePaid(0.01)
     {}
     ~TradePosition() { 
         stats.print();
         LOG("***********************************");
-        LOG(SF("*  Final balance: %13.2f   *", g::account.getBalance()));
+        LOG(SF("*  Final balance: %13s   *", d2str(g::account.getBalance())));
         LOG(SF("*  Max relative drawdown: %5.2f%%  *", g::maxRelDrawDown * 100));
         LOG("***********************************");
     }
 
     bool select()                    { return true; /*PositionSelect(my_symbol);*/ }
     int getType()              const { return posType; }
-    double getTotalPricePaid() const { return totalPricePaid; }
+    double getTotalPricePaid() const { return posTotalPricePaid; }
 
     double lastPrice() {
         return SymbolInfoDouble(my_symbol, SYMBOL_LAST);
     }
 
-    double getDivisor() {
-        double div = 1;
-
-        if (TimeCurrent() < 1642070400) { // Jan. 13, 2022
-            div = 2;
-        }
-        if (TimeCurrent() < 1611216000) { // Jan. 21, 2021
-            div *= 2;
-        }
-        if (TimeCurrent() < 1527120000) { // May 24, 2018
-            div *= 3;
-        }
-        if (TimeCurrent() < 1484208000) { // Jan. 12, 2017
-            div *= 2;
-        }
-        if (TimeCurrent() < 1390560000) { // Jan. 24, 2014
-            div *= 2;
-        }
-        if (TimeCurrent() < 1336694400) { // May 11, 2012
-            div *= 2;
-        }
-        if (TimeCurrent() < 1298620800) { // Feb. 25, 2011
-            div *= 2;
-        }
-        return div;
-    }
-
     double getValOfOpenPos() {
-        if (posType == POSITION_TYPE_BUY)  return totalVolume * lastPrice();
-        if (posType == POSITION_TYPE_SELL) return 2 * totalPricePaid - totalVolume * lastPrice();
+        if (posType == Type::Buy)  return posTotalVolume * lastPrice();
+        if (posType == Type::Sell) return 2 * posTotalPricePaid - posTotalVolume * lastPrice();
         return 0;
     }
 
@@ -447,11 +418,14 @@ public:
     }
 
     void close(Reason::Code reason, double profit) {
-        LOG(SF("Close, profit: %+.1f%%, reason: %s", (profit), Reason::toStr(reason)));
+        LOG(SF("Close, profit: %+.1f%%, %s reason: %s",
+                profit,
+                posType == Type::Buy ? "Buy" : posType == Type::Sell ? "Sell" : "?",
+                Reason::toStr(posReason)));
         g::account.log();
 
-        stats.addOpReason(stats.Close,  reason);
-        stats.addProfit(profit, reason);
+        stats.addOpReason(stats.Close,  posReason);
+        stats.addProfit(profit, posReason);
 
         uint cnt = 0;
         if (g::execTradeinMT()) {
@@ -464,33 +438,33 @@ public:
         }
         if (cnt > 0) {
             g::account.addToCash(getValOfOpenPos());
-            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(getValOfOpenPos()), totalVolume, lastPrice()));
-            totalPricePaid = 0.001;
-            totalVolume = 0;
+            LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(getValOfOpenPos()), posTotalVolume, lastPrice()));
+            posTotalPricePaid = 0.001;
+            posTotalVolume = 0;
         }
         g::account.log();
     }
 
     bool buy(Reason::Code reason) {
+        posReason = reason;
         stats.addOpReason(stats.Buy, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
-        // double div = getDivisor();
         double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * freeMarginTradeLimit / 100 / price);
         double volume = MathMin(maxVolume, maxTotalVolume);
 
         double adjVolume = MathFloor(volume);
-        for(totalVolume = 0; totalVolume < maxTotalVolume;) {
+        for(posTotalVolume = 0; posTotalVolume < maxTotalVolume;) {
             bool res = m_Trade.Buy(adjVolume, price);
             if (!res) {
                 LOG(SF("BUY: %.2f = %.0f x %.2f", adjVolume * price, adjVolume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
-            totalVolume += adjVolume;
+            posTotalVolume += adjVolume;
             g::account.addToCash(-adjVolume * price);
-            posType = POSITION_TYPE_BUY;
+            posType = Type::Buy;
             if (checkFreeMarginTradeLimit()) {
                 break;
             }
@@ -502,14 +476,15 @@ public:
             return false;
         }
 
-        totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
-        LOG(SF("BUY: %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
+        posTotalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
+        LOG(SF("BUY: %s = %.0f x %.2f", d2str(posTotalPricePaid), posTotalVolume, price));
         g::account.log();
 
         return true;
     }
 
     bool sell(Reason::Code reason) {
+        posReason = reason;
         stats.addOpReason(stats.Sell, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
@@ -517,16 +492,16 @@ public:
         double maxTotalVolume = MathFloor(freeMarginBeforeTransaction * freeMarginTradeLimit / 100 / price);
         double volume = MathMin(maxVolume, maxTotalVolume);
 
-        for(totalVolume = 0; totalVolume < maxTotalVolume;) {
+        for(posTotalVolume = 0; posTotalVolume < maxTotalVolume;) {
             bool res = m_Trade.Sell(volume, price);
             if (!res) {
                 LOG(SF("SELL: %.2f = %.0f x %.2f", volume * price, volume, price));
                 LOG(m_Trade.ResultRetcodeDescription());
                 break;
             }
-            totalVolume += volume;
+            posTotalVolume += volume;
             g::account.addToCash(-volume * price);
-            posType = POSITION_TYPE_SELL;
+            posType = Type::Sell;
             if (checkFreeMarginTradeLimit()) {
                 break;
             }
@@ -538,8 +513,8 @@ public:
             return false;
         }
 
-        totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
-        LOG(SF("SELL: %s = %.0f x %.2f", d2str(totalPricePaid), totalVolume, price));
+        posTotalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
+        LOG(SF("SELL: %s = %.0f x %.2f", d2str(posTotalPricePaid), posTotalVolume, price));
         g::account.log();
 
         return true;
@@ -597,16 +572,12 @@ int OnInit()
     return 0;
 }
 //+------------------------------------------------------------------+
-void OnDeinit(const int reason)
-{
-}
-//+------------------------------------------------------------------+
 void changeDirection(const Reason::Code reason, const int lineNo)
 {
-    if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
+    if (g::pPos.getType() == TradePosition::Type::Buy) {
         g::nextTrade.set(NextTrade::State::SellNow, reason, lineNo);
     }
-    else if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
+    else if (g::pPos.getType() == TradePosition::Type::Sell) {
         g::nextTrade.set(NextTrade::State::BuyNow, reason, lineNo);
     }
 }
@@ -949,13 +920,13 @@ void handleMACDSignals(ProfitEtc &p) {
     if (g::MACD1.OsMA_justChangedPositive()) {
         g::nextTrade.set(NextTrade::State::BuyNow, Reason::OsMA_pos, __LINE__);
     } else if (g::MACD1.OsMA_justChangedNegative()) {
-        g::nextTrade.set(NextTrade::State::SellNow, Reason::OsMA_neg, __LINE__);
+//???        g::nextTrade.set(NextTrade::State::SellNow, Reason::OsMA_neg, __LINE__);
     } else if (MACD1peaksAndValleys.is1stPeak()) {
         if (p.profitPerBalance > 0.5) {
             // g::nextTrade.set(NextTrade::State::SellNow, Reason::peakNr1, __LINE__);
         }
     } else if (MACD1peaksAndValleys.is2ndPeak()) {
-        g::nextTrade.set(NextTrade::State::SellNow, Reason::peakNr2, __LINE__);
+//???        g::nextTrade.set(NextTrade::State::SellNow, Reason::peakNr2, __LINE__);
     } else if (MACD1peaksAndValleys.is1stValley()) {
         if (p.profitPerBalance > 0.5) {
             // g::nextTrade.set(NextTrade::State::BuyNow, Reason::valleyNr1, __LINE__);
@@ -978,26 +949,24 @@ void handleBuySell(ProfitEtc &p, const double price) {
     }
 
     if (g::nextTrade.isBuyNow()) {
-        executeTrade(p, TradePosition::POSITION_TYPE_BUY, Reason::Bought);
+        executeTrade(p, TradePosition::Type::Buy, g::nextTrade.getReason());
     }
     else if (g::nextTrade.isSellNow()) {
-        executeTrade(p, TradePosition::POSITION_TYPE_SELL, Reason::Sold);
+        executeTrade(p, TradePosition::Type::Sell, g::nextTrade.getReason());
     }
 }
 //+------------------------------------------------------------------+
-void executeTrade(ProfitEtc& p, int type, Reason::Code newReason)
+void executeTrade(ProfitEtc& p, int type, Reason::Code reason)
 {
-    Reason::Code oldReason = g::nextTrade.getReason();
     if (g::pPos.select()) {
         if (g::pPos.getType() == type) {
-            // g::nextTrade.set(NextTrade::State::None, newReason, __LINE__);
-            // LOG(type == TradePosition::POSITION_TYPE_BUY ? " Already bought" : " Already sold");
+            // LOG(type == TradePosition::Type::Buy ? " Already bought" : " Already sold");
             return;
         }
-        g::pPos.close(oldReason, p.profitPerBalance * 100);
+        g::pPos.close(reason, p.profitPerBalance * 100);
     }
-    if (type == TradePosition::POSITION_TYPE_BUY ? g::pPos.buy(oldReason) : g::pPos.sell(oldReason)) {
-        g::nextTrade.set(NextTrade::State::None, newReason, __LINE__);
+    if (type == TradePosition::Type::Buy ? g::pPos.buy(reason) : g::pPos.sell(reason)) {
+        g::nextTrade.set(NextTrade::State::None, Reason::None, __LINE__);
         p.cummPrLossPerPrice = 0;
         p.maxProfit = 0;
         p.newLogHeader();
