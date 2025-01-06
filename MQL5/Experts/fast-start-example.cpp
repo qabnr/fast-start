@@ -190,11 +190,11 @@ public:
     void addOpReason(Operation op, Reason::ReasonCode r) {
         cntOp[op][r]++;
     }
-  
+
     void addProfit(double profit, Reason::ReasonCode reason) {
         profitList[reason].push(profit);
     }
-  
+
     void print() {
         string line = SF("%41s", "");
         for (Operation op = 0; op < Operation::size; op++) {
@@ -213,10 +213,10 @@ public:
                 line += SF("%7d", cntOp[op][r]);
             }
             LOG(SF("%s %8s %8.1f %8.1f",
-                line,
-                d2str(profitList[r].sum(), false),
-                profitList[r].avg(),
-                profitList[r].stdDev()));
+                   line,
+                   d2str(profitList[r].sum(), false),
+                   profitList[r].avg(),
+                   profitList[r].stdDev()));
             sumSumProfit += profitList[r].sum();
         }
         LOG(lineDiv);
@@ -291,7 +291,7 @@ public:
     double getFreeMargin()  { return cash; }
 
     void log(void) {
-        LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f", 
+        LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f",
                g::pPos.getValOfOpenPos(), g::account.getBalance(), g::account.getEquity(), cash));
     }
 };
@@ -313,7 +313,7 @@ public:
                 double executionPrice = 0.0;
                 double stopLoss = 0.0;
                 double takeProfit = 0.0;
-                
+
                 if (isBuy) {
                     return c_trade.Buy(volume, symbol, executionPrice, stopLoss, takeProfit);
                 } else {
@@ -346,7 +346,7 @@ public:
         if (g::execTradeinMT()) {
             return c_trade.ResultRetcodeDescription();
         }
-        switch (retcode) 
+        switch (retcode)
         {
         case TRADE_RETCODE_MARKET_CLOSED:
             return "Market is closed";
@@ -388,10 +388,10 @@ private:
     Stats           stats;
 
 public:
-    TradePosition(): my_symbol(Symbol()),
-        maxVolume(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX)),
-        m_Trade(my_symbol),
-        posType(UNKNOWN), totalPricePaid(0.01)
+    TradePosition() : my_symbol(Symbol()),
+                      maxVolume(SymbolInfoDouble(my_symbol, SYMBOL_VOLUME_MAX)),
+                      m_Trade(my_symbol),
+                      posType(UNKNOWN), totalPricePaid(0.01)
     {}
     ~TradePosition() { 
         stats.print();
@@ -447,7 +447,7 @@ public:
     }
 
     void close(Reason::ReasonCode reason, double profit) {
-        LOG(SF("Close, profit: %+.1f%%", (profit)));
+        LOG(SF("Close, profit: %+.1f%%, reason: %s", (profit), Reason::toStr(reason)));
         g::account.log();
 
         stats.addOpReason(stats.close,  reason);
@@ -465,9 +465,10 @@ public:
         if (cnt > 0) {
             g::account.addToCash(getValOfOpenPos());
             LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(getValOfOpenPos()), totalVolume, lastPrice()));
-            totalPricePaid = 0.01;
+            totalPricePaid = 0.001;
             totalVolume = 0;
         }
+        g::account.log();
     }
 
     bool buy(Reason::ReasonCode reason) {
@@ -495,10 +496,10 @@ public:
             }
         }
         switch (m_Trade.ResultRetcode()) {
-            case TRADE_RETCODE_MARKET_CLOSED:
-            case TRADE_RETCODE_NO_MONEY:
+        case TRADE_RETCODE_MARKET_CLOSED:
+        case TRADE_RETCODE_NO_MONEY:
             LOG(SF("Buy: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
-               return false;
+            return false;
         }
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
@@ -531,10 +532,10 @@ public:
             }
         }
         switch (m_Trade.ResultRetcode()) {
-            case TRADE_RETCODE_MARKET_CLOSED:
-            case TRADE_RETCODE_NO_MONEY:
+        case TRADE_RETCODE_MARKET_CLOSED:
+        case TRADE_RETCODE_NO_MONEY:
             LOG(SF("Sell: %s (%d)", m_Trade.ResultRetcodeDescription(), m_Trade.ResultRetcode()));
-               return false;
+            return false;
         }
 
         totalPricePaid = freeMarginBeforeTransaction - g::account.getFreeMargin();
@@ -578,14 +579,14 @@ namespace g
 int OnInit()
 {
     printInputParams();
-    
+
     g::indicatorList.add(g::MACD1  = new myMACD2("MACD1", MACD1_fast_MA_period,   MACD1_slow_MA_period,   MACD1_avg_diff_period  ));
     g::indicatorList.add(g::MACD2  = new myMACD2("MACD2", MACD2_fast_MA_period,   MACD2_slow_MA_period,   MACD2_avg_diff_period  ));
     g::indicatorList.add(g::MACD3  = new myMACD2("MACD3", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.61, 1.0));    
-    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.80, 2.0));    
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.61, 1.0));
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.80, 2.0));
 
     // g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.4);
@@ -629,7 +630,7 @@ private:
 //LOG(SF("(%d) %.3f  %.3f", i, macd.buffer.get(i), macd.buffer.get(i+1)));
             if (macd.buffer.get(i) > macd.buffer.get(i+1)) return false;
         }
-// LOG("MIN found");
+        // LOG("MIN found");
         return true;
     };
 
@@ -640,14 +641,14 @@ private:
 //LOG(SF("(%d) %.3f  %.3f", i, macd.buffer.get(i), macd.buffer.get(i+1)));
             if (macd.buffer.get(i) < macd.buffer.get(i+1)) return false;
         }
-// LOG("MAX found");
+        // LOG("MAX found");
         return true;
     };
 
     void initValues(int _sign) {
 
         if (sign != _sign) {
-// LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
+            // LOG(SF("(%s) Last change of sign: %s ago XXXXXXXXXXXXXXXXX", _sign > 0 ? "+" : _sign < 0 ? "-" : "0", timeDiffToStr(TimeOfLastChangeOfSign)));
             TimeOfLastChangeOfSign = TimeCurrent();
         }
         sign = _sign;
@@ -663,10 +664,10 @@ private:
 public:
     MACD_PeaksAndValleys(myMACD2 *macd_) :
         macd(macd_),
-        sign(-2),
-        TimeOfLastChangeOfSign(TimeCurrent()),
-        TimeOfLastMin(0),
-        TimeOfLastMax(0)
+                                           sign(-2),
+                                           TimeOfLastChangeOfSign(TimeCurrent()),
+                                           TimeOfLastMin(0),
+                                           TimeOfLastMax(0)
     {   initValues(0); }
     ~MACD_PeaksAndValleys() {};
 
@@ -683,84 +684,84 @@ public:
 
 //LogMACD_Last(minMaxBAckTrack+1);
 
-static datetime barTime = 0;
-datetime currBarTime = iTime(_Symbol, _Period, 0);
+        static datetime barTime = 0;
+        datetime currBarTime = iTime(_Symbol, _Period, 0);
 if(barTime != currBarTime) {
-    barTime = currBarTime;
-}
+            barTime = currBarTime;
+        }
 else {
-    return;
-}
+            return;
+        }
 
         double macd0 = macd.buffer.get(1);
         if (macd0 < 0) {
             if (sign >= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
-if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
+                if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
+                    if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+                        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
                 initValues(-1);
             }
             if (isMin()) {
-// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
+                // LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
                 if (macd0  * (1 - 0.05) < lastMax) {
-//                    if (numOfmins == numOfMaxs)
-if (timeDiff(TimeOfLastMin) > 25 HOURS)
+                    //                    if (numOfmins == numOfMaxs)
+                    if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-// string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
-// if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
-// LOG(LOGtxt);
+                    // string LOGtxt = SF("min: %.2f, nOf: %d", macd0, numOfmins);
+                    // if (numOfmins == 1) LOGtxt += SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign));
+                    // LOG(LOGtxt);
                 }
             }
             else if (isMax()) {
-// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+                // LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
                 if ((macd0 / lastMin) < 1 - 0.05) {
-//                    if (numOfmins > numOfMaxs)
-                        numOfMaxs++;
+                    //                    if (numOfmins > numOfMaxs)
+                    numOfMaxs++;
                     lastMax = macd0;
                     TimeOfLastMax = TimeCurrent();
-// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-// LOG(LOGtxt);
+                    // string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+                    // if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+                    // LOG(LOGtxt);
                 }
             }
         }
         else {
             if (sign <= 0) {
-if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
-if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-    g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
+                if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
+                    if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
+                        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
                 initValues(1);
             }
             if (isMax()) {
-// LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
-//                if (numOfmins == numOfMaxs)
-                    numOfMaxs++;
+                // LOG(SF("MAX,  time since last: %s", timeDiffToStr(TimeOfLastMax)));
+                //                if (numOfmins == numOfMaxs)
+                numOfMaxs++;
                 lastMax = macd0;
                 TimeOfLastMax = TimeCurrent();
-// string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
-// if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-// LOG(LOGtxt);
+                // string LOGtxt = (SF("Max: %.2f, nOf: %d", macd0, numOfMaxs));
+                // if (numOfMaxs == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+                // LOG(LOGtxt);
             }
-            else if (isMin()){
-// LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
+            else if (isMin()) {
+                // LOG(SF("MIN,  time since last: %s", timeDiffToStr(TimeOfLastMin)));
                 if ((macd0 / lastMax) < 1 - 0.05) {
-//                    if (numOfmins < numOfMaxs)
-if (timeDiff(TimeOfLastMin) > 25 HOURS)
+                    //                    if (numOfmins < numOfMaxs)
+                    if (timeDiff(TimeOfLastMin) > 25 HOURS)
                         numOfmins++;
                     lastMin = macd0;
                     TimeOfLastMin = TimeCurrent();
-// string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
-// if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
-// LOG(LOGtxt);
+                    // string LOGtxt = (SF("min: %.2f, nOf: %d", macd0, numOfmins));
+                    // if (numOfmins == 1) LOGtxt += (SF(", Last change of sign: %s ago XXXXXXXXXXXXXXXXX", timeDiffToStr(TimeOfLastChangeOfSign)));
+                    // LOG(LOGtxt);
                 }
             }
         }
     }
 
     bool is1stPeak() {
-// LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
+        // LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is1stPeakAlreadyFound?"T":"F", numOfMaxs,numOfmins));
         if (is1stPeakAlreadyFound) return false;
         // if (numOfMaxs == 1 && numOfmins == 0) {
         if (sign > 0 && numOfMaxs == 1 && numOfmins == 0) {
@@ -795,7 +796,7 @@ if (timeDiff(TimeOfLastMin) > 25 HOURS)
     bool is2ndValley() {
 //LOG(SF("%s: %s  MAX: %d  min: %d", __FUNCTION__, is2ndValleyAlreadyFound?"T":"F", numOfMaxs, numOfmins));
         if (is2ndValleyAlreadyFound) return false;
-//        if (numOfmins == 2 && numOfMaxs == 1) {
+        //        if (numOfmins == 2 && numOfMaxs == 1) {
         // if (numOfmins == 2 && numOfMaxs <= 1) {
         if (sign < 0 && numOfmins == 2 && numOfMaxs <= 1) {
             is2ndValleyAlreadyFound = true;
@@ -851,7 +852,7 @@ public:
 
     void logHeader() {
         LOG("--  Pro    PrLs/Bal PrLs/Pri  Pro/Bal  Pro/Pri  CmPr/Pr     Eq"
-        "     Eq/EqMx    Bal   RlDrDn   Pri     H-         L+");
+            "     Eq/EqMx    Bal   RlDrDn   Pri     H-         L+");
     }
     void log(const int currTickCnt) {
         logCnt++;
@@ -863,20 +864,20 @@ public:
         double lastMinDiffPct = g::lastMin == 0 ? 0 : (lastPrice / g::lastMin - 1) * 100;
 
         LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%%(%2d) L%+0.1f%%(%2d)",
-            d2str(profit),
-            profitLossPerBal * 100,
-            profitLossPerPrice * 100,
-            profitPerBalance * 100.0,
-            profitPerPrice * 100.0,
-            cummPrLossPerPrice * 100,
-            d2str(equity),
+               d2str(profit),
+               profitLossPerBal * 100,
+               profitLossPerPrice * 100,
+               profitPerBalance * 100.0,
+               profitPerPrice * 100.0,
+               cummPrLossPerPrice * 100,
+               d2str(equity),
             (equity-maxEquity) / maxEquity * 100,
-            d2str(balance),
-            g::maxRelDrawDown * 100,
-            lastPrice,
-            lastMaxDiffPct,
-            currTickCnt - g::lastMaxTickCnt,
-            lastMinDiffPct,
+               d2str(balance),
+               g::maxRelDrawDown * 100,
+               lastPrice,
+               lastMaxDiffPct,
+               currTickCnt - g::lastMaxTickCnt,
+               lastMinDiffPct,
             currTickCnt - g::lastMinTickCnt
         ));
     }
@@ -901,8 +902,8 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        // static HHLLlist hhll;
-        // hhll.log(tickCnt);
+        static HHLLlist hhll;
+        hhll.log(tickCnt);
         // p.log(tickCnt);
     }
 
@@ -941,8 +942,7 @@ void handleTradeSignals(ProfitEtc& p, const double price)
     }
 }
 //+------------------------------------------------------------------+
-void handleMACDSignals(ProfitEtc& p)
-{
+void handleMACDSignals(ProfitEtc &p) {
     static MACD_PeaksAndValleys MACD1peaksAndValleys(g::MACD1);
     MACD1peaksAndValleys.process();
 
@@ -965,8 +965,7 @@ void handleMACDSignals(ProfitEtc& p)
     }
 }
 //+------------------------------------------------------------------+
-void handleBuySell(ProfitEtc& p, const double price)
-{
+void handleBuySell(ProfitEtc &p, const double price) {
     if (g::sellOrBuy.isGetReadyToBuy()) {
         if (g::ATR_list.isBuyNow(price)) {
             g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
