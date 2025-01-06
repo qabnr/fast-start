@@ -71,7 +71,7 @@ namespace Reason
 
 #define enum2str_DEFAULT default: return "<UNKNOWN>"
 
-    enum ReasonCode {
+    enum Code {
         Bought,
         Sold,
         peakNr1,
@@ -91,7 +91,7 @@ namespace Reason
         changeOfSign_pos,
         OsMA_pos,
         OsMA_neg,
-        size
+        Size
     };
 
     string toStr(int r) {
@@ -167,37 +167,37 @@ class Stats
 {
 public:
     enum Operation {
-        buy,
-        sell,
-        close,
-        size
+        Buy,
+        Sell,
+        Close,
+        Size
     };
 
 private:
-    int      cntOp[Operation::size][Reason::ReasonCode::size];
-    StatList profitList[Reason::ReasonCode::size];
+    int      cntOp[Operation::Size][Reason::Code::Size];
+    StatList profitList[Reason::Code::Size];
 
 public:
     string op2str(Operation op) const {
         switch (op) {
-            case Operation::buy:     return "Buy";
-            case Operation::sell:    return "Sell";
-            case Operation::close:   return "Clse";
+            case Operation::Buy:     return "Buy";
+            case Operation::Sell:    return "Sell";
+            case Operation::Close:   return "Clse";
             default:                 return "<UNKNOWN>";
         }
     }
 
-    void addOpReason(Operation op, Reason::ReasonCode r) {
+    void addOpReason(Operation op, Reason::Code r) {
         cntOp[op][r]++;
     }
 
-    void addProfit(double profit, Reason::ReasonCode reason) {
+    void addProfit(double profit, Reason::Code reason) {
         profitList[reason].push(profit);
     }
 
     void print() {
         string line = SF("%41s", "");
-        for (Operation op = 0; op < Operation::size; op++) {
+        for (Operation op = 0; op < Operation::Size; op++) {
             line += SF("%7s", op2str(op));
         }
         LOG("");
@@ -207,9 +207,9 @@ public:
         StringInit(lineDiv, StringLen(line), '-');
         LOG(lineDiv);
         double sumSumProfit = 0;
-        for (int r = 0; r < Reason::ReasonCode::size; r++) {
+        for (int r = 0; r < Reason::Code::Size; r++) {
             line = SF("%40s", Reason::toStr(r));
-            for (int op = 0; op < Operation::size; op++) {
+            for (int op = 0; op < Operation::Size; op++) {
                 line += SF("%7d", cntOp[op][r]);
             }
             LOG(SF("%s %8s %8.1f %8.1f",
@@ -224,7 +224,7 @@ public:
     }
 };
 //+------------------------------------------------------------------+
-class SellOrBuy
+class NextTrade
 {
 public:
     enum State {
@@ -237,16 +237,16 @@ public:
 
 private:
     State  state;
-    Reason::ReasonCode reason;
+    Reason::Code reason;
 
 public:
 
-    SellOrBuy(): state(State::None) {}
-    ~SellOrBuy() {}
+    NextTrade(): state(State::None) {}
+    ~NextTrade() {}
 
-    Reason::ReasonCode getReason() { return reason; }
+    Reason::Code getReason() { return reason; }
 
-    void set(State state_, Reason::ReasonCode reason_, int lineNo = 0) {
+    void set(State state_, Reason::Code reason_, int lineNo = 0) {
         if (state != state_) {
             state  = state_;
             reason = reason_;
@@ -446,11 +446,11 @@ public:
         return g::account.getFreeMargin() >= g::account.getEquity() * freeMarginTradeLimit / 100;
     }
 
-    void close(Reason::ReasonCode reason, double profit) {
+    void close(Reason::Code reason, double profit) {
         LOG(SF("Close, profit: %+.1f%%, reason: %s", (profit), Reason::toStr(reason)));
         g::account.log();
 
-        stats.addOpReason(stats.close,  reason);
+        stats.addOpReason(stats.Close,  reason);
         stats.addProfit(profit, reason);
 
         uint cnt = 0;
@@ -471,8 +471,8 @@ public:
         g::account.log();
     }
 
-    bool buy(Reason::ReasonCode reason) {
-        stats.addOpReason(stats.buy, reason);
+    bool buy(Reason::Code reason) {
+        stats.addOpReason(stats.Buy, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
@@ -509,8 +509,8 @@ public:
         return true;
     }
 
-    bool sell(Reason::ReasonCode reason) {
-        stats.addOpReason(stats.sell, reason);
+    bool sell(Reason::Code reason) {
+        stats.addOpReason(stats.Sell, reason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
@@ -559,7 +559,7 @@ namespace g
 
     TradePosition    pPos;
     LinRegrChannel  *linRegrChannel;
-    SellOrBuy        sellOrBuy;
+    NextTrade        nextTrade;
     double           maxRelDrawDown = 0;
 
     IndicatorList   indicatorList;
@@ -601,13 +601,13 @@ void OnDeinit(const int reason)
 {
 }
 //+------------------------------------------------------------------+
-void changeDirection(const Reason::ReasonCode reason, const int lineNo)
+void changeDirection(const Reason::Code reason, const int lineNo)
 {
     if (g::pPos.getType() == TradePosition::POSITION_TYPE_BUY) {
-        g::sellOrBuy.set(SellOrBuy::State::SellNow, reason, lineNo);
+        g::nextTrade.set(NextTrade::State::SellNow, reason, lineNo);
     }
     else if (g::pPos.getType() == TradePosition::POSITION_TYPE_SELL) {
-        g::sellOrBuy.set(SellOrBuy::State::BuyNow, reason, lineNo);
+        g::nextTrade.set(NextTrade::State::BuyNow, reason, lineNo);
     }
 }
 //+------------------------------------------------------------------+
@@ -698,7 +698,7 @@ else {
             if (sign >= 0) {
                 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
                     if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-                        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::changeOfSign_neg, __LINE__);
+                        g::nextTrade.set(NextTrade::State::SellNow, Reason::changeOfSign_neg, __LINE__);
                 initValues(-1);
             }
             if (isMin()) {
@@ -731,7 +731,7 @@ else {
             if (sign <= 0) {
                 if (timeDiff(TimeOfLastChangeOfSign) > LastChangeOfSignMinLimit)
                     if (timeDiff(TimeOfLastChangeOfSign) < LastChangeOfSignMaxLimit)
-                        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
+                        g::nextTrade.set(NextTrade::State::BuyNow, Reason::changeOfSign_pos, __LINE__);
                 initValues(1);
             }
             if (isMax()) {
@@ -902,8 +902,8 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-        static HHLLlist hhll;
-        hhll.log(tickCnt);
+//        static HHLLlist hhll;
+//        hhll.log(tickCnt);
         // p.log(tickCnt);
     }
 
@@ -947,57 +947,57 @@ void handleMACDSignals(ProfitEtc &p) {
     MACD1peaksAndValleys.process();
 
     if (g::MACD1.OsMA_justChangedPositive()) {
-        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::OsMA_pos, __LINE__);
+        g::nextTrade.set(NextTrade::State::BuyNow, Reason::OsMA_pos, __LINE__);
     } else if (g::MACD1.OsMA_justChangedNegative()) {
-        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::OsMA_neg, __LINE__);
+        g::nextTrade.set(NextTrade::State::SellNow, Reason::OsMA_neg, __LINE__);
     } else if (MACD1peaksAndValleys.is1stPeak()) {
         if (p.profitPerBalance > 0.5) {
-            // g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr1, __LINE__);
+            // g::nextTrade.set(NextTrade::State::SellNow, Reason::peakNr1, __LINE__);
         }
     } else if (MACD1peaksAndValleys.is2ndPeak()) {
-        g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::peakNr2, __LINE__);
+        g::nextTrade.set(NextTrade::State::SellNow, Reason::peakNr2, __LINE__);
     } else if (MACD1peaksAndValleys.is1stValley()) {
         if (p.profitPerBalance > 0.5) {
-            // g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr1, __LINE__);
+            // g::nextTrade.set(NextTrade::State::BuyNow, Reason::valleyNr1, __LINE__);
         }
     } else if (MACD1peaksAndValleys.is2ndValley()) {
-        g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::valleyNr2, __LINE__);
+        g::nextTrade.set(NextTrade::State::BuyNow, Reason::valleyNr2, __LINE__);
     }
 }
 //+------------------------------------------------------------------+
 void handleBuySell(ProfitEtc &p, const double price) {
-    if (g::sellOrBuy.isGetReadyToBuy()) {
+    if (g::nextTrade.isGetReadyToBuy()) {
         if (g::ATR_list.isBuyNow(price)) {
-            g::sellOrBuy.set(SellOrBuy::State::BuyNow, Reason::ATR_low, __LINE__);
+            g::nextTrade.set(NextTrade::State::BuyNow, Reason::ATR_low, __LINE__);
         }
     }
-    else if (g::sellOrBuy.isGetReadyToSell()) {
+    else if (g::nextTrade.isGetReadyToSell()) {
         if (g::ATR_list.isSellNow(price)) {
-            g::sellOrBuy.set(SellOrBuy::State::SellNow, Reason::ATR_high, __LINE__);
+            g::nextTrade.set(NextTrade::State::SellNow, Reason::ATR_high, __LINE__);
         }
     }
 
-    if (g::sellOrBuy.isBuyNow()) {
+    if (g::nextTrade.isBuyNow()) {
         executeTrade(p, TradePosition::POSITION_TYPE_BUY, Reason::Bought);
     }
-    else if (g::sellOrBuy.isSellNow()) {
+    else if (g::nextTrade.isSellNow()) {
         executeTrade(p, TradePosition::POSITION_TYPE_SELL, Reason::Sold);
     }
 }
 //+------------------------------------------------------------------+
-void executeTrade(ProfitEtc& p, int type, Reason::ReasonCode newReason)
+void executeTrade(ProfitEtc& p, int type, Reason::Code newReason)
 {
-    Reason::ReasonCode oldReason = g::sellOrBuy.getReason();
+    Reason::Code oldReason = g::nextTrade.getReason();
     if (g::pPos.select()) {
         if (g::pPos.getType() == type) {
-            g::sellOrBuy.set(SellOrBuy::State::None, newReason, __LINE__);
-            LOG(type == TradePosition::POSITION_TYPE_BUY ? " Already bought" : " Already sold");
+            // g::nextTrade.set(NextTrade::State::None, newReason, __LINE__);
+            // LOG(type == TradePosition::POSITION_TYPE_BUY ? " Already bought" : " Already sold");
             return;
         }
         g::pPos.close(oldReason, p.profitPerBalance * 100);
     }
     if (type == TradePosition::POSITION_TYPE_BUY ? g::pPos.buy(oldReason) : g::pPos.sell(oldReason)) {
-        g::sellOrBuy.set(SellOrBuy::State::None, newReason, __LINE__);
+        g::nextTrade.set(NextTrade::State::None, newReason, __LINE__);
         p.cummPrLossPerPrice = 0;
         p.maxProfit = 0;
         p.newLogHeader();
