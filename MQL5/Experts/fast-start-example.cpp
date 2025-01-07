@@ -287,8 +287,8 @@ public:
     double getFreeMargin()  { return cash; }
 
     void log(void) {
-        LOG(SF("Open pos value: %9.2f, balance: %9.2f, equity: %9.2f, cash: %9.2f",
-               g::pPos.getValOfOpenPos(), g::account.getBalance(), g::account.getEquity(), cash));
+        LOG(SF("Open pos value: %9s  balance: %9s  equity: %9s  cash: %9s",
+               d2str(g::pPos.getValOfOpenPos()), d2str(g::account.getBalance()), d2str(g::account.getEquity()), d2str(cash)));
     }
 };
 //+------------------------------------------------------------------+
@@ -391,7 +391,10 @@ public:
                       m_Trade(my_symbol),
                       posType(None), posTotalPricePaid(0.01)
     {}
-    ~TradePosition() { 
+    ~TradePosition() {
+        if (posType != Type::None) {
+            close(Reason::None,  (getValOfOpenPos() - getTotalPricePaid()) / g::account.getBalance() * 100);
+        }
         stats.print();
         LOG("***********************************");
         LOG(SF("*  Final balance: %13s   *", d2str(g::account.getBalance())));
@@ -440,7 +443,8 @@ public:
             g::account.addToCash(getValOfOpenPos());
             LOG(SF("CLOSE: %s = %.0f x %.2f", d2str(getValOfOpenPos()), posTotalVolume, lastPrice()));
             posTotalPricePaid = 0.001;
-            posTotalVolume = 0;
+            posTotalVolume    = 0;
+            posType           = Type::None;
         }
         g::account.log();
     }
@@ -887,10 +891,10 @@ void handleTradeSignals(ProfitEtc& p, const double price)
 {
     int len = 0;
     if ((len = g::TR_ST_list.isBuyNow(price)) > 0) {
-        LOG(SF("TRST: BuyNow: %d", len));
+        // LOG(SF("TRST: BuyNow: %d", len));
     }
     else if ((len = g::TR_ST_list.isSellNow(price)) > 0) {
-        LOG(SF("TRST: SellNow: %d", len));
+        // LOG(SF("TRST: SellNow: %d", len));
     }
 
     if (p.profitPerBalance < -profitPerBalanceLimit) {

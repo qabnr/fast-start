@@ -41,7 +41,9 @@ public:
     {
         init();
     }
-    ~Buffer() { LOGF(SF("buffer: %d, handle: %d, indicator: %s", buffNum, handle, indicatorName)); };
+    ~Buffer() {
+        // LOGF(SF("buffer: %d, handle: %d, indicator: %s", buffNum, handle, indicatorName)); 
+    };
 
     int getHandle() const {
         return handle;
@@ -76,7 +78,9 @@ public:
         : handle(_handle),
           buffer(_buffNumber, _indicatorName, _handle)
     {}
-    virtual ~Indicator() { LOGF(""); };
+    virtual ~Indicator() {
+        // LOGF("");
+    };
 
     string getName() const {
         return buffer.getName();

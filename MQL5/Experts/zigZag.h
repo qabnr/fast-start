@@ -25,7 +25,9 @@ public:
           HighMapBuffer(1, buffer),
           LowMapBuffer (2, buffer)
     {}
-    ~ZigZag() { LOGF(""); }
+    ~ZigZag() {
+        // LOGF("");
+    }
 
     bool copyBuffers(const int count) {
         return

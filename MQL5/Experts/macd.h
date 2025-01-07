@@ -40,7 +40,9 @@ public:
         }
     }
 
-    virtual ~MACD_base() { LOGF(""); };
+    virtual ~MACD_base() {
+        // LOGF("");
+    };
 
     virtual bool copyBuffers(const int count) {
         return
@@ -90,7 +92,9 @@ public:
         decPeriod_OsMA_Buffer(6, bufferName, handle),
         incPeriod_OsMA_Buffer(7, bufferName, handle)
     {}
-    ~MACD() { LOGF(""); }
+    ~MACD() {
+        // LOGF("");
+    }
 
     bool copyBuffers(const int count) {
         return
@@ -110,7 +114,9 @@ public:
                     0, 1, 2, 3)
     {}
 
-    ~myMACD2() { LOGF(""); }
+    ~myMACD2() {
+        // LOGF("");
+    }
 };
 //+------------------------------------------------------------------+
 #endif

@@ -27,7 +27,9 @@ private:
     string indName;
 
 public:
-    ~TR_STOP() { LOGF(indName); }
+    ~TR_STOP() {
+        // LOGF(indName);
+    }
   
     TR_STOP(const int lookBackPeriod, const double offset)
         : indName(SF("TR_ST(%d, %.1f)", lookBackPeriod, offset)),
@@ -58,7 +60,7 @@ public:
             if (buyBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
-LOG(SF("%s: BuyNow: %d", indName, cnt));
+// LOG(SF("%s: BuyNow: %d", indName, cnt));
         return cnt;
     }
 
@@ -72,7 +74,7 @@ LOG(SF("%s: BuyNow: %d", indName, cnt));
             if (sellBuffer.get(i) != stopBuffer.get(i)) break;
             cnt++;
         }
-LOG(SF("%s: SellNow: %d", indName, cnt));
+// LOG(SF("%s: SellNow: %d", indName, cnt));
         return cnt;
     }
 };
@@ -87,7 +89,9 @@ private:
     string indName;
 
 public:
-    ~TR_STOP_SIGNAL() { LOGF(indName); }
+    ~TR_STOP_SIGNAL() {
+        // LOGF(indName);
+    }
   
     TR_STOP_SIGNAL(const int lookBackPeriod, const double priceOffset, const double weight)
         : indName(SF("TRSTS(%d, %.2f)", lookBackPeriod, priceOffset, weight)),
@@ -111,7 +115,9 @@ private:
 
 public:
     TR_STOP_List() { ArrayResize(trStList, 0, 100); }
-    ~TR_STOP_List() { LOGF(""); }
+    ~TR_STOP_List() {
+        // LOGF("");
+    }
 
     void add(int lookBackPeriod, double offset) {
         ArrayResize(trStList, ArraySize(trStList) + 1, 100);

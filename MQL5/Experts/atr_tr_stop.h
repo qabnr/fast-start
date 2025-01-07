@@ -27,7 +27,9 @@ private:
     string indName;
 
 public:
-    ~ATR_TR_STOP() { LOGF(indName); }
+    ~ATR_TR_STOP() {
+        // LOGF(indName);
+    }
   
     ATR_TR_STOP(const int ATRperiod, const double mult)
         : indName(SF("ATR_TR_ST(%d, %.1f)", ATRperiod, mult)),
@@ -64,7 +66,9 @@ private:
 
 public:
     ATR_TR_STOP_List() { ArrayResize(atrTrStList, 0, 100); }
-    ~ATR_TR_STOP_List() { LOGF(""); }
+    ~ATR_TR_STOP_List() {
+        // LOGF("");
+    }
 
     void add(int ATRper, double mult) {
         ArrayResize(atrTrStList, ArraySize(atrTrStList) + 1, 100);

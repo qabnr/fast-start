@@ -18,7 +18,9 @@ public:
     LinRegrChannel(string bufferName)
         : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "linRegrChannel"))
     {}
-    ~LinRegrChannel() { LOGF(""); }
+    ~LinRegrChannel() {
+        // LOGF("");
+    }
 };
 //+------------------------------------------------------------------+
 #endif
