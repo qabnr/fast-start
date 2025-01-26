@@ -115,35 +115,19 @@ namespace Reason
     }
 };
 //+------------------------------------------------------------------+
-class List
-{
-protected:
-    double arr_[];
-    int    last_;
-
-public:
-    List(): last_(-1) { ArrayResize(arr_, 0, 1000); }
-    ~List() {}
-
-    void push(double val) {
-        last_++;
-        ArrayResize(arr_, last_+1, 1000);
-        arr_[last_] = val;
-    }
-};
-//+------------------------------------------------------------------+
-class StatList : List
+class StatList
 {
 private:
     double sum_;
     double sumSq_;
+    int    last_;
 
 public:
-    StatList(): sum_(0), sumSq_(0) {}
+    StatList(): sum_(0), sumSq_(0), last_(-1) {}
     ~StatList() {}
 
     void push(double val) {
-        List::push(val);
+        last_++;
         sum_   += val;
         sumSq_ += val * val;
     }
@@ -383,7 +367,7 @@ private:
     double  posTotalVolume;
     Stats   stats;
 
-    Reason::Code  posReason;
+    Reason::Code  openReason;
 
 public:
     TradePosition() : my_symbol(Symbol()),
@@ -420,15 +404,15 @@ public:
         return g::account.getFreeMargin() >= g::account.getEquity() * freeMarginTradeLimit / 100;
     }
 
-    void close(Reason::Code reason, double profit) {
+    void close(Reason::Code closeReason, double profit) {
         LOG(SF("Close, profit: %+.1f%%, %s reason: %s",
                 profit,
                 posType == Type::Buy ? "Buy" : posType == Type::Sell ? "Sell" : "?",
-                Reason::toStr(posReason)));
+                Reason::toStr(openReason)));
         g::account.log();
 
-        stats.addOpReason(stats.Close,  posReason);
-        stats.addProfit(profit, posReason);
+        stats.addOpReason(stats.Close,  openReason);
+        stats.addProfit(profit, openReason);
 
         uint cnt = 0;
         if (g::execTradeinMT()) {
@@ -450,8 +434,8 @@ public:
     }
 
     bool buy(Reason::Code reason) {
-        posReason = reason;
-        stats.addOpReason(stats.Buy, reason);
+        openReason = reason;
+        stats.addOpReason(stats.Buy, openReason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
@@ -488,8 +472,8 @@ public:
     }
 
     bool sell(Reason::Code reason) {
-        posReason = reason;
-        stats.addOpReason(stats.Sell, reason);
+        openReason = reason;
+        stats.addOpReason(stats.Sell, openReason);
 
         double freeMarginBeforeTransaction = g::account.getFreeMargin();
         double price = lastPrice();
