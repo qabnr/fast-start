@@ -115,7 +115,7 @@ namespace Reason
     }
 };
 //+------------------------------------------------------------------+
-class StatList
+class Statistics
 {
 private:
     double sum_;
@@ -123,8 +123,8 @@ private:
     int    last_;
 
 public:
-    StatList(): sum_(0), sumSq_(0), last_(-1) {}
-    ~StatList() {}
+    Statistics(): sum_(0), sumSq_(0), last_(-1) {}
+    ~Statistics() {}
 
     void push(double val) {
         last_++;
@@ -153,7 +153,8 @@ public:
 
 private:
     int      cntOp[Operation::Size][Reason::Code::Size];
-    StatList profitList[Reason::Code::Size];
+    Statistics profitStat[Reason::Code::Size];
+    Statistics profitStat2[Reason::Code::Size][Reason::Code::Size];
 
 public:
     string op2str(Operation op) const {
@@ -170,7 +171,11 @@ public:
     }
 
     void addProfit(double profit, Reason::Code reason) {
-        profitList[reason].push(profit);
+        profitStat[reason].push(profit);
+    }
+
+    void addProfit2(double profit, Reason::Code openReason, Reason::Code closeReason) {
+        profitStat2[openReason][closeReason].push(profit);
     }
 
     void print() {
@@ -192,13 +197,23 @@ public:
             }
             LOG(SF("%s %8s %8.1f %8.1f",
                    line,
-                   d2str(profitList[r].sum(), false),
-                   profitList[r].avg(),
-                   profitList[r].stdDev()));
-            sumSumProfit += profitList[r].sum();
+                   d2str(profitStat[r].sum(), false),
+                   profitStat[r].avg(),
+                   profitStat[r].stdDev()));
+            sumSumProfit += profitStat[r].sum();
         }
         LOG(lineDiv);
         LOG(SF("                                                              %8s", d2str(sumSumProfit, false)));
+
+        LOG("");
+        LOG("Profit2:");
+        for (int openReason = 0; openReason < Reason::Code::Size; openReason++) {
+            line = SF("%40s", Reason::toStr(openReason));
+            for (int closeReason = 0; closeReason < Reason::Code::Size; closeReason++) {
+                line += SF("%4s", d2str(profitStat2[openReason][closeReason].sum(), false));
+            }
+            LOG(line);
+        }
     }
 };
 //+------------------------------------------------------------------+
@@ -405,14 +420,16 @@ public:
     }
 
     void close(Reason::Code closeReason, double profit) {
-        LOG(SF("Close, profit: %+.1f%%, %s reason: %s",
-                profit,
-                posType == Type::Buy ? "Buy" : posType == Type::Sell ? "Sell" : "?",
-                Reason::toStr(openReason)));
+        LOG(SF("Close, profit: %+.1f%%, %s openReason: %s, closeReason: %s",
+            profit,
+            posType == Type::Buy ? "Buy" : posType == Type::Sell ? "Sell" : "?",
+            Reason::toStr(openReason),
+            Reason::toStr(closeReason)));
         g::account.log();
 
         stats.addOpReason(stats.Close,  openReason);
         stats.addProfit(profit, openReason);
+        stats.addProfit2(profit, openReason, closeReason);
 
         uint cnt = 0;
         if (g::execTradeinMT()) {
