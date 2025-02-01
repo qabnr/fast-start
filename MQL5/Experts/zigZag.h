@@ -19,8 +19,8 @@ public:
     Buffer HighMapBuffer;
     Buffer LowMapBuffer;
 
-    ZigZag(const string bufferName)
-        : Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", 12, 5, 3)),
+    ZigZag(const string bufferName, const int depth = 15, const int deviation = 5, const int backstep = 3) :
+          Indicator(0, bufferName, iCustom(NULL, PERIOD_CURRENT, "myZigZag", depth, deviation, backstep)),
           ZigZagBuffer (  &buffer),
           HighMapBuffer(1, buffer),
           LowMapBuffer (2, buffer)

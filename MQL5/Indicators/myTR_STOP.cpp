@@ -23,7 +23,7 @@
 #property indicator_type3  DRAW_COLOR_LINE
 #property indicator_color3 clrRed, clrGreen, clrNONE
 #property indicator_style3 STYLE_SOLID
-#property indicator_width3 3
+#property indicator_width3 2
 #property indicator_label3 "ST"
 
 #include <adapt.h>

@@ -25,8 +25,8 @@ input int    MACD1_avg_diff_period    = 9;
 input int    MACD2_fast_MA_period     = 96;
 input int    MACD2_slow_MA_period     = 208;
 input int    MACD2_avg_diff_period    = 72;
-input double OsMA_limit               = 0.336;
-input double decP_OsMa_limit          = 5.325;
+input double OsMA_limit               = 0.336;  // unused
+input double decP_OsMa_limit          = 5.325;  // unused
 input int    minMaxBAckTrack          = 11;
 input double profitPerBalanceLimit    = 1.632;
 input double profitLossPerBalLimit    = 0.410;
@@ -565,8 +565,10 @@ int OnInit()
     g::indicatorList.add(g::MACD3  = new myMACD2("MACD3", MACD2_fast_MA_period/2, MACD2_slow_MA_period/2, MACD2_avg_diff_period/2));
     g::indicatorList.add(g::zigZag = new ZigZag ("ZZ"));
 
-    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.61, 1.0));
-    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.80, 2.0));
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 1.61, 20.0));
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 2.00, 20.0));
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 3.00, 20.0));
+    g::indicatorList.add(g::TR_STS = new TR_STOP_SIGNAL(10, 5.00, 20.0));
 
     // g::TR_ST_list.add(10, 0.0);
     g::TR_ST_list.add(10, 0.4);
