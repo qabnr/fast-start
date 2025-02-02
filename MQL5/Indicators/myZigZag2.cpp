@@ -6,7 +6,7 @@
 #property version   "1.0"
 
 #property indicator_separate_window
-#property indicator_buffers 4
+#property indicator_buffers 3
 #property indicator_plots   1
 
 #property indicator_label1  "ZigZag"
@@ -40,7 +40,7 @@ int InpBackstep  = InpBackstep_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERI
 double   ZigZagBuffer[];      // main buffer
 double   HighMapBuffer[];     // ZigZag high extremes (peaks)
 double   LowMapBuffer[];      // ZigZag low extremes (bottoms)
-double   LowColBuffer[];      // ZigZag low extremes (bottoms)
+// double   LowColBuffer[];      // ZigZag low extremes (bottoms)
 
 int      ExtRecalc = 3;       // number of last extremes for recalculation
 enum     SearchMode {
@@ -52,9 +52,9 @@ enum     SearchMode {
 void OnInit() {
 //--- indicator buffers mapping
    SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_DATA);
-   SetIndexBuffer(1, HighMapBuffer, INDICATOR_DATA);
-   SetIndexBuffer(2, LowMapBuffer,  INDICATOR_DATA);
-   SetIndexBuffer(3, LowColBuffer,  INDICATOR_COLOR_INDEX);
+   SetIndexBuffer(1, HighMapBuffer, INDICATOR_CALCULATIONS);
+   SetIndexBuffer(2, LowMapBuffer,  INDICATOR_CALCULATIONS);
+//    SetIndexBuffer(3, LowColBuffer,  INDICATOR_COLOR_INDEX);
 
    IndicatorSetString(INDICATOR_SHORTNAME,
       StringFormat("ZigZag(%d, %d, %d)", InpDepth, InpDeviation, InpBackstep));
@@ -93,7 +93,7 @@ int OnCalculate(const int        rates_total,
       ArrayInitialize(ZigZagBuffer,  0.0);
       ArrayInitialize(HighMapBuffer, 0.0);
       ArrayInitialize(LowMapBuffer,  0.0);
-      ArrayInitialize(LowColBuffer,  0.0);
+    //   ArrayInitialize(LowColBuffer,  0.0);
       start = InpDepth;
    }
    else {
