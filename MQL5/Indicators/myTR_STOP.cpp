@@ -146,8 +146,8 @@ int OnCalculate(const int rates_total,
             maxLdiff = MathMax(HIGH_PRICE(i-back) - lowMin, maxLdiff);
             lowMin   = MathMin(lowMin, LOW_PRICE(i-back));
         }
-        double newSellStop = highMax - maxHdiff - priceOffset;
-        double newBuyStop  = lowMin  + maxLdiff + priceOffset;
+        double newSellStop = highMax - maxHdiff - priceOffset / 90.0 * open[i];
+        double newBuyStop  = lowMin  + maxLdiff + priceOffset / 90.0 * open[i];
         bool is_newBuyStop  = false;
         bool is_newSellStop = false;
 

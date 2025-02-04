@@ -1,33 +1,32 @@
 //+--------------+
 //| myZigZag2.mq5 |
 //+--------------+
+
+#ifndef __cplusplus
 #property copyright "Copyright 2024, Mogyo Software Corp."
 #property link      "http://www.mogyo.com"
 #property version   "1.0"
 
 #property indicator_separate_window
-#property indicator_buffers 3
-#property indicator_plots   1
+#property indicator_buffers 4
+#property indicator_plots   2
 
 #property indicator_label1  "ZigZag"
 #property indicator_type1   DRAW_SECTION
 #property indicator_color1  clrCadetBlue
 #property indicator_style1  STYLE_SOLID
-#property indicator_width1  1
+#property indicator_width1  2
 
-// #property indicator_label2  "H"
-// #property indicator_type2   DRAW_SECTION
-// #property indicator_color2  clrRed
-// #property indicator_style2  STYLE_SOLID
-// #property indicator_width2  1
+#property indicator_label2  "Diff"
+#property indicator_type2   DRAW_SECTION
+#property indicator_color2  clrRed
+#property indicator_style2  STYLE_SOLID
+#property indicator_width2  2
+#else
+#include <adapt.h>
+#endif
 
-// #property indicator_label3  "L"
-// #property indicator_type3   DRAW_COLOR_SECTION 
-// #property indicator_color3  clrGreen, clrRed
-// #property indicator_style3  STYLE_SOLID
-// #property indicator_width3  1
 //+------------------------------------------------------------------+
-//--- input parameters
 input int InpDepth_I     = 12;  // Depth
 input int InpDeviation_I = 5;   // Deviation
 input int InpBackstep_I  = 3;   // Back Step
@@ -38,9 +37,9 @@ int InpBackstep  = InpBackstep_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERI
 
 //+------------------------------------------------------------------+
 double   ZigZagBuffer[];      // main buffer
+double   PrcDiffBuffer[];     // diff between open price and last ZigZag value
 double   HighMapBuffer[];     // ZigZag high extremes (peaks)
 double   LowMapBuffer[];      // ZigZag low extremes (bottoms)
-// double   LowColBuffer[];      // ZigZag low extremes (bottoms)
 
 int      ExtRecalc = 3;       // number of last extremes for recalculation
 enum     SearchMode {
@@ -50,22 +49,16 @@ enum     SearchMode {
 };
 //+------------------------------------------------------------------+
 void OnInit() {
-//--- indicator buffers mapping
-   SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_DATA);
-   SetIndexBuffer(1, HighMapBuffer, INDICATOR_CALCULATIONS);
-   SetIndexBuffer(2, LowMapBuffer,  INDICATOR_CALCULATIONS);
-//    SetIndexBuffer(3, LowColBuffer,  INDICATOR_COLOR_INDEX);
+SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_CALCULATIONS);
+SetIndexBuffer(1, PrcDiffBuffer, INDICATOR_DATA);
+SetIndexBuffer(2, HighMapBuffer, INDICATOR_CALCULATIONS);
+SetIndexBuffer(3, LowMapBuffer,  INDICATOR_CALCULATIONS);
 
    IndicatorSetString(INDICATOR_SHORTNAME,
       StringFormat("ZigZag(%d, %d, %d)", InpDepth, InpDeviation, InpBackstep));
 
    PlotIndexSetString(0, PLOT_LABEL, "ZZ");
-//    PlotIndexSetString(1, PLOT_LABEL, "H");
-//    PlotIndexSetString(2, PLOT_LABEL, "L");
-
    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
-//    PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
-//    PlotIndexSetDouble(2, PLOT_EMPTY_VALUE, 0.0);
 
    IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
 }
@@ -91,9 +84,9 @@ int OnCalculate(const int        rates_total,
 
    if (prev_calculated == 0) {
       ArrayInitialize(ZigZagBuffer,  0.0);
+      ArrayInitialize(PrcDiffBuffer, 0.0);
       ArrayInitialize(HighMapBuffer, 0.0);
       ArrayInitialize(LowMapBuffer,  0.0);
-    //   ArrayInitialize(LowColBuffer,  0.0);
       start = InpDepth;
    }
    else {
@@ -109,7 +102,7 @@ int OnCalculate(const int        rates_total,
       }
       start++;
 
-      //--- what type of exremum we search for
+      //--- what type of extremum we search for
       if (LowMapBuffer[start] != 0.0) {
          curlow = LowMapBuffer[start];
          extreme_search = Peak;
@@ -121,16 +114,16 @@ int OnCalculate(const int        rates_total,
       //--- clear indicator values
       for(int i = start + 1; i < rates_total && !IsStopped(); i++) {
          ZigZagBuffer [i] = 0.0;
+         PrcDiffBuffer[i] = 0.0;
          HighMapBuffer[i] = 0.0;
          LowMapBuffer [i] = 0.0;
-        //  LowColBuffer [i] = 0.0;
       }
    }
 
 //--- search for high and low extremes
    for(int i = start; i < rates_total && !IsStopped(); i++) {
       { //--- low
-         double low_val = low[Lowest(low, InpDepth, i)];
+         double low_val = low[getLowestIndex(low, InpDepth, i)];
          if (low_val == last_low) {
             low_val = 0.0;
          } 
@@ -143,28 +136,24 @@ int OnCalculate(const int        rates_total,
                for(int back = 1; back <= InpBackstep && i >= back; back++) {
                   if (LowMapBuffer[i - back] > low_val) {
                       LowMapBuffer[i - back] = 0.0;
-                    //   LowColBuffer[i - back] = 0.0;
                   }
                }
             }
          }
          if (low[i] == low_val) {
             LowMapBuffer[i] = low_val;
-            // LowColBuffer[i] = 0;
             for (int j = i-1; j >= 0; j--) {
                if (LowMapBuffer[j] != 0) {
-                //   LowColBuffer[i] = low_val < LowMapBuffer[j] ? 1 : 0;
                   break;
                }
             }
          }
          else {
             LowMapBuffer[i] = 0.0;
-            // LowColBuffer[i] = 0.0;
          }
       }
       { //--- high
-         double hi_val = high[Highest(high, InpDepth, i)];
+         double hi_val = high[getHighestIndex(high, InpDepth, i)];
          if (hi_val == last_high) {
             hi_val = 0.0;
          }
@@ -201,6 +190,7 @@ int OnCalculate(const int        rates_total,
 
 //--- final selection of extreme points for ZigZag
    for(int i = start; i < rates_total && !IsStopped(); i++) {
+    PrcDiffBuffer[i] = last_high_pos > last_low_pos ? open[i] - last_high : open[i] - last_low;
       switch(extreme_search) {
          case Any_Extremum: {
             if (last_low == 0.0 && last_high == 0.0) {
@@ -266,14 +256,13 @@ void zeroOut(const int i)
       if (ZigZagBuffer[back] == 0) {
          HighMapBuffer[back] = 0;
          LowMapBuffer [back] = 0;
-        //  LowColBuffer [back] = 0;
       }
    }
 }
 //+------------------------------------------------------------------+
 //|  Search for the index of the highest bar                         |
 //+------------------------------------------------------------------+
-int Highest(const double &array[], const int depth, const int start) {
+int getHighestIndex(const double &array[], const int depth, const int start) {
    if (start < 0) {
       return 0;
    }
@@ -291,7 +280,7 @@ int Highest(const double &array[], const int depth, const int start) {
 //+------------------------------------------------------------------+
 //|  Search for the index of the lowest bar                          |
 //+------------------------------------------------------------------+
-int Lowest(const double &array[], const int depth, const int start) {
+int getLowestIndex(const double &array[], const int depth, const int start) {
    if (start < 0) {
       return 0;
    }
