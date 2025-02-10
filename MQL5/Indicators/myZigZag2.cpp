@@ -8,12 +8,12 @@
 #property version   "1.0"
 
 #property indicator_separate_window
-#property indicator_buffers 4
-#property indicator_plots   2
+#property indicator_buffers 5
+#property indicator_plots   3
 
-#property indicator_label1  "ZigZag"
+#property indicator_label1  "MinMax"
 #property indicator_type1   DRAW_SECTION
-#property indicator_color1  clrCadetBlue
+#property indicator_color1  clrGreen
 #property indicator_style1  STYLE_SOLID
 #property indicator_width1  1
 
@@ -22,6 +22,12 @@
 #property indicator_color2  clrRed
 #property indicator_style2  STYLE_SOLID
 #property indicator_width2  2
+
+#property indicator_label3  "ZigZag"
+#property indicator_type3   DRAW_SECTION
+#property indicator_color3  clrCadetBlue
+#property indicator_style3  STYLE_SOLID
+#property indicator_width3  1
 #else
 #include <adapt.h>
 #endif
@@ -36,8 +42,9 @@ int InpDeviation = InpDeviation_I;
 int InpBackstep  = InpBackstep_I * PeriodSeconds(PERIOD_H1) / PeriodSeconds(PERIOD_CURRENT);
 
 //+------------------------------------------------------------------+
-double   ZigZagBuffer[];      // main buffer
+double   MinMaxBuffer[];      // MinMax buffer
 double   PrcDiffBuffer[];     // diff between open price and last ZigZag value
+double   ZigZagBuffer[];      // ZigZag buffer
 double   HighMapBuffer[];     // ZigZag high extremes (peaks)
 double   LowMapBuffer[];      // ZigZag low extremes (bottoms)
 
@@ -49,16 +56,23 @@ enum     SearchMode {
 };
 //+------------------------------------------------------------------+
 void OnInit() {
-    SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_DATA);
-SetIndexBuffer(1, PrcDiffBuffer, INDICATOR_DATA);
-SetIndexBuffer(2, HighMapBuffer, INDICATOR_CALCULATIONS);
-SetIndexBuffer(3, LowMapBuffer,  INDICATOR_CALCULATIONS);
+    SetIndexBuffer(0, MinMaxBuffer,  INDICATOR_DATA);
+    SetIndexBuffer(1, PrcDiffBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, ZigZagBuffer,  INDICATOR_CALCULATIONS);
+    SetIndexBuffer(3, HighMapBuffer, INDICATOR_CALCULATIONS);
+    SetIndexBuffer(4, LowMapBuffer,  INDICATOR_CALCULATIONS);
 
    IndicatorSetString(INDICATOR_SHORTNAME,
       StringFormat("ZigZag(%d, %d, %d)", InpDepth, InpDeviation, InpBackstep));
 
-   PlotIndexSetString(0, PLOT_LABEL, "ZZ");
+   PlotIndexSetString(0, PLOT_LABEL, "MinMAx");
    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
+
+   PlotIndexSetString(1, PLOT_LABEL, "Diff");
+   PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
+
+   PlotIndexSetString(2, PLOT_LABEL, "ZZ");
+   PlotIndexSetDouble(2, PLOT_EMPTY_VALUE, 0.0);
 
    IndicatorSetInteger(INDICATOR_DIGITS, _Digits);
 }
@@ -83,10 +97,11 @@ int OnCalculate(const int        rates_total,
    SearchMode extreme_search = Any_Extremum;
 
    if (prev_calculated == 0) {
-      ArrayInitialize(ZigZagBuffer,  0.0);
-      ArrayInitialize(PrcDiffBuffer, 0.0);
-      ArrayInitialize(HighMapBuffer, 0.0);
-      ArrayInitialize(LowMapBuffer,  0.0);
+    ArrayInitialize(MinMaxBuffer,  0.0);
+    ArrayInitialize(PrcDiffBuffer, 0.0);
+    ArrayInitialize(ZigZagBuffer,  0.0);
+    ArrayInitialize(HighMapBuffer, 0.0);
+    ArrayInitialize(LowMapBuffer,  0.0);
       start = InpDepth;
    }
    else {
@@ -113,8 +128,9 @@ int OnCalculate(const int        rates_total,
       }
       //--- clear indicator values
       for(int i = start + 1; i < rates_total && !IsStopped(); i++) {
-         ZigZagBuffer [i] = 0.0;
+         MinMaxBuffer [i] = 0.0;
          PrcDiffBuffer[i] = 0.0;
+         ZigZagBuffer [i] = 0.0;
          HighMapBuffer[i] = 0.0;
          LowMapBuffer [i] = 0.0;
       }
@@ -190,7 +206,8 @@ int OnCalculate(const int        rates_total,
 
 //--- final selection of extreme points for ZigZag
    for(int i = start; i < rates_total && !IsStopped(); i++) {
-    PrcDiffBuffer[i] = last_high_pos > last_low_pos ? open[i] - last_high : open[i] - last_low;
+    MinMaxBuffer[i]  = lastHighIdx < lastLowIdx ? last_high : last_low;
+    PrcDiffBuffer[i] = lastHighIdx < lastLowIdx ? open[i] - last_high : open[i] - last_low;
       switch(extreme_search) {
          case Any_Extremum: {
             if (last_low == 0.0 && last_high == 0.0) {
