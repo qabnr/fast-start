@@ -15,7 +15,7 @@
 #property indicator_type1   DRAW_SECTION
 #property indicator_color1  clrCadetBlue
 #property indicator_style1  STYLE_SOLID
-#property indicator_width1  2
+#property indicator_width1  1
 
 #property indicator_label2  "Diff"
 #property indicator_type2   DRAW_SECTION
@@ -49,7 +49,7 @@ enum     SearchMode {
 };
 //+------------------------------------------------------------------+
 void OnInit() {
-SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_CALCULATIONS);
+    SetIndexBuffer(0, ZigZagBuffer,  INDICATOR_DATA);
 SetIndexBuffer(1, PrcDiffBuffer, INDICATOR_DATA);
 SetIndexBuffer(2, HighMapBuffer, INDICATOR_CALCULATIONS);
 SetIndexBuffer(3, LowMapBuffer,  INDICATOR_CALCULATIONS);
@@ -78,7 +78,7 @@ int OnCalculate(const int        rates_total,
       return 0;
    }
    int    start = 0;
-   int    last_high_pos = 0, last_low_pos = 0;
+   int    lastHighIdx = 0, lastLowIdx = 0;
    double curlow = 0, curhigh = 0, last_high = 0, last_low = 0;
    SearchMode extreme_search = Any_Extremum;
 
@@ -196,13 +196,13 @@ int OnCalculate(const int        rates_total,
             if (last_low == 0.0 && last_high == 0.0) {
                if (HighMapBuffer[i] != 0) {
                   last_high = high[i];
-                  last_high_pos = i;
+                  lastHighIdx = i;
                   extreme_search = Bottom;
                   ZigZagBuffer[i] = last_high;
                }
                if (LowMapBuffer[i] != 0.0) {
                   last_low = low[i];
-                  last_low_pos = i;
+                  lastLowIdx = i;
                   extreme_search = Peak;
                   ZigZagBuffer[i] = last_low;
                }
@@ -211,15 +211,15 @@ int OnCalculate(const int        rates_total,
          }
          case Peak: {
             if (LowMapBuffer[i] != 0.0 && LowMapBuffer[i] < last_low && HighMapBuffer[i] == 0.0) {
-               ZigZagBuffer[last_low_pos] = 0.0;
-               last_low_pos = i;
+               ZigZagBuffer[lastLowIdx] = 0.0;
+               lastLowIdx = i;
                last_low = LowMapBuffer[i];
                ZigZagBuffer[i] = last_low;
                zeroOut(i);
             }
             if (HighMapBuffer[i] != 0.0 && LowMapBuffer[i] == 0.0) {
                last_high = HighMapBuffer[i];
-               last_high_pos = i;
+               lastHighIdx = i;
                ZigZagBuffer[i] = last_high;
                zeroOut(i);
                extreme_search = Bottom;
@@ -228,15 +228,15 @@ int OnCalculate(const int        rates_total,
          }
          case Bottom: {
             if (HighMapBuffer[i] != 0.0 && HighMapBuffer[i] > last_high && LowMapBuffer[i] == 0.0) {
-               ZigZagBuffer[last_high_pos] = 0.0;
-               last_high_pos = i;
+               ZigZagBuffer[lastHighIdx] = 0.0;
+               lastHighIdx = i;
                last_high = HighMapBuffer[i];
                ZigZagBuffer[i] = last_high;
                zeroOut(i);
             }
             if (LowMapBuffer[i] != 0.0 && HighMapBuffer[i] == 0.0) {
                last_low = LowMapBuffer[i];
-               last_low_pos = i;
+               lastLowIdx = i;
                ZigZagBuffer[i] = last_low;
                zeroOut(i);
                extreme_search = Peak;
