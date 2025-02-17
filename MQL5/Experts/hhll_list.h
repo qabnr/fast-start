@@ -110,7 +110,15 @@ private:
         if (!data[latest].isValid) return;
         data[latest].change2lower();
     }
+
 public:
+    static double lastHH;
+    static double lastMax;
+    static int    lastMaxTickCnt;
+    static double lastLL;
+    static double lastMin;
+    static int    lastMinTickCnt;
+
     HHLLlist() : latest(arrSize - 1), oldest(latest), lastPrice(SymbolInfoDouble(_Symbol, SYMBOL_LAST)),
         prevL(lastPrice), prevH(lastPrice)
     {
@@ -125,22 +133,22 @@ public:
         {   
             double currH = g::zigZag.HighMapBuffer.get(1);
             if (currH > 0) {
-                g::lastMax = currH;
-                g::lastMaxTickCnt = tickCnt - 1;
+                lastMax = currH;
+                lastMaxTickCnt = tickCnt - 1;
                 for (int i = 2; i < prevLookBack; i++) {
                     double backH = g::zigZag.HighMapBuffer.get(i);
                     if (backH > 0) {
                         prevH = backH;
                         if (backH > currH) {
-                            g::lastMax = backH;
-                            g::lastMaxTickCnt = tickCnt - i;
+                            lastMax = backH;
+                            lastMaxTickCnt = tickCnt - i;
                         }
                         break;
                     }
                 }
                 bool HH = currH > prevH;
                 if (HH) {
-                    g::lastHH = currH;
+                    lastHH = currH;
                     if (isHigh()) {  // was xH-...
                         change2higher();  // Now: HH-...
                     } else {  // was xL
@@ -163,22 +171,22 @@ public:
         {   
             double currL = g::zigZag.LowMapBuffer.get(1);
             if (currL > 0) {
-                g::lastMin = currL;
-                g::lastMinTickCnt = tickCnt - 1;
+                lastMin = currL;
+                lastMinTickCnt = tickCnt - 1;
                 for (int i = 2; i < prevLookBack; i++) {
                     double backL = g::zigZag.LowMapBuffer.get(i);
                     if (backL > 0) {
                         prevL = backL;
                         if (backL < currL) {
-                            g::lastMin = backL;
-                            g::lastMinTickCnt = tickCnt - i;
+                            lastMin = backL;
+                            lastMinTickCnt = tickCnt - i;
                         }
                         break;
                     }
                 }
                 bool LL = currL < prevL;
                 if (LL) {
-                    g::lastLL = currL;
+                    lastLL = currL;
                     if (isLow()) {
                         change2lower();
                     } else {
@@ -199,5 +207,13 @@ public:
         }
     }
 };
+
+// Initialize static members
+double HHLLlist::lastHH = 0;
+double HHLLlist::lastMax = 0;
+int HHLLlist::lastMaxTickCnt = 0;
+double HHLLlist::lastLL = 0;
+double HHLLlist::lastMin = 0;
+int HHLLlist::lastMinTickCnt = 0;
 
 #endif // HHLL_LIST_H

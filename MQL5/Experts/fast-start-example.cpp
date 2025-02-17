@@ -544,13 +544,6 @@ namespace g
 
     IndicatorList   indicatorList;
 
-    double lastHH;
-    double lastMax;
-    int    lastMaxTickCnt;
-    double lastLL;
-    double lastMin;
-    int    lastMinTickCnt;
-
     Account account;
 
     bool execTradeinMT() { return tradeSize > 0; }
@@ -838,25 +831,25 @@ public:
 
         double lastPrice = g::pPos.lastPrice();
 
-        double lastMaxDiffPct = g::lastMax == 0 ? 0 : (lastPrice / g::lastMax - 1) * 100;
-        double lastMinDiffPct = g::lastMin == 0 ? 0 : (lastPrice / g::lastMin - 1) * 100;
+        double lastMaxDiffPct = HHLLlist::lastMax == 0 ? 0 : (lastPrice / HHLLlist::lastMax - 1) * 100;
+        double lastMinDiffPct = HHLLlist::lastMin == 0 ? 0 : (lastPrice / HHLLlist::lastMin - 1) * 100;
 
         LOG(SF("%8s %+7.1f%%  %+7.1f%%   %+6.1f%%  %+6.1f%%  %+6.1f%%  %7s  %+6.1f%%  %7s %6.1f%% %6.2f H%+0.1f%%(%2d) L%+0.1f%%(%2d)",
-               d2str(profit),
-               profitLossPerBal * 100,
-               profitLossPerPrice * 100,
-               profitPerBalance * 100.0,
-               profitPerPrice * 100.0,
-               cummPrLossPerPrice * 100,
-               d2str(equity),
+            d2str(profit),
+            profitLossPerBal * 100,
+            profitLossPerPrice * 100,
+            profitPerBalance * 100.0,
+            profitPerPrice * 100.0,
+            cummPrLossPerPrice * 100,
+            d2str(equity),
             (equity-maxEquity) / maxEquity * 100,
-               d2str(balance),
-               g::maxRelDrawDown * 100,
-               lastPrice,
-               lastMaxDiffPct,
-               currTickCnt - g::lastMaxTickCnt,
-               lastMinDiffPct,
-            currTickCnt - g::lastMinTickCnt
+            d2str(balance),
+            g::maxRelDrawDown * 100,
+            lastPrice,
+            lastMaxDiffPct,
+            currTickCnt - HHLLlist::lastMaxTickCnt,
+            lastMinDiffPct,
+            currTickCnt - HHLLlist::lastMinTickCnt
         ));
     }
 };
@@ -880,9 +873,9 @@ void OnTick()
     }
 
     if (isNewMinute()) {
-//        static HHLLlist hhll;
-//        hhll.log(tickCnt);
-        // p.log(tickCnt);
+        static HHLLlist hhll;
+        hhll.log(tickCnt);
+        p.log(tickCnt);
     }
 
     double price = g::pPos.lastPrice();
