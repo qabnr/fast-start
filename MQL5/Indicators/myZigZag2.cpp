@@ -66,7 +66,7 @@ void OnInit() {
         StringFormat("ZigZag(%d, %d, %d)", InpDepth, InpDeviation, InpBackstep));
 
     PlotIndexSetString(0, PLOT_LABEL, "Diff");
-    // PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
+    PlotIndexSetDouble(0, PLOT_EMPTY_VALUE, 0.0);
 
     PlotIndexSetString(1, PLOT_LABEL, "MinMax");
     // PlotIndexSetDouble(1, PLOT_EMPTY_VALUE, 0.0);
@@ -97,11 +97,11 @@ int OnCalculate(const int        rates_total,
     SearchMode extreme_search = Any_Extremum;
 
     if (prev_calculated == 0) {
-     ArrayInitialize(MinMaxBuffer,  0.0);
-     ArrayInitialize(PrcDiffBuffer, 0.0);
-     ArrayInitialize(ZigZagBuffer,  0.0);
-     ArrayInitialize(HighMapBuffer, 0.0);
-     ArrayInitialize(LowMapBuffer,  0.0);
+        ArrayInitialize(MinMaxBuffer,  0.0);
+        ArrayInitialize(PrcDiffBuffer, 0.0);
+        ArrayInitialize(ZigZagBuffer,  0.0);
+        ArrayInitialize(HighMapBuffer, 0.0);
+        ArrayInitialize(LowMapBuffer,  0.0);
         start = InpDepth;
     }
     else {
@@ -206,8 +206,8 @@ int OnCalculate(const int        rates_total,
 
 //--- final selection of extreme points for ZigZag
     for(int i = start; i < rates_total && !IsStopped(); i++) {
-    //  MinMaxBuffer[i]  = lastHighIdx < lastLowIdx ? last_high : last_low;
-     PrcDiffBuffer[i] = lastHighIdx < lastLowIdx ? open[i] - last_high : open[i] - last_low;
+        MinMaxBuffer[i]  = lastHighIdx > lastLowIdx ? last_high : last_low;
+        PrcDiffBuffer[i] = extreme_search == Bottom ? last_high : last_low;
         switch(extreme_search) {
             case Any_Extremum: {
                 if (last_low == 0.0 && last_high == 0.0) {
@@ -273,6 +273,9 @@ void zeroOut(const int i)
         if (ZigZagBuffer[back] == 0) {
             HighMapBuffer[back] = 0;
             LowMapBuffer [back] = 0;
+        }
+        else {
+            break;
         }
     }
 }
